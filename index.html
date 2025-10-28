@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>YChart - Org Chart Editor</title>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>📊 YChart - Org Chart Editor</h1>
+        <div class="controls">
+          <button id="toggle-view" class="btn">Force Graph</button>
+          <button id="reset-positions" class="btn">Reset Positions</button>
+          <button id="export-svg" class="btn">Export SVG</button>
+        </div>
+      </header>
+      <div id="error" style="display: none;"></div>
+      <div class="container">
+        <div class="panel editor-panel">
+          <div class="panel-header">
+            <h2>YAML Editor</h2>
+            <p class="hint">Use 'supervisor' for hierarchy • Use 'level' for standalone nodes (default: 1)</p>
+          </div>
+          <div id="editor"></div>
+        </div>
+        <div class="panel chart-panel">
+          <div class="panel-header">
+            <h2>Org Chart</h2>
+            <p class="hint">🖱️ Scroll to zoom • ✋ Drag to pan • � Drag nodes to rearrange</p>
+          </div>
+          <div id="chart"></div>
+          <div id="node-details" style="display: none;"></div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
