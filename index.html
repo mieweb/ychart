@@ -5,35 +5,80 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YChart - Org Chart Editor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        height: 100vh;
+        overflow: hidden;
+      }
+      
+      #app {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+      
+      header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 10;
+      }
+      
+      header h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      
+      .controls {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      
+      .btn {
+        padding: 0.5rem 1rem;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+      
+      .btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-1px);
+      }
+      
+      #container {
+        flex: 1;
+        overflow: hidden;
+      }
+    </style>
   </head>
   <body>
     <div id="app">
       <header>
         <h1>📊 YChart - Org Chart Editor</h1>
         <div class="controls">
+          <button id="toggle-swap" class="btn">Enable Swap Mode</button>
           <button id="toggle-view" class="btn">Force Graph</button>
           <button id="reset-positions" class="btn">Reset Positions</button>
           <button id="export-svg" class="btn">Export SVG</button>
         </div>
       </header>
-      <div id="error" style="display: none;"></div>
-      <div class="container">
-        <div class="panel editor-panel">
-          <div class="panel-header">
-            <h2>YAML Editor</h2>
-            <p class="hint">Use 'supervisor' for hierarchy • Use 'level' for standalone nodes (default: 1)</p>
-          </div>
-          <div id="editor"></div>
-        </div>
-        <div class="panel chart-panel">
-          <div class="panel-header">
-            <h2>Org Chart</h2>
-            <p class="hint">🖱️ Scroll to zoom • ✋ Drag to pan • � Drag nodes to rearrange</p>
-          </div>
-          <div id="chart"></div>
-          <div id="node-details" style="display: none;"></div>
-        </div>
-      </div>
+      <!-- YChart Editor will be initialized here -->
+      <div id="container"></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

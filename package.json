@@ -1,16 +1,25 @@
 {
-  "name": "ychart",
-  "private": true,
-  "version": "0.0.0",
+  "name": "ychart-editor",
+  "version": "1.0.0",
+  "description": "A flexible organizational chart editor with YAML-based data management",
   "type": "module",
+  "main": "./dist/ychart-editor.js",
+  "types": "./dist/ychartEditor.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build:lib": "tsc && vite build --mode production",
+    "preview": "vite preview",
+    "serve:dist": "vite preview --outDir dist"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/js-yaml": "^4.0.9",
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "terser": "^5.44.0",
     "typescript": "~5.9.3",
     "vite": "^7.1.7"
   },
@@ -21,8 +30,14 @@
     "@codemirror/view": "^6.38.6",
     "codemirror": "^6.0.2",
     "d3": "^7.9.0",
+    "d3-array": "3",
+    "d3-drag": "^3.0.0",
     "d3-flextree": "^2.1.2",
+    "d3-hierarchy": "3",
     "d3-org-chart": "^3.1.1",
+    "d3-selection": "3",
+    "d3-shape": "3",
+    "d3-zoom": "3",
     "js-yaml": "^4.1.0"
   }
 }

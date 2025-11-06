@@ -1,0 +1,166 @@
+{{#include MASTER, YChartEditorJS}}
+
+<script>
+    // Sample organizational data
+    var yamlData = `---
+options:
+  nodeWidth: 220
+  nodeHeight: 110
+  childrenMargin: 50
+  compactMarginBetween: 35
+  compactMarginPair: 30
+  neighbourMargin: 20
+schema:
+  id: number | required
+  name: string | required
+  title: string | optional
+  email: string | required
+---
+
+- id: 1
+  name: Sarah Johnson
+  title: CEO
+  email: sarah.johnson@company.com
+
+- id: 2
+  name: Michael Chen
+  title: CTO
+  email: michael.chen@company.com
+  parentId: 1
+
+- id: 3
+  name: Emily Davis
+  title: VP Engineering
+  email: emily.davis@company.com
+  parentId: 2
+
+- id: 4
+  name: David Kim
+  title: Senior Engineer
+  email: david.kim@company.com
+  parentId: 3
+
+- id: 5
+  name: Lisa Wang
+  title: Engineer
+  email: lisa.wang@company.com
+  parentId: 3
+
+- id: 6
+  name: James Brown
+  title: VP Product
+  email: james.johnson@company.com
+  parentId: 1
+
+- id: 7
+  name: Rachel Green
+  title: Product Manager
+  email: rachel.green@company.com
+  parentId: 6
+
+- id: 8
+  name: Tom Wilson
+  title: Designer
+  email: tom.wilson@company.com
+  parentId: 6`;
+
+    function initializeYChartEditor() {
+        console.log('Initializing YChart Editor...');
+        
+        // Initialize YChart Editor
+        // IIFE build exposes YChartEditor as a global class (not nested object)
+        var editor = new window.YChartEditor({
+            nodeWidth: 220,
+            nodeHeight: 110,
+            editorTheme: 'dark',
+            collapsible: true
+        });
+
+        // Setup the editor with builder pattern
+        editor
+            .initView('container', yamlData)
+            .enableSwapBtn('swap-btn')
+            .toggleViewBtn('view-btn')
+            .resetBtn('reset-btn')
+            .exportSVGBtn('export-btn');
+
+        console.log('✅ YChart Editor initialized successfully!');
+        
+        // Make it accessible globally for debugging
+        window.ychartEditor = editor;
+    }
+</script>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 10;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .controls {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-1px);
+    }
+
+    #container {
+        flex: 1;
+        overflow: hidden;
+    }
+</style>
+<header>
+    <h1>YChart Editor - Production Example</h1>
+    <div class="controls">
+        <button id="swap-btn" class="btn">Enable Swap Mode</button>
+        <button id="view-btn" class="btn">Force Graph</button>
+        <button id="reset-btn" class="btn">Reset</button>
+        <button id="export-btn" class="btn">Export SVG</button>
+    </div>
+</header>
+
+<div id="container"></div>
+
+<script>
+    
+    // Initialize after the page loads (similar to SVGTreeViewer pattern)
+    initializeYChartEditor();
+</script>

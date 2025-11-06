@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YChart Export Test</title>
+</head>
+<body>
+    <div id="container" style="width: 100%; height: 600px;"></div>
+    
+    <script src="dist/ychart-editor.js"></script>
+    <script>
+        console.log('Testing YChart export...');
+        console.log('window.YChartEditor:', window.YChartEditor);
+        console.log('typeof window.YChartEditor:', typeof window.YChartEditor);
+        console.log('Is constructor?', window.YChartEditor.prototype !== undefined);
+        
+        try {
+            const editor = new window.YChartEditor();
+            console.log('✅ Constructor works!', editor);
+        } catch (error) {
+            console.error('❌ Constructor failed:', error);
+        }
+    </script>
+</body>
+</html>
