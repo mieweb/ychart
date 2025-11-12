@@ -119,8 +119,8 @@ class YChartEditor {
     // }, 10);
 
     return this;
-  }
-
+  
+}
   private createLayout(): void {
     if (!this.viewContainer) return;
 
@@ -134,7 +134,7 @@ class YChartEditor {
 
     this.chartContainer = document.createElement('div');
     this.chartContainer.id = 'ychart-chart';
-    this.chartContainer.style.cssText = 'flex:1;width:100%;height:100%;position:relative;overflow:auto;';
+    this.chartContainer.style.cssText = 'flex:1;width:100%;height:100%;position:relative;';
     chartWrapper.appendChild(this.chartContainer);
 
     // Create details panel
@@ -172,14 +172,12 @@ class YChartEditor {
       position: relative;
       transition: width 0.3s ease, border-left-width 0s 0.3s;
       flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
     `;
 
     // Create editor container
     this.editorContainer = document.createElement('div');
     this.editorContainer.id = 'ychart-editor';
-    this.editorContainer.style.cssText = 'width:100%;height:100%;overflow:hidden;flex:1;';
+    this.editorContainer.style.cssText = 'width:100%;height:100%;';
     editorSidebar.appendChild(this.editorContainer);
 
     // Create collapse button (positioned outside sidebar, on the left side of editor)
@@ -481,19 +479,14 @@ class YChartEditor {
       extensions.push(oneDark);
     }
 
-    // Force editor to fill full height and stay within container
+    // Make CodeMirror fill height and handle its own scrolling
     extensions.push(
       EditorView.theme({
         "&": { 
-          height: "100%",
-          maxHeight: "100%"
+          height: "100%"
         },
         ".cm-scroller": { 
-          overflow: "auto",
-          maxHeight: "100%"
-        },
-        ".cm-content": {
-          maxHeight: "100%"
+          overflow: "auto"
         }
       })
     );
