@@ -1,166 +1,133 @@
-{{#include MASTER, YChartEditorJS}}
+<!-- Load YChart Editor from local HTTPS preview server -->
+<script src="https://localhost:4173/ychart-editor.js"></script>
+
+<pre id="yaml-editor" style="display: none;">
+- id: {{pat_id}}
+  name: {{full_name}}
+  title: {{title}}
+  email: {{email}}
+  supervisor: {{supervisor_name}}
+<WCQUERY QUERY="SELECT 
+        r.pat_id, 
+        CONCAT(p.last_name, ', ', p.first_name) AS full_name,
+        p.email,
+        r.related_pat_id AS parent_id,
+        sup.pat_id AS sup_id,
+        CONCAT(sup.last_name, ', ', sup.first_name) AS supervisor_name,
+        '' AS title
+    FROM pat_pat_relations r 
+    LEFT JOIN patients p 
+        ON p.pat_id = r.pat_id
+    LEFT JOIN patients AS sup
+        ON sup.pat_id = r.related_pat_id
+    WHERE r.related_pat_id = {{%pq pat_id}}
+        AND r.relation_type_id = (SELECT relation_type_id FROM relation_types WHERE relation_type = 'Supervisor')
+        AND p.active = 1
+        AND r.end_date > CURDATE()"
+    LAYOUT="YAMLTreeLayout" />
+</pre>
 
 <script>
-    // Sample organizational data
-    var yamlData = `---
+    function initializeYChartEditor() {
+        console.log('Initializing YChart Editor from localhost...');
+        
+        // Get YAML data from the pre element
+        var preElement = document.getElementById('yaml-editor');
+        var yamlFromPre = preElement ? preElement.textContent.trim() : '';
+        
+        // You can use the pre content directly, or combine it with front matter
+        var yamlData = `---
 options:
   nodeWidth: 220
   nodeHeight: 110
   childrenMargin: 50
-  compactMarginBetween: 35
-  compactMarginPair: 30
-  neighbourMargin: 20
 schema:
   id: number | required
   name: string | required
   title: string | optional
   email: string | required
+  supervisor: string | optional
+card:
+  - div:
+      class: employee-name
+      style: font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;
+      content: $name$
+  - div:
+      style: font-size:12px;color:#666;margin-bottom:2px;
+      content: $title$
+  - div:
+      class: contact-info
+      style: font-size:11px;color:#999;
+      children:
+        - span:
+            style: font-weight:600;
+            content: "Email: "
+        - span:
+            style: color:#667eea;
+            content: $email$
+  - div:
+      class: supervisor-info
+      style: font-size:10px;color:#999;margin-top:4px;
+      children:
+        - span: "Reports to: "
+        - span:
+            style: font-weight:600;
+            content: $supervisor$
 ---
 
-- id: 1
-  name: Sarah Johnson
-  title: CEO
-  email: sarah.johnson@company.com
+${yamlFromPre}`;
 
-- id: 2
-  name: Michael Chen
-  title: CTO
-  email: michael.chen@company.com
-  parentId: 1
-
-- id: 3
-  name: Emily Davis
-  title: VP Engineering
-  email: emily.davis@company.com
-  parentId: 2
-
-- id: 4
-  name: David Kim
-  title: Senior Engineer
-  email: david.kim@company.com
-  parentId: 3
-
-- id: 5
-  name: Lisa Wang
-  title: Engineer
-  email: lisa.wang@company.com
-  parentId: 3
-
-- id: 6
-  name: James Brown
-  title: VP Product
-  email: james.johnson@company.com
-  parentId: 1
-
-- id: 7
-  name: Rachel Green
-  title: Product Manager
-  email: rachel.green@company.com
-  parentId: 6
-
-- id: 8
-  name: Tom Wilson
-  title: Designer
-  email: tom.wilson@company.com
-  parentId: 6`;
-
-    function initializeYChartEditor() {
-        console.log('Initializing YChart Editor...');
+        console.log('YAML Data loaded:', yamlData);
         
-        // Initialize YChart Editor
-        // IIFE build exposes YChartEditor as a global class (not nested object)
+        // Initialize YChart Editor with the latest API
         var editor = new window.YChartEditor({
             nodeWidth: 220,
             nodeHeight: 110,
             editorTheme: 'dark',
-            collapsible: true
+            collapsible: true,
+            toolbarPosition: 'bottomleft',
+            toolbarOrientation: 'horizontal'
         });
 
-        // Setup the editor with builder pattern
+        // Setup the editor with the new simplified API
         editor
             .initView('container', yamlData)
-            .enableSwapBtn('swap-btn')
-            .toggleViewBtn('view-btn')
-            .resetBtn('reset-btn')
-            .exportSVGBtn('export-btn');
+            .bgPatternStyle('dotted')
+            .actionBtnPos('bottomleft', 'horizontal');
 
         console.log('✅ YChart Editor initialized successfully!');
+        console.log('💡 Use built-in toolbar buttons in the canvas');
         
         // Make it accessible globally for debugging
         window.ychartEditor = editor;
     }
+    
+    // Initialize after page loads
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeYChartEditor);
+    } else {
+        initializeYChartEditor();
+    }
 </script>
 
 <style>
-    * {
+    body {
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
     }
-
-    body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        height: 100vh;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-    }
-
-    header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        z-index: 10;
-    }
-
-    header h1 {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-    }
-
-    .controls {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    .btn {
-        padding: 0.5rem 1rem;
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.3);
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-
-    .btn:hover {
-        background: rgba(255,255,255,0.3);
-        transform: translateY(-1px);
-    }
-
+    
     #container {
-        flex: 1;
+        width: 100vw;
+        height: 100vh;
+        border: 1px solid #ccc;
+        background-color: whitesmoke;
+        border-radius: 5px;
+        box-sizing: border-box;
+        position: fixed;
+        top: 0;
+        left: 0;
         overflow: hidden;
     }
 </style>
-<header>
-    <h1>YChart Editor - Production Example</h1>
-    <div class="controls">
-        <button id="swap-btn" class="btn">Enable Swap Mode</button>
-        <button id="view-btn" class="btn">Force Graph</button>
-        <button id="reset-btn" class="btn">Reset</button>
-        <button id="export-btn" class="btn">Export SVG</button>
-    </div>
-</header>
 
 <div id="container"></div>
-
-<script>
-    
-    // Initialize after the page loads (similar to SVGTreeViewer pattern)
-    initializeYChartEditor();
-</script>
