@@ -68,6 +68,10 @@ class YChartEditor {
   private customTemplate: ((d: any, schema: SchemaDefinition) => string) | null = null;
   private currentSchema: SchemaDefinition = {};
   private cardTemplate: CardElement[] | null = null;
+  private selectedNodesForExpand: Set<string> = new Set();
+  private expandSelectionMode = false;
+  private columnAdjustMode = false;
+  private columnAdjustButtons: HTMLElement | null = null;
   
   constructor(options?: YChartOptions) {
     this.defaultOptions = {
@@ -207,6 +211,19 @@ class YChartEditor {
     // Append to main container (chart first, then editor)
     this.viewContainer.appendChild(chartWrapper);
     this.viewContainer.appendChild(editorSidebar);
+
+    // Add keyboard listener for expand/collapse shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (!this.expandSelectionMode) return;
+      
+      if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        this.expandSelectedNodes();
+      } else if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        this.collapseSelectedNodes();
+      }
+    });
   }
 
   private getToolbarPositionStyles(): string {
@@ -284,12 +301,20 @@ class YChartEditor {
       swap: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4M8 21l-4-4 4-4M20 7H4M4 17h16"/></svg>`,
       forceGraph: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="14" y1="12" x2="17" y2="12"/><line x1="7" y1="12" x2="10" y2="12"/></svg>`,
       orgChart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`,
+      expandAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
+      collapseAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
+      expandSelected: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><polyline points="18 8 22 8 22 12"/><line x1="22" y1="8" x2="18" y2="12"/><polyline points="18 16 22 16 22 20"/><line x1="22" y1="16" x2="18" y2="20"/></svg>`,
+      columnAdjust: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/><line x1="6.5" y1="8" x2="6.5" y2="16"/><line x1="17.5" y1="8" x2="17.5" y2="16"/></svg>`,
     };
 
     // Button configurations
     const buttons = [
       { id: 'fit', icon: icons.fit, tooltip: 'Fit to Screen', action: () => this.handleFit() },
       { id: 'reset', icon: icons.reset, tooltip: 'Reset Position', action: () => this.handleReset() },
+      { id: 'expandAll', icon: icons.expandAll, tooltip: 'Expand All', action: () => this.handleExpandAll() },
+      { id: 'collapseAll', icon: icons.collapseAll, tooltip: 'Collapse All', action: () => this.handleCollapseAll() },
+      { id: 'expandSelected', icon: icons.expandSelected, tooltip: 'Select Nodes to Expand (Press E)', action: () => this.handleExpandSelectionToggle() },
+      { id: 'columnAdjust', icon: icons.columnAdjust, tooltip: 'Adjust Child Columns', action: () => this.handleColumnAdjustToggle() },
       { id: 'swap', icon: icons.swap, tooltip: 'Swap Mode', action: () => this.handleSwapToggle() },
       { id: 'toggleView', icon: this.currentView === 'hierarchy' ? icons.forceGraph : icons.orgChart, tooltip: this.currentView === 'hierarchy' ? 'Switch to Force Graph' : 'Switch to Org Chart', action: () => this.handleToggleView() },
       { id: 'export', icon: icons.export, tooltip: 'Export SVG', action: () => this.handleExport() },
@@ -365,6 +390,12 @@ class YChartEditor {
       button.onmouseleave = () => {
         if (btn.id === 'swap' && this.swapModeEnabled) {
           button.style.background = '#e74c3c';
+          button.style.color = 'white';
+        } else if (btn.id === 'expandSelected' && this.expandSelectionMode) {
+          button.style.background = '#3498db';
+          button.style.color = 'white';
+        } else if (btn.id === 'columnAdjust' && this.columnAdjustMode) {
+          button.style.background = '#9b59b6';
           button.style.color = 'white';
         } else {
           button.style.background = 'transparent';
@@ -460,6 +491,343 @@ class YChartEditor {
     if (this.orgChart && typeof this.orgChart.exportSvg === 'function') {
       this.orgChart.exportSvg();
     }
+  }
+
+  private handleExpandAll(): void {
+    if (this.orgChart && typeof this.orgChart.expandAll === 'function') {
+      this.orgChart.expandAll();
+      this.orgChart.render();
+      setTimeout(() => {
+        if (this.orgChart) {
+          this.orgChart.fit();
+        }
+      }, 200);
+    }
+  }
+
+  private handleCollapseAll(): void {
+    if (this.orgChart && typeof this.orgChart.collapseAll === 'function') {
+      this.orgChart.collapseAll();
+      this.orgChart.render();
+      setTimeout(() => {
+        if (this.orgChart) {
+          this.orgChart.fit();
+        }
+      }, 200);
+    }
+  }
+
+  private handleExpandSelectionToggle(): void {
+    if (!this.orgChart) return;
+
+    this.expandSelectionMode = !this.expandSelectionMode;
+
+    // Update button style
+    const expandSelectedBtn = document.getElementById('ychart-btn-expandSelected');
+    if (expandSelectedBtn) {
+      if (this.expandSelectionMode) {
+        expandSelectedBtn.style.background = '#3498db';
+        expandSelectedBtn.style.color = 'white';
+        console.log('Expand selection mode enabled. Click nodes to select, then press "E" to expand selected nodes or "C" to collapse them.');
+      } else {
+        expandSelectedBtn.style.background = 'transparent';
+        expandSelectedBtn.style.color = '#4a5568';
+        this.selectedNodesForExpand.clear();
+        this.clearExpandSelectionHighlight();
+        console.log('Expand selection mode disabled.');
+      }
+    }
+  }
+
+  private clearExpandSelectionHighlight(): void {
+    if (!this.orgChart) return;
+    
+    // Clear the selection flags from all nodes in the data
+    const state = this.orgChart.getChartState();
+    if (state && state.allNodes) {
+      state.allNodes.forEach((node: any) => {
+        if (node.data._selectedForExpandCollapse) {
+          node.data._selectedForExpandCollapse = false;
+        }
+      });
+      
+      // Re-render to update the visual styling
+      this.orgChart.render();
+    }
+  }
+
+  private handleNodeClickForExpand(_nodeElement: any, nodeData: any): void {
+    if (!this.expandSelectionMode || !this.chartContainer) return;
+    
+    const nodeId = String(nodeData.data.id);
+    
+    if (this.selectedNodesForExpand.has(nodeId)) {
+      this.selectedNodesForExpand.delete(nodeId);
+      // Remove selection flag from data
+      nodeData.data._selectedForExpandCollapse = false;
+    } else {
+      this.selectedNodesForExpand.add(nodeId);
+      // Add selection flag to data
+      nodeData.data._selectedForExpandCollapse = true;
+    }
+    
+    // Update the chart to show visual feedback
+    if (this.orgChart) {
+      this.orgChart.render();
+    }
+    
+    console.log(`Selected nodes for expand/collapse: ${this.selectedNodesForExpand.size}`, Array.from(this.selectedNodesForExpand));
+  }
+
+  private expandSelectedNodes(): void {
+    if (!this.orgChart || this.selectedNodesForExpand.size === 0) return;
+    
+    this.selectedNodesForExpand.forEach(nodeId => {
+      if (typeof this.orgChart.setExpanded === 'function') {
+        this.orgChart.setExpanded(nodeId, true);
+      }
+    });
+    
+    this.orgChart.render();
+    
+    // Wait for render to complete, then fit and center
+    setTimeout(() => {
+      if (this.orgChart) {
+        this.orgChart.fit();
+        console.log(`Expanded ${this.selectedNodesForExpand.size} nodes and their children.`);
+        
+        // Clear selection after expansion
+        this.clearExpandSelectionHighlight();
+        this.selectedNodesForExpand.clear();
+      }
+    }, 200);
+  }
+
+  private collapseSelectedNodes(): void {
+    if (!this.orgChart || this.selectedNodesForExpand.size === 0) return;
+    
+    this.selectedNodesForExpand.forEach(nodeId => {
+      if (typeof this.orgChart.setExpanded === 'function') {
+        this.orgChart.setExpanded(nodeId, false);
+      }
+    });
+    
+    this.orgChart.render();
+    
+    // Wait for render to complete, then fit and center
+    setTimeout(() => {
+      if (this.orgChart) {
+        this.orgChart.fit();
+        console.log(`Collapsed ${this.selectedNodesForExpand.size} nodes and their children.`);
+        
+        // Clear selection after collapse
+        this.clearExpandSelectionHighlight();
+        this.selectedNodesForExpand.clear();
+      }
+    }, 200);
+  }
+
+  private handleColumnAdjustToggle(): void {
+    if (!this.orgChart) return;
+
+    this.columnAdjustMode = !this.columnAdjustMode;
+
+    // Update button style
+    const columnAdjustBtn = document.getElementById('ychart-btn-columnAdjust');
+    if (columnAdjustBtn) {
+      if (this.columnAdjustMode) {
+        columnAdjustBtn.style.background = '#9b59b6';
+        columnAdjustBtn.style.color = 'white';
+        console.log('Column adjust mode enabled. Click a parent node to adjust its children column layout.');
+      } else {
+        columnAdjustBtn.style.background = 'transparent';
+        columnAdjustBtn.style.color = '#4a5568';
+        this.hideColumnAdjustButtons();
+        console.log('Column adjust mode disabled.');
+      }
+    }
+  }
+
+  private handleNodeClickForColumnAdjust(nodeData: any): void {
+    if (!this.columnAdjustMode || !this.chartContainer) return;
+
+    // Check if node has children
+    const childrenCount = (nodeData.children?.length || 0) + (nodeData._children?.length || 0);
+    if (childrenCount === 0) {
+      console.log('This node has no children to arrange.');
+      return;
+    }
+
+    // Get current column count or default to 2
+    const currentColumns = nodeData.data._childColumns || 2;
+    
+    console.log(`Selected node with ${childrenCount} children. Current columns: ${currentColumns}`);
+    
+    // Show column adjustment buttons
+    this.showColumnAdjustButtons(nodeData, currentColumns, childrenCount);
+  }
+
+  private showColumnAdjustButtons(nodeData: any, currentColumns: number, childrenCount: number): void {
+    // Remove existing buttons if any
+    this.hideColumnAdjustButtons();
+
+    // Create column adjust controls
+    this.columnAdjustButtons = document.createElement('div');
+    this.columnAdjustButtons.id = 'ychart-column-adjust-controls';
+    this.columnAdjustButtons.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.98);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 100;
+      border: 2px solid #9b59b6;
+      min-width: 300px;
+    `;
+
+    const title = document.createElement('div');
+    title.textContent = `Adjust Children Columns`;
+    title.style.cssText = `
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #2c3e50;
+      text-align: center;
+    `;
+    this.columnAdjustButtons.appendChild(title);
+
+    const info = document.createElement('div');
+    info.textContent = `Node: ${nodeData.data.name || nodeData.data.id} (${childrenCount} children)`;
+    info.style.cssText = `
+      font-size: 13px;
+      color: #7f8c8d;
+      margin-bottom: 15px;
+      text-align: center;
+    `;
+    this.columnAdjustButtons.appendChild(info);
+
+    // Column controls
+    const controlsWrapper = document.createElement('div');
+    controlsWrapper.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 15px;
+    `;
+
+    const decreaseBtn = document.createElement('button');
+    decreaseBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+    decreaseBtn.disabled = currentColumns <= 2;
+    decreaseBtn.style.cssText = `
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: ${currentColumns <= 2 ? '#ecf0f1' : '#9b59b6'};
+      color: white;
+      border-radius: 8px;
+      cursor: ${currentColumns <= 2 ? 'not-allowed' : 'pointer'};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    `;
+    if (currentColumns > 2) {
+      decreaseBtn.onmouseover = () => decreaseBtn.style.background = '#8e44ad';
+      decreaseBtn.onmouseleave = () => decreaseBtn.style.background = '#9b59b6';
+      decreaseBtn.onclick = () => this.adjustNodeColumns(nodeData, currentColumns - 1);
+    }
+
+    const columnDisplay = document.createElement('div');
+    columnDisplay.textContent = `${currentColumns} Columns`;
+    columnDisplay.style.cssText = `
+      font-size: 18px;
+      font-weight: 600;
+      color: #2c3e50;
+      min-width: 100px;
+      text-align: center;
+    `;
+
+    const increaseBtn = document.createElement('button');
+    increaseBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+    increaseBtn.disabled = currentColumns >= childrenCount;
+    increaseBtn.style.cssText = `
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: ${currentColumns >= childrenCount ? '#ecf0f1' : '#9b59b6'};
+      color: white;
+      border-radius: 8px;
+      cursor: ${currentColumns >= childrenCount ? 'not-allowed' : 'pointer'};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    `;
+    if (currentColumns < childrenCount) {
+      increaseBtn.onmouseover = () => increaseBtn.style.background = '#8e44ad';
+      increaseBtn.onmouseleave = () => increaseBtn.style.background = '#9b59b6';
+      increaseBtn.onclick = () => this.adjustNodeColumns(nodeData, currentColumns + 1);
+    }
+
+    controlsWrapper.appendChild(decreaseBtn);
+    controlsWrapper.appendChild(columnDisplay);
+    controlsWrapper.appendChild(increaseBtn);
+    this.columnAdjustButtons.appendChild(controlsWrapper);
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = `
+      width: 100%;
+      padding: 10px;
+      border: none;
+      background: #95a5a6;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    `;
+    closeBtn.onmouseover = () => closeBtn.style.background = '#7f8c8d';
+    closeBtn.onmouseleave = () => closeBtn.style.background = '#95a5a6';
+    closeBtn.onclick = () => this.hideColumnAdjustButtons();
+    this.columnAdjustButtons.appendChild(closeBtn);
+
+    this.chartContainer?.appendChild(this.columnAdjustButtons);
+  }
+
+  private hideColumnAdjustButtons(): void {
+    if (this.columnAdjustButtons && this.columnAdjustButtons.parentNode) {
+      this.columnAdjustButtons.parentNode.removeChild(this.columnAdjustButtons);
+      this.columnAdjustButtons = null;
+    }
+  }
+
+  private adjustNodeColumns(nodeData: any, newColumns: number): void {
+    // Store column preference on node data
+    nodeData.data._childColumns = newColumns;
+    
+    console.log(`Adjusted columns to ${newColumns} for node:`, nodeData.data.id);
+    
+    // Re-render the chart with new column layout
+    if (this.orgChart) {
+      this.orgChart.render();
+      
+      setTimeout(() => {
+        if (this.orgChart) {
+          this.orgChart.fit();
+        }
+      }, 200);
+    }
+    
+    // Close the column adjust panel
+    this.hideColumnAdjustButtons();
   }
 
   private initializeEditor(): void {
@@ -670,7 +1038,21 @@ class YChartEditor {
         .compactMarginBetween(() => options.compactMarginBetween!)
         .compactMarginPair(() => options.compactMarginPair!)
         .neighbourMargin(() => options.neighbourMargin!)
-        .onNodeClick((d: any) => this.showNodeDetails(d.data))
+        .onNodeClick((d: any, i: number, arr: any) => {
+          // Handle column adjust mode first
+          if (this.columnAdjustMode) {
+            this.handleNodeClickForColumnAdjust(d);
+          }
+          // Handle expand selection mode
+          else if (this.expandSelectionMode && arr && arr[i]) {
+            // Pass the actual DOM element
+            this.handleNodeClickForExpand(arr[i], d);
+          } 
+          // Default: show node details
+          else {
+            this.showNodeDetails(d.data);
+          }
+        })
         .nodeContent((d: any) => this.getNodeContent(d))
         .render();
       

@@ -170,12 +170,14 @@ export class OrgChart {
                 d3.select(this)
                     .select('.node-rect')
                     .attr("stroke", d => {
-                        if (d.data._selectedForSwap) return '#4169E1';  // Blue for selected nodes
+                        if (d.data._selectedForSwap) return '#4169E1';  // Blue for selected nodes in swap mode
+                        if (d.data._selectedForExpandCollapse) return '#4169E1';  // Blue for selected nodes in expand/collapse mode
                         if (d.data._highlighted || d.data._upToTheRootHighlighted) return '#E27396';
                         return 'none';
                     })
                     .attr("stroke-width", d => {
                         if (d.data._selectedForSwap) return 8;
+                        if (d.data._selectedForExpandCollapse) return 8;
                         if (d.data._highlighted || d.data._upToTheRootHighlighted) return 10;
                         return 1;
                     })
