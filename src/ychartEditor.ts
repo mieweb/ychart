@@ -49,6 +49,15 @@ interface FrontMatter {
   data: string;
 }
 
+// Generate a unique identifier for each editor instance
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 class YChartEditor {
   private viewContainer: HTMLElement | null = null;
   private editorContainer: HTMLElement | null = null;
@@ -72,8 +81,10 @@ class YChartEditor {
   private columnAdjustMode = false;
   private columnAdjustButtons: HTMLElement | null = null;
   private experimental = false;
+  private instanceId: string;
   
   constructor(options?: YChartOptions) {
+    this.instanceId = generateUUID();
     this.defaultOptions = {
       nodeWidth: 220,
       nodeHeight: 110,
@@ -138,13 +149,15 @@ class YChartEditor {
     chartWrapper.style.cssText = 'flex:1;height:100%;position:relative;display:flex;flex-direction:column;overflow:hidden;';
 
     this.chartContainer = document.createElement('div');
-    this.chartContainer.id = 'ychart-chart';
+    this.chartContainer.id = `ychart-chart-${this.instanceId}`;
+    this.chartContainer.setAttribute('data-id', `ychart-chart-${this.instanceId}`);
     this.chartContainer.style.cssText = 'flex:1;width:100%;height:100%;position:relative;';
     chartWrapper.appendChild(this.chartContainer);
 
     // Create details panel
     this.detailsPanel = document.createElement('div');
-    this.detailsPanel.id = 'ychart-node-details';
+    this.detailsPanel.id = `ychart-node-details-${this.instanceId}`;
+    this.detailsPanel.setAttribute('data-id', `ychart-node-details-${this.instanceId}`);
     this.detailsPanel.style.cssText = `
       display: none;
       position: absolute;
@@ -168,7 +181,8 @@ class YChartEditor {
 
     // Create editor sidebar (now on right side, open by default)
     const editorSidebar = document.createElement('div');
-    editorSidebar.id = 'ychart-editor-sidebar';
+    editorSidebar.id = `ychart-editor-sidebar-${this.instanceId}`;
+    editorSidebar.setAttribute('data-id', `ychart-editor-sidebar-${this.instanceId}`);
     editorSidebar.style.cssText = `
       width: 400px;
       height: 100%;
@@ -228,14 +242,15 @@ class YChartEditor {
 
     // Create editor container
     this.editorContainer = document.createElement('div');
-    this.editorContainer.id = 'ychart-editor';
+    this.editorContainer.id = `ychart-editor-${this.instanceId}`;
+    this.editorContainer.setAttribute('data-id', `ychart-editor-${this.instanceId}`);
     this.editorContainer.style.cssText = 'width:100%;height:calc(100% - 41px);';
     editorSidebar.appendChild(this.editorContainer);
 
     // Create collapse button (positioned outside sidebar, on the left side of editor)
     if (this.defaultOptions.collapsible) {
       const collapseBtn = document.createElement('button');
-      collapseBtn.id = 'ychart-collapse-editor';
+      collapseBtn.setAttribute('data-id', `ychart-collapse-editor-${this.instanceId}`);
       collapseBtn.innerHTML = '▶';
       collapseBtn.style.cssText = `
         position: absolute;
@@ -307,7 +322,7 @@ class YChartEditor {
 
   private createToolbar(): HTMLElement {
     const toolbar = document.createElement('div');
-    toolbar.id = 'ychart-toolbar';
+    toolbar.setAttribute('data-id', `ychart-toolbar-${this.instanceId}`);
     
     // Calculate position styles
     const positionStyles = this.getToolbarPositionStyles();
@@ -364,7 +379,7 @@ class YChartEditor {
 
     buttons.forEach(btn => {
       const button = document.createElement('button');
-      button.id = `ychart-btn-${btn.id}`;
+      button.setAttribute('data-id', `ychart-btn-${btn.id}-${this.instanceId}`);
       button.innerHTML = btn.icon;
       button.setAttribute('data-tooltip', btn.tooltip);
       button.style.cssText = `
@@ -512,7 +527,7 @@ class YChartEditor {
     }
 
     // Update button style
-    const swapBtn = document.getElementById('ychart-btn-swap');
+    const swapBtn = document.querySelector(`[data-id="ychart-btn-swap-${this.instanceId}"]`) as HTMLElement;
     if (swapBtn) {
       if (this.swapModeEnabled) {
         swapBtn.style.background = '#e74c3c';
@@ -532,7 +547,7 @@ class YChartEditor {
     }
 
     // Update the toggle view button icon and tooltip
-    const toggleBtn = document.getElementById('ychart-btn-toggleView');
+    const toggleBtn = document.querySelector(`[data-id="ychart-btn-toggleView-${this.instanceId}"]`) as HTMLElement;
     if (toggleBtn) {
       const icons = {
         forceGraph: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="14" y1="12" x2="17" y2="12"/><line x1="7" y1="12" x2="10" y2="12"/></svg>`,
@@ -562,25 +577,62 @@ class YChartEditor {
       // Get current YAML content
       const currentContent = this.editor.state.doc.toString();
       
-      // Parse the YAML to validate it
-      const parsed = jsyaml.load(currentContent);
-      
-      // Dump it back with proper formatting
-      const formatted = jsyaml.dump(parsed, {
-        indent: 2,
-        lineWidth: -1, // Don't wrap lines
-        noRefs: true, // Don't use anchors/aliases
-        sortKeys: false, // Preserve key order
-      });
-
-      // Update the editor with formatted YAML
-      this.editor.dispatch({
-        changes: {
-          from: 0,
-          to: this.editor.state.doc.length,
-          insert: formatted
+      // Check if content has front matter (starts with ---)
+      if (currentContent.startsWith('---')) {
+        const parts = currentContent.split('---');
+        if (parts.length >= 3) {
+          // Parse front matter and data separately
+          const frontMatter = parts[1].trim();
+          const dataContent = parts.slice(2).join('---').trim();
+          
+          // Parse and format front matter
+          const parsedFrontMatter = jsyaml.load(frontMatter);
+          const formattedFrontMatter = jsyaml.dump(parsedFrontMatter, {
+            indent: 2,
+            lineWidth: -1,
+            noRefs: true,
+            sortKeys: false,
+          });
+          
+          // Parse and format data content
+          const parsedData = jsyaml.load(dataContent);
+          const formattedData = jsyaml.dump(parsedData, {
+            indent: 2,
+            lineWidth: -1,
+            noRefs: true,
+            sortKeys: false,
+          });
+          
+          // Reconstruct the complete YAML with front matter
+          const formatted = `---\n${formattedFrontMatter.trim()}\n---\n\n${formattedData.trim()}\n`;
+          
+          // Update the editor with formatted YAML
+          this.editor.dispatch({
+            changes: {
+              from: 0,
+              to: this.editor.state.doc.length,
+              insert: formatted
+            }
+          });
         }
-      });
+      } else {
+        // No front matter, format as single document
+        const parsed = jsyaml.load(currentContent);
+        const formatted = jsyaml.dump(parsed, {
+          indent: 2,
+          lineWidth: -1,
+          noRefs: true,
+          sortKeys: false,
+        });
+        
+        this.editor.dispatch({
+          changes: {
+            from: 0,
+            to: this.editor.state.doc.length,
+            insert: formatted
+          }
+        });
+      }
 
       console.log('YAML formatted successfully');
     } catch (error) {
@@ -621,7 +673,7 @@ class YChartEditor {
     this.columnAdjustMode = !this.columnAdjustMode;
 
     // Update button style
-    const columnAdjustBtn = document.getElementById('ychart-btn-columnAdjust');
+    const columnAdjustBtn = document.querySelector(`[data-id="ychart-btn-columnAdjust-${this.instanceId}"]`) as HTMLElement;
     if (columnAdjustBtn) {
       if (this.columnAdjustMode) {
         columnAdjustBtn.style.background = '#9b59b6';
@@ -661,7 +713,7 @@ class YChartEditor {
 
     // Create column adjust controls
     this.columnAdjustButtons = document.createElement('div');
-    this.columnAdjustButtons.id = 'ychart-column-adjust-controls';
+    this.columnAdjustButtons.setAttribute('data-id', `ychart-column-adjust-controls-${this.instanceId}`);
     this.columnAdjustButtons.style.cssText = `
       position: absolute;
       top: 50%;
@@ -862,8 +914,8 @@ class YChartEditor {
   }
 
   private toggleEditor(): void {
-    const sidebar = document.getElementById('ychart-editor-sidebar');
-    const collapseBtn = document.getElementById('ychart-collapse-editor');
+    const sidebar = document.getElementById(`ychart-editor-sidebar-${this.instanceId}`);
+    const collapseBtn = document.querySelector(`[data-id="ychart-collapse-editor-${this.instanceId}"]`) as HTMLElement;
     
     if (!sidebar || !collapseBtn) return;
 
@@ -1018,7 +1070,7 @@ class YChartEditor {
       }
 
       this.orgChart
-        .container('#ychart-chart')
+        .container(`#ychart-chart-${this.instanceId}`)
         .data(parsedData)
         .nodeHeight(() => options.nodeHeight!)
         .nodeWidth(() => options.nodeWidth!)
@@ -1121,7 +1173,7 @@ class YChartEditor {
     }
     
     html += '</div>';
-    html += `<button onclick="document.getElementById('ychart-node-details').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
+    html += `<button onclick="document.getElementById('ychart-node-details-${this.instanceId}').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
     html += '</div>';
     
     this.detailsPanel.innerHTML = html;

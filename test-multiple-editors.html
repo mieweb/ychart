@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple YChart Editors Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f5f5;
+        }
+        .editor-container {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+        h2 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        .editor-wrapper {
+            height: 600px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <h1>Testing Multiple YChart Editor Instances</h1>
+    <p>This page tests that multiple editor instances can coexist without ID conflicts.</p>
+    
+    <div class="editor-container">
+        <h2>Editor 1 - Standard Mode</h2>
+        <div id="editor1" class="editor-wrapper"></div>
+    </div>
+    
+    <div class="editor-container">
+        <h2>Editor 2 - Experimental Mode</h2>
+        <div id="editor2" class="editor-wrapper"></div>
+    </div>
+
+    <script type="module">
+        import YChartEditor from './src/ychartEditor.ts';
+
+        const simpleYAML1 = `---
+options:
+  nodeWidth: 200
+  nodeHeight: 100
+schema:
+  id: number | required
+  name: string | required
+  title: string | required
+---
+- id: 1
+  name: Alice Johnson
+  title: CEO
+  parentId: null
+- id: 2
+  name: Bob Smith
+  title: CTO
+  parentId: 1
+- id: 3
+  name: Carol White
+  title: CFO
+  parentId: 1`;
+
+        const simpleYAML2 = `---
+options:
+  nodeWidth: 220
+  nodeHeight: 110
+schema:
+  id: number | required
+  name: string | required
+  title: string | required
+  department: string | optional
+---
+- id: 1
+  name: David Brown
+  title: Director
+  department: Engineering
+  parentId: null
+- id: 2
+  name: Eve Davis
+  title: Manager
+  department: Engineering
+  parentId: 1
+- id: 3
+  name: Frank Wilson
+  title: Lead Developer
+  department: Engineering
+  parentId: 2`;
+
+        // Initialize first editor (standard mode)
+        const editor1 = new YChartEditor({
+            nodeWidth: 200,
+            nodeHeight: 100,
+            editorTheme: 'dark',
+            collapsible: true
+        });
+
+        editor1
+            .initView('editor1', simpleYAML1)
+            .bgPatternStyle('dotted')
+            .actionBtnPos('bottomleft', 'horizontal');
+
+        // Initialize second editor (experimental mode with Force Graph)
+        const editor2 = new YChartEditor({
+            nodeWidth: 220,
+            nodeHeight: 110,
+            editorTheme: 'dark',
+            collapsible: true,
+            experimental: true  // Enable experimental features
+        });
+
+        editor2
+            .initView('editor2', simpleYAML2)
+            .bgPatternStyle('dashed')
+            .actionBtnPos('bottomright', 'horizontal');
+
+        console.log('Both editors initialized successfully!');
+        console.log('Editor 1 - Standard mode (no Force Graph button)');
+        console.log('Editor 2 - Experimental mode (Force Graph button with ! badge)');
+    </script>
+</body>
+</html>
