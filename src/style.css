@@ -266,6 +266,19 @@ header h1 {
   text-decoration: underline;
 }
 
+/* Selected node styling */
+.node.selected .node-rect {
+  stroke: #2196F3 !important;
+  stroke-width: 4px !important;
+  filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.6));
+}
+
+/* Focus outline for accessibility */
+.svg-chart-container:focus {
+  outline: 2px solid #2196F3;
+  outline-offset: -2px;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .container {

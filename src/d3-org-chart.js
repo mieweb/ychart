@@ -45,6 +45,11 @@ export class OrgChart {
             selectedNodesForSwap: [],
             onNodeSwap: (node1, node2) => { console.log('Nodes swapped:', node1, node2) },
 
+            /* SELECTION PROPERTIES */
+            selectedNodeId: null,
+            onNodeSelect: (nodeId) => { console.log('Node selected:', nodeId) },
+            onNodeDetailsClick: (node) => { console.log('Node details clicked:', node) },
+
             /*  INTENDED FOR PUBLIC OVERRIDE */
 
             svgWidth: 800,   // Configure svg width
@@ -620,6 +625,10 @@ export class OrgChart {
             .attr("width", attrs.svgWidth)
             .attr("height", attrs.svgHeight)
             .attr("font-family", attrs.defaultFont)
+            .attr("tabindex", "0")
+            .attr("role", "tree")
+            .attr("aria-label", "Organizational Chart")
+            .on("keydown", (event) => this.handleKeydown(event));
 
         if (attrs.firstDraw) {
             svg.call(attrs.zoomBehavior)
@@ -707,6 +716,99 @@ export class OrgChart {
         }
 
         return this;
+    }
+
+    handleKeydown(event) {
+        const attrs = this.getChartState();
+        
+        // Only handle if we have data
+        if (!attrs.visibleNodes || attrs.visibleNodes.length === 0) return;
+
+        const key = event.key;
+        
+        // Prevent default scrolling for navigation keys
+        if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " ", "Enter"].includes(key)) {
+            event.preventDefault();
+        }
+
+        // If no node is selected, select the root (or first visible node)
+        if (attrs.selectedNodeId === null) {
+            const firstNode = attrs.visibleNodes[0];
+            if (firstNode) {
+                attrs.selectedNodeId = attrs.nodeId(firstNode.data);
+                this.update(attrs.root);
+                if (attrs.onNodeSelect) attrs.onNodeSelect(attrs.selectedNodeId);
+            }
+            return;
+        }
+
+        // Find the currently selected node object among visible nodes
+        const selectedNode = attrs.visibleNodes.find(d => attrs.nodeId(d.data) === attrs.selectedNodeId);
+
+        if (!selectedNode) {
+            // Selected node is not visible (maybe collapsed), select root
+             const firstNode = attrs.visibleNodes[0];
+            if (firstNode) {
+                attrs.selectedNodeId = attrs.nodeId(firstNode.data);
+                this.update(attrs.root);
+                if (attrs.onNodeSelect) attrs.onNodeSelect(attrs.selectedNodeId);
+            }
+            return;
+        }
+
+        let nextNode = null;
+
+        if (key === "ArrowUp") {
+            // Move to parent
+            if (selectedNode.parent) {
+                nextNode = selectedNode.parent;
+            }
+        } else if (key === "ArrowDown") {
+            // Check if node is collapsed and has children (hidden in _children)
+            if (selectedNode._children && selectedNode._children.length > 0) {
+                // Expand the node
+                this.onButtonClick(event, selectedNode);
+                return;
+            }
+            // Move to first child if already expanded
+            if (selectedNode.children && selectedNode.children.length > 0) {
+                // Try to find the child that is horizontally closest to the current node
+                nextNode = selectedNode.children.reduce((closest, child) => {
+                    return Math.abs(child.x - selectedNode.x) < Math.abs(closest.x - selectedNode.x) ? child : closest;
+                }, selectedNode.children[0]);
+            }
+        } else if (key === "ArrowLeft") {
+            // Move to previous sibling (or node at same depth)
+            const sameDepthNodes = attrs.visibleNodes.filter(d => d.depth === selectedNode.depth);
+            sameDepthNodes.sort((a, b) => a.x - b.x);
+            const index = sameDepthNodes.indexOf(selectedNode);
+            if (index > 0) {
+                nextNode = sameDepthNodes[index - 1];
+            }
+        } else if (key === "ArrowRight") {
+            // Move to next sibling (or node at same depth)
+            const sameDepthNodes = attrs.visibleNodes.filter(d => d.depth === selectedNode.depth);
+            sameDepthNodes.sort((a, b) => a.x - b.x);
+            const index = sameDepthNodes.indexOf(selectedNode);
+            if (index < sameDepthNodes.length - 1) {
+                nextNode = sameDepthNodes[index + 1];
+            }
+        } else if (key === " " || key === "Enter") {
+            // Toggle expand/collapse
+            if (selectedNode.data._pagingButton) {
+                 this.loadPagingNodes(selectedNode);
+            } else {
+                this.onButtonClick(event, selectedNode);
+            }
+            return;
+        }
+
+        if (nextNode) {
+            attrs.selectedNodeId = attrs.nodeId(nextNode.data);
+            nextNode.data._centered = true;
+            this.update(attrs.root);
+            if (attrs.onNodeSelect) attrs.onNodeSelect(attrs.selectedNodeId);
+        }
     }
 
     // This function can be invoked via chart.addNode API, and it adds node in tree at runtime
@@ -876,6 +978,7 @@ export class OrgChart {
         }
 
         const nodes = treeData.descendants();
+        attrs.visibleNodes = nodes;
 
         // console.table(nodes.map(d => ({ x: d.x, y: d.y, width: d.width, height: d.height, flexCompactDim: d.flexCompactDim + "" })))
 
@@ -1047,6 +1150,7 @@ export class OrgChart {
             .enter()
             .append("g")
             .attr("class", "node")
+            .attr("role", "treeitem")
             .attr("transform", (d) => {
                 if (d == attrs.root) return `translate(${x0},${y0})`
                 const xj = attrs.layoutBindings[attrs.layout].nodeJoinX({ x: x0, y: y0, width, height });
@@ -1063,11 +1167,24 @@ export class OrgChart {
                     this.loadPagingNodes(node);
                     return;
                 }
+                // Check for details button click
+                if (event.target.closest('.details-btn')) {
+                    if (attrs.onNodeDetailsClick) {
+                        attrs.onNodeDetailsClick(node);
+                    }
+                    return;
+                }
                 if (!data._pagingButton) {
                     // Handle swap mode click
                     if (attrs.swapMode) {
                         this.handleSwapNodeClick(node);
                     } else {
+                        // Select the node on click
+                        attrs.selectedNodeId = attrs.nodeId(data);
+                        data._centered = true;
+                        this.update(attrs.root);
+                        if (attrs.onNodeSelect) attrs.onNodeSelect(attrs.selectedNodeId);
+                        
                         attrs.onNodeClick(node);
                     }
                     return;
@@ -1103,7 +1220,10 @@ export class OrgChart {
         // Node update styles
         const nodeUpdate = nodeEnter
             .merge(nodesSelection)
-            .style("font", "12px sans-serif");
+            .style("font", "12px sans-serif")
+            .attr("aria-selected", d => attrs.nodeId(d.data) === attrs.selectedNodeId)
+            .attr("aria-expanded", d => !!d.children)
+            .classed("selected", d => attrs.nodeId(d.data) === attrs.selectedNodeId);
 
         // Add foreignObject element inside rectangle
         const fo = nodeUpdate.patternify({
@@ -1820,18 +1940,43 @@ export class OrgChart {
     }
 
     expandAll() {
-        const { allNodes, root, data } = this.getChartState();
-        data.forEach(d => d._expanded = true)
-        // allNodes.forEach(d => d.data._expanded = true);
-        this.render()
+        const { allNodes, root, data, selectedNodeId, nodeId } = this.getChartState();
+        if (selectedNodeId) {
+            const selectedNode = allNodes.find(d => nodeId(d.data) === selectedNodeId);
+            if (selectedNode) {
+                const traverse = (node) => {
+                    node.data._expanded = true;
+                    if (node.children) node.children.forEach(traverse);
+                    if (node._children) node._children.forEach(traverse);
+                };
+                traverse(selectedNode);
+            }
+            this.updateNodesState();
+        } else {
+            data.forEach(d => d._expanded = true)
+            this.render()
+        }
         return this;
     }
 
     collapseAll() {
-        const { allNodes, root } = this.getChartState();
-        allNodes.forEach(d => d.data._expanded = false);
-        this.initialExpandLevel(0)
-        this.render();
+        const { allNodes, root, selectedNodeId, nodeId } = this.getChartState();
+        if (selectedNodeId) {
+            const selectedNode = allNodes.find(d => nodeId(d.data) === selectedNodeId);
+            if (selectedNode) {
+                const traverse = (node) => {
+                    node.data._expanded = false;
+                    if (node.children) node.children.forEach(traverse);
+                    if (node._children) node._children.forEach(traverse);
+                };
+                traverse(selectedNode);
+            }
+            this.updateNodesState();
+        } else {
+            allNodes.forEach(d => d.data._expanded = false);
+            this.initialExpandLevel(0)
+            this.render();
+        }
         return this;
     }
 

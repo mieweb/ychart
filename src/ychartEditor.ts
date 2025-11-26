@@ -68,8 +68,6 @@ class YChartEditor {
   private customTemplate: ((d: any, schema: SchemaDefinition) => string) | null = null;
   private currentSchema: SchemaDefinition = {};
   private cardTemplate: CardElement[] | null = null;
-  private selectedNodesForExpand: Set<string> = new Set();
-  private expandSelectionMode = false;
   private columnAdjustMode = false;
   private columnAdjustButtons: HTMLElement | null = null;
   
@@ -211,19 +209,6 @@ class YChartEditor {
     // Append to main container (chart first, then editor)
     this.viewContainer.appendChild(chartWrapper);
     this.viewContainer.appendChild(editorSidebar);
-
-    // Add keyboard listener for expand/collapse shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (!this.expandSelectionMode) return;
-      
-      if (e.key === 'e' || e.key === 'E') {
-        e.preventDefault();
-        this.expandSelectedNodes();
-      } else if (e.key === 'c' || e.key === 'C') {
-        e.preventDefault();
-        this.collapseSelectedNodes();
-      }
-    });
   }
 
   private getToolbarPositionStyles(): string {
@@ -303,7 +288,6 @@ class YChartEditor {
       orgChart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`,
       expandAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
       collapseAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
-      expandSelected: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><polyline points="18 8 22 8 22 12"/><line x1="22" y1="8" x2="18" y2="12"/><polyline points="18 16 22 16 22 20"/><line x1="22" y1="16" x2="18" y2="20"/></svg>`,
       columnAdjust: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/><line x1="6.5" y1="8" x2="6.5" y2="16"/><line x1="17.5" y1="8" x2="17.5" y2="16"/></svg>`,
     };
 
@@ -313,7 +297,6 @@ class YChartEditor {
       { id: 'reset', icon: icons.reset, tooltip: 'Reset Position', action: () => this.handleReset() },
       { id: 'expandAll', icon: icons.expandAll, tooltip: 'Expand All', action: () => this.handleExpandAll() },
       { id: 'collapseAll', icon: icons.collapseAll, tooltip: 'Collapse All', action: () => this.handleCollapseAll() },
-      { id: 'expandSelected', icon: icons.expandSelected, tooltip: 'Select Nodes to Expand (Press E)', action: () => this.handleExpandSelectionToggle() },
       { id: 'columnAdjust', icon: icons.columnAdjust, tooltip: 'Adjust Child Columns', action: () => this.handleColumnAdjustToggle() },
       { id: 'swap', icon: icons.swap, tooltip: 'Swap Mode', action: () => this.handleSwapToggle() },
       { id: 'toggleView', icon: this.currentView === 'hierarchy' ? icons.forceGraph : icons.orgChart, tooltip: this.currentView === 'hierarchy' ? 'Switch to Force Graph' : 'Switch to Org Chart', action: () => this.handleToggleView() },
@@ -390,9 +373,6 @@ class YChartEditor {
       button.onmouseleave = () => {
         if (btn.id === 'swap' && this.swapModeEnabled) {
           button.style.background = '#e74c3c';
-          button.style.color = 'white';
-        } else if (btn.id === 'expandSelected' && this.expandSelectionMode) {
-          button.style.background = '#3498db';
           button.style.color = 'white';
         } else if (btn.id === 'columnAdjust' && this.columnAdjustMode) {
           button.style.background = '#9b59b6';
@@ -517,115 +497,7 @@ class YChartEditor {
     }
   }
 
-  private handleExpandSelectionToggle(): void {
-    if (!this.orgChart) return;
 
-    this.expandSelectionMode = !this.expandSelectionMode;
-
-    // Update button style
-    const expandSelectedBtn = document.getElementById('ychart-btn-expandSelected');
-    if (expandSelectedBtn) {
-      if (this.expandSelectionMode) {
-        expandSelectedBtn.style.background = '#3498db';
-        expandSelectedBtn.style.color = 'white';
-        console.log('Expand selection mode enabled. Click nodes to select, then press "E" to expand selected nodes or "C" to collapse them.');
-      } else {
-        expandSelectedBtn.style.background = 'transparent';
-        expandSelectedBtn.style.color = '#4a5568';
-        this.selectedNodesForExpand.clear();
-        this.clearExpandSelectionHighlight();
-        console.log('Expand selection mode disabled.');
-      }
-    }
-  }
-
-  private clearExpandSelectionHighlight(): void {
-    if (!this.orgChart) return;
-    
-    // Clear the selection flags from all nodes in the data
-    const state = this.orgChart.getChartState();
-    if (state && state.allNodes) {
-      state.allNodes.forEach((node: any) => {
-        if (node.data._selectedForExpandCollapse) {
-          node.data._selectedForExpandCollapse = false;
-        }
-      });
-      
-      // Re-render to update the visual styling
-      this.orgChart.render();
-    }
-  }
-
-  private handleNodeClickForExpand(_nodeElement: any, nodeData: any): void {
-    if (!this.expandSelectionMode || !this.chartContainer) return;
-    
-    const nodeId = String(nodeData.data.id);
-    
-    if (this.selectedNodesForExpand.has(nodeId)) {
-      this.selectedNodesForExpand.delete(nodeId);
-      // Remove selection flag from data
-      nodeData.data._selectedForExpandCollapse = false;
-    } else {
-      this.selectedNodesForExpand.add(nodeId);
-      // Add selection flag to data
-      nodeData.data._selectedForExpandCollapse = true;
-    }
-    
-    // Update the chart to show visual feedback
-    if (this.orgChart) {
-      this.orgChart.render();
-    }
-    
-    console.log(`Selected nodes for expand/collapse: ${this.selectedNodesForExpand.size}`, Array.from(this.selectedNodesForExpand));
-  }
-
-  private expandSelectedNodes(): void {
-    if (!this.orgChart || this.selectedNodesForExpand.size === 0) return;
-    
-    this.selectedNodesForExpand.forEach(nodeId => {
-      if (typeof this.orgChart.setExpanded === 'function') {
-        this.orgChart.setExpanded(nodeId, true);
-      }
-    });
-    
-    this.orgChart.render();
-    
-    // Wait for render to complete, then fit and center
-    setTimeout(() => {
-      if (this.orgChart) {
-        this.orgChart.fit();
-        console.log(`Expanded ${this.selectedNodesForExpand.size} nodes and their children.`);
-        
-        // Clear selection after expansion
-        this.clearExpandSelectionHighlight();
-        this.selectedNodesForExpand.clear();
-      }
-    }, 200);
-  }
-
-  private collapseSelectedNodes(): void {
-    if (!this.orgChart || this.selectedNodesForExpand.size === 0) return;
-    
-    this.selectedNodesForExpand.forEach(nodeId => {
-      if (typeof this.orgChart.setExpanded === 'function') {
-        this.orgChart.setExpanded(nodeId, false);
-      }
-    });
-    
-    this.orgChart.render();
-    
-    // Wait for render to complete, then fit and center
-    setTimeout(() => {
-      if (this.orgChart) {
-        this.orgChart.fit();
-        console.log(`Collapsed ${this.selectedNodesForExpand.size} nodes and their children.`);
-        
-        // Clear selection after collapse
-        this.clearExpandSelectionHighlight();
-        this.selectedNodesForExpand.clear();
-      }
-    }, 200);
-  }
 
   private handleColumnAdjustToggle(): void {
     if (!this.orgChart) return;
@@ -1043,15 +915,10 @@ class YChartEditor {
           if (this.columnAdjustMode) {
             this.handleNodeClickForColumnAdjust(d);
           }
-          // Handle expand selection mode
-          else if (this.expandSelectionMode && arr && arr[i]) {
-            // Pass the actual DOM element
-            this.handleNodeClickForExpand(arr[i], d);
-          } 
-          // Default: show node details
-          else {
-            this.showNodeDetails(d.data);
-          }
+          // Default: do nothing (selection is handled by d3-org-chart)
+        })
+        .onNodeDetailsClick((d: any) => {
+          this.showNodeDetails(d.data);
         })
         .nodeContent((d: any) => this.getNodeContent(d))
         .render();
@@ -1098,7 +965,8 @@ class YChartEditor {
         .join('');
       
       return `
-        <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;">
+        <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;position:relative">
+          <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
           ${cardHtml}
         </div>
       `;
@@ -1106,7 +974,8 @@ class YChartEditor {
     
     // Priority 3: Default template
     return `
-      <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px">
+      <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px;position:relative">
+        <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ''}</div>
           <div style="font-size:12px;color:#666;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ''}</div>

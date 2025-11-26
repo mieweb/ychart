@@ -28,6 +28,7 @@ export class OrgChart {
   addNode(node: any): this;
   removeNode(nodeId: string): this;
   onNodeClick(callback: (d: any) => void): this;
+  onNodeDetailsClick(callback: (d: any) => void): this;
   onNodeSwap(callback: (data1: any, data2: any) => void): this;
   enableSwapMode(enabled: boolean): this;
   linkUpdate(callback: (d: any, i: number, arr: any[]) => void): this;
