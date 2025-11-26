@@ -1,4 +1,6 @@
 import { EditorView, basicSetup } from 'codemirror';
+import { keymap } from '@codemirror/view';
+import { indentWithTab } from '@codemirror/commands';
 import { yaml } from '@codemirror/lang-yaml';
 import { oneDark } from '@codemirror/theme-one-dark';
 import * as jsyaml from 'js-yaml';
@@ -876,6 +878,7 @@ class YChartEditor {
     const extensions = [
       basicSetup,
       yaml(),
+      keymap.of([indentWithTab]), // Allow Tab key to indent instead of navigating away
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !this.isUpdatingProgrammatically) {
           this.renderChart();
@@ -904,6 +907,9 @@ class YChartEditor {
       extensions,
       parent: this.editorContainer
     });
+    
+    // Store the EditorView on the container for test access
+    (this.editorContainer as any).editorView = this.editor;
     
     // Force CodeMirror to refresh after a short delay to ensure proper rendering
     setTimeout(() => {
@@ -1078,7 +1084,7 @@ class YChartEditor {
         .compactMarginBetween(() => options.compactMarginBetween!)
         .compactMarginPair(() => options.compactMarginPair!)
         .neighbourMargin(() => options.neighbourMargin!)
-        .onNodeClick((d: any, i: number, arr: any) => {
+        .onNodeClick((d: any) => {
           // Handle column adjust mode first
           if (this.columnAdjustMode) {
             this.handleNodeClickForColumnAdjust(d);
