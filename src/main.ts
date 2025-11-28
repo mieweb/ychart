@@ -42,6 +42,8 @@ const ychartEditor = new YChartEditor({
   nodeHeight: 110,
   editorTheme: 'dark',
   collapsible: true,
+  // Optional: Enable experimental features (Force Graph view)
+  // experimental: true,
   // Optional: Configure toolbar position and orientation at initialization
   // toolbarPosition: 'topright',
   // toolbarOrientation: 'vertical'

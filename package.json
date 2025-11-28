@@ -13,9 +13,16 @@
     "build": "tsc && vite build",
     "build:lib": "tsc && vite build --mode production",
     "preview": "vite preview",
-    "serve:dist": "vite preview --outDir dist"
+    "serve:dist": "vite preview --outDir dist",
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@playwright/test": "^1.57.0",
     "@types/d3": "^7.4.3",
     "@types/js-yaml": "^4.0.9",
     "@vitejs/plugin-basic-ssl": "^2.1.0",
@@ -24,6 +31,7 @@
     "vite": "^7.1.7"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.10.0",
     "@codemirror/lang-yaml": "^6.1.2",
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.3",

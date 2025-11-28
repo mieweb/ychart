@@ -4,7 +4,9 @@ A beautiful, interactive organizational chart editor with YAML input powered by 
 
 ## Features
 
-- 📝 **YAML Editor** - CodeMirror editor with syntax highlighting
+### Core Features
+- 📝 **YAML Editor** - CodeMirror editor with syntax highlighting and Tab key indentation
+- 🎨 **YAML Formatter** - Built-in prettifier with front matter support
 - 📊 **d3-org-chart** - Professional, battle-tested org chart library by David Bumbeishvili
 - 🎯 **Front Matter Schema** - Configure chart layout using YAML front matter
 - 🎨 **Customizable** - Full control over spacing, layout, and styling
@@ -15,6 +17,13 @@ A beautiful, interactive organizational chart editor with YAML input powered by 
 - 🖱️ **Draggable Nodes** - Rearrange nodes by dragging them
 - 💾 **Position Persistence** - Node positions saved in browser localStorage
 - 🔀 **Dual View Modes** - Switch between hierarchical and force-directed graph layouts
+
+### Advanced Features
+- 🎭 **Multi-Instance Support** - Run multiple independent editors on the same page with unique UUIDs
+- 🧪 **Experimental Mode** - Toggle experimental features like Force Graph view with visual indicators
+- ♿ **508 Compliant** - Full keyboard navigation (Arrow keys, Tab, Enter, Space) for accessibility
+- ✅ **Comprehensive Testing** - 60+ Playwright tests covering all functionality
+- 🎮 **Interactive Toolbar** - Built-in controls for zoom, pan, expand/collapse, reset, and more
 
 ## Getting Started
 
@@ -34,6 +43,16 @@ pnpm dev
 
 ```bash
 pnpm build
+```
+
+### Run Tests
+
+```bash
+pnpm test              # Run all tests
+pnpm test:ui           # Run tests with UI
+pnpm test:headed       # Run tests in headed mode
+pnpm test:debug        # Run tests in debug mode
+pnpm test:report       # Show test report
 ```
 
 ## YAML Format with Front Matter
@@ -455,6 +474,78 @@ watch(() => props.data, (newData) => {
 });
 </script>
 ```
+
+## Testing
+
+This project includes comprehensive Playwright test coverage:
+
+- **31 tests** for org chart functionality (expansion, collapse, keyboard navigation)
+- **20 tests** for YAML editor live updates
+- **16 comprehensive tests** covering all features end-to-end
+- **Full accessibility testing** (WCAG 2.1 / Section 508 compliance)
+
+### Test Coverage
+- ✅ Node expansion and collapse
+- ✅ Zoom, pan, reset, and fit controls
+- ✅ YAML editor open/close
+- ✅ YAML formatting with front matter preservation
+- ✅ Live YAML updates reflecting in chart
+- ✅ Keyboard navigation (Arrow keys, Tab, Enter, Space)
+- ✅ Toolbar button interactions
+- ✅ Swap mode toggle
+- ✅ Multi-instance editor support
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
+
+## Multi-Instance Support
+
+You can run multiple independent YChart editors on the same page:
+
+```html
+<div id="chart1"></div>
+<div id="chart2"></div>
+
+<script type="module">
+  import { YChartEditor } from './dist/ychart-editor.js';
+
+  new YChartEditor({
+    container: '#chart1',
+    data: yamlData1,
+    experimental: false
+  }).render();
+
+  new YChartEditor({
+    container: '#chart2',
+    data: yamlData2,
+    experimental: true  // Enable experimental features
+  }).render();
+</script>
+```
+
+Each instance has:
+- Unique UUIDs for all elements (no ID conflicts)
+- Independent state management
+- Separate event handlers
+- Isolated configuration
+
+See [test-multiple-editors.html](test-multiple-editors.html) for a working example.
+
+## Keyboard Accessibility (508 Compliance)
+
+Full keyboard navigation support for accessibility:
+
+### Chart Navigation
+- **Tab** - Navigate to chart and between UI elements
+- **Arrow Up/Down** - Navigate between nodes in the tree
+- **Arrow Right** - Expand collapsed node
+- **Arrow Left** - Collapse expanded node
+- **Enter/Space** - Activate focused node
+
+### Toolbar Controls
+- **Tab** - Navigate between toolbar buttons
+- **Enter/Space** - Activate toolbar buttons
+
+All interactive elements are keyboard accessible and meet WCAG 2.1 Level AA standards.
 
 ## Browser Support
 
