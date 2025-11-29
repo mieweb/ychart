@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "dev": "vite",
+    "dev:https": "vite --mode https",
     "build": "tsc && vite build",
     "build:lib": "tsc && vite build --mode production",
     "preview": "vite preview",
