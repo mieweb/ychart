@@ -1580,7 +1580,9 @@ export class OrgChart {
         const attrs = this.getChartState();
         if (!attrs.htmlOverlay) return;
         
-        const nodes = attrs.allNodes || [];
+        // Use visibleNodes (only currently visible/expanded nodes) instead of allNodes
+        // This ensures collapsed children are not rendered in the overlay
+        const nodes = attrs.visibleNodes || [];
         const transform = attrs.lastTransform || { x: 0, y: 0, k: 1 };
         
         // Get the center group transform
