@@ -132,16 +132,19 @@ class YChartEditor {
 
     // Create chart container (now on left side)
     const chartWrapper = document.createElement('div');
+    chartWrapper.className = 'ychart-chart-wrapper';
     chartWrapper.style.cssText = 'flex:1;height:100%;position:relative;display:flex;flex-direction:column;overflow:hidden;';
 
     this.chartContainer = document.createElement('div');
     this.chartContainer.id = 'ychart-chart';
+    this.chartContainer.className = 'ychart-chart-container';
     this.chartContainer.style.cssText = 'flex:1;width:100%;height:100%;position:relative;';
     chartWrapper.appendChild(this.chartContainer);
 
     // Create details panel
     this.detailsPanel = document.createElement('div');
     this.detailsPanel.id = 'ychart-node-details';
+    this.detailsPanel.className = 'ychart-details-panel';
     this.detailsPanel.style.cssText = `
       display: none;
       position: absolute;
@@ -166,6 +169,7 @@ class YChartEditor {
     // Create editor sidebar (now on right side, open by default)
     const editorSidebar = document.createElement('div');
     editorSidebar.id = 'ychart-editor-sidebar';
+    editorSidebar.className = 'ychart-editor-sidebar';
     editorSidebar.style.cssText = `
       width: 400px;
       height: 100%;
@@ -179,6 +183,7 @@ class YChartEditor {
     // Create editor container
     this.editorContainer = document.createElement('div');
     this.editorContainer.id = 'ychart-editor';
+    this.editorContainer.className = 'ychart-editor-container';
     this.editorContainer.style.cssText = 'width:100%;height:100%;';
     editorSidebar.appendChild(this.editorContainer);
 
@@ -186,6 +191,7 @@ class YChartEditor {
     if (this.defaultOptions.collapsible) {
       const collapseBtn = document.createElement('button');
       collapseBtn.id = 'ychart-collapse-editor';
+      collapseBtn.className = 'ychart-collapse-btn';
       collapseBtn.innerHTML = '▶';
       collapseBtn.style.cssText = `
         position: absolute;
@@ -258,6 +264,7 @@ class YChartEditor {
   private createToolbar(): HTMLElement {
     const toolbar = document.createElement('div');
     toolbar.id = 'ychart-toolbar';
+    toolbar.className = 'ychart-toolbar';
     
     // Calculate position styles
     const positionStyles = this.getToolbarPositionStyles();
@@ -306,6 +313,7 @@ class YChartEditor {
     buttons.forEach(btn => {
       const button = document.createElement('button');
       button.id = `ychart-btn-${btn.id}`;
+      button.className = `ychart-toolbar-btn ychart-btn-${btn.id}`;
       button.innerHTML = btn.icon;
       button.setAttribute('data-tooltip', btn.tooltip);
       button.style.cssText = `
@@ -546,6 +554,7 @@ class YChartEditor {
     // Create column adjust controls
     this.columnAdjustButtons = document.createElement('div');
     this.columnAdjustButtons.id = 'ychart-column-adjust-controls';
+    this.columnAdjustButtons.className = 'ychart-column-adjust-controls';
     this.columnAdjustButtons.style.cssText = `
       position: absolute;
       top: 50%;
@@ -562,6 +571,7 @@ class YChartEditor {
     `;
 
     const title = document.createElement('div');
+    title.className = 'ychart-column-adjust-title';
     title.textContent = `Adjust Children Columns`;
     title.style.cssText = `
       font-size: 16px;
@@ -573,6 +583,7 @@ class YChartEditor {
     this.columnAdjustButtons.appendChild(title);
 
     const info = document.createElement('div');
+    info.className = 'ychart-column-adjust-info';
     info.textContent = `Node: ${nodeData.data.name || nodeData.data.id} (${childrenCount} children)`;
     info.style.cssText = `
       font-size: 13px;
@@ -584,6 +595,7 @@ class YChartEditor {
 
     // Column controls
     const controlsWrapper = document.createElement('div');
+    controlsWrapper.className = 'ychart-column-controls-wrapper';
     controlsWrapper.style.cssText = `
       display: flex;
       align-items: center;
@@ -593,6 +605,7 @@ class YChartEditor {
     `;
 
     const decreaseBtn = document.createElement('button');
+    decreaseBtn.className = 'ychart-column-decrease-btn';
     decreaseBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
     decreaseBtn.disabled = currentColumns <= 2;
     decreaseBtn.style.cssText = `
@@ -615,6 +628,7 @@ class YChartEditor {
     }
 
     const columnDisplay = document.createElement('div');
+    columnDisplay.className = 'ychart-column-display';
     columnDisplay.textContent = `${currentColumns} Columns`;
     columnDisplay.style.cssText = `
       font-size: 18px;
@@ -625,6 +639,7 @@ class YChartEditor {
     `;
 
     const increaseBtn = document.createElement('button');
+    increaseBtn.className = 'ychart-column-increase-btn';
     increaseBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
     increaseBtn.disabled = currentColumns >= childrenCount;
     increaseBtn.style.cssText = `
@@ -653,6 +668,7 @@ class YChartEditor {
 
     // Close button
     const closeBtn = document.createElement('button');
+    closeBtn.className = 'ychart-column-close-btn';
     closeBtn.textContent = 'Close';
     closeBtn.style.cssText = `
       width: 100%;
@@ -965,8 +981,8 @@ class YChartEditor {
         .join('');
       
       return `
-        <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;position:relative">
-          <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+        <div class="ychart-node-card ychart-card-template" style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;position:relative">
+          <div class="ychart-details-btn details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
           ${cardHtml}
         </div>
       `;
@@ -974,12 +990,12 @@ class YChartEditor {
     
     // Priority 3: Default template
     return `
-      <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px;position:relative">
-        <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ''}</div>
-          <div style="font-size:12px;color:#666;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ''}</div>
-          <div style="font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ''}</div>
+      <div class="ychart-node-card ychart-default-template" style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px;position:relative">
+        <div class="ychart-details-btn details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+        <div class="ychart-node-content" style="flex:1;min-width:0">
+          <div class="ychart-node-name" style="font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ''}</div>
+          <div class="ychart-node-title" style="font-size:12px;color:#666;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ''}</div>
+          <div class="ychart-node-department" style="font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ''}</div>
         </div>
       </div>
     `;
@@ -988,24 +1004,24 @@ class YChartEditor {
   private showNodeDetails(data: any): void {
     if (!this.detailsPanel) return;
 
-    let html = '<div class="node-details-content" style="font-family:sans-serif;">';
-    html += `<h3 style="margin:0 0 1rem 0;color:#333;">${data.name || 'Unknown'}</h3>`;
-    html += '<div style="display:grid;gap:0.5rem;">';
+    let html = '<div class="ychart-details-content node-details-content" style="font-family:sans-serif;">';
+    html += `<h3 class="ychart-details-title" style="margin:0 0 1rem 0;color:#333;">${data.name || 'Unknown'}</h3>`;
+    html += '<div class="ychart-details-grid" style="display:grid;gap:0.5rem;">';
     
     for (const [key, value] of Object.entries(data)) {
       if (key.startsWith('_') || key === 'picture') continue;
       
       const label = key.charAt(0).toUpperCase() + key.slice(1);
       html += `
-        <div style="display:grid;grid-template-columns:120px 1fr;gap:0.5rem;">
-          <span style="font-weight:600;color:#666;">${label}:</span>
-          <span style="color:#333;">${value || 'N/A'}</span>
+        <div class="ychart-details-row" style="display:grid;grid-template-columns:120px 1fr;gap:0.5rem;">
+          <span class="ychart-details-label" style="font-weight:600;color:#666;">${label}:</span>
+          <span class="ychart-details-value" style="color:#333;">${value || 'N/A'}</span>
         </div>
       `;
     }
     
     html += '</div>';
-    html += `<button onclick="document.getElementById('ychart-node-details').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
+    html += `<button class="ychart-details-close-btn" onclick="document.getElementById('ychart-node-details').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
     html += '</div>';
     
     this.detailsPanel.innerHTML = html;
