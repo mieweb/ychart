@@ -770,46 +770,6 @@ class YChartEditor {
           // Validate parent-child relationships
           const nodeIds = new Set(parsed.map((item: any) => String(item.id)));
           
-          // Check for multiple roots (multiple nodes with parentId: null or undefined)
-          const rootNodes = (parsed as any[]).filter((item: any) => 
-            item.parentId === null || item.parentId === undefined
-          );
-          
-          if (rootNodes.length > 1) {
-            // Mark all root nodes after the first as errors
-            for (let i = 1; i < rootNodes.length; i++) {
-              const item = rootNodes[i];
-              const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
-              const parentIdPattern = new RegExp(`parentId:\\s*null`, 'm');
-              
-              const itemMatch = content.match(itemIdPattern);
-              let errorPos = 0;
-              let errorEnd = content.length;
-              
-              if (itemMatch && itemMatch.index !== undefined) {
-                const afterId = content.substring(itemMatch.index);
-                const parentIdMatch = afterId.match(parentIdPattern);
-                if (parentIdMatch && parentIdMatch.index !== undefined) {
-                  errorPos = itemMatch.index + parentIdMatch.index;
-                  errorEnd = errorPos + parentIdMatch[0].length;
-                } else {
-                  // If no explicit parentId: null, mark the id line
-                  errorPos = itemMatch.index;
-                  errorEnd = itemMatch.index + itemMatch[0].length;
-                }
-              }
-              
-              const lineNumber = content.substring(0, errorPos).split('\n').length;
-              
-              diagnostics.push({
-                from: errorPos,
-                to: errorEnd,
-                severity: 'error',
-                message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have parentId: null (node id: ${item.id})`
-              });
-            }
-          }
-          
           // Check for missing/invalid parentId references
           for (const item of parsed as any[]) {
             const parentId = item.parentId;

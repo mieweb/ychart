@@ -46,7 +46,8 @@ The linter checks for:
 1. **YAML Syntax Errors** - Invalid YAML formatting, indentation issues, etc.
 2. **Data Structure** - Ensures the YAML data is an array of objects
 3. **Invalid Parent References** - Detects when a `parentId` points to a non-existent node
-4. **Multiple Root Nodes** - Only one node can have `parentId: null` (the root)
+
+**Note:** Multiple root nodes (nodes with `parentId: null` or undefined) are fully supported. They will be rendered as separate trees.
 
 ### Inline Error Indicators
 
@@ -103,20 +104,6 @@ The linter will highlight the malformed line and show the YAML parser's error me
   parentId: 999  # Error: no node with id 999 exists
 ```
 
-### Multiple Root Nodes
-
-```yaml
-- id: 1
-  name: CEO
-  parentId: null
-
-- id: 2
-  name: Another CEO
-  parentId: null  # Error: only one root node allowed
-```
-
-Only the first root node is valid; subsequent nodes with `parentId: null` are flagged as errors.
-
 ### Non-Array Data
 
 ```yaml
@@ -133,4 +120,4 @@ The org chart data must be a YAML array (starting with `- `), not an object.
 1. **Fix errors before switching views** - Errors may prevent the chart from rendering correctly
 2. **Use the error banner** - Click line numbers to quickly navigate to issues
 3. **Check parent references** - Ensure all `parentId` values reference existing node `id` values
-4. **One root node** - Only one node should have `parentId: null` or omit `parentId` entirely
+4. **Multiple roots supported** - You can have multiple nodes with `parentId: null` or omit `parentId` to create multiple tree hierarchies

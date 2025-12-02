@@ -1027,13 +1027,15 @@ export class OrgChart {
             this.calculateCompactFlexPositions(attrs.root);
         }
 
-        const nodes = treeData.descendants();
+        const allDescendants = treeData.descendants();
+        // Filter out virtual root node from visible nodes
+        const nodes = allDescendants.filter(d => !d.data._isVirtualRoot);
         attrs.visibleNodes = nodes;
 
         // console.table(nodes.map(d => ({ x: d.x, y: d.y, width: d.width, height: d.height, flexCompactDim: d.flexCompactDim + "" })))
 
-        // Get all links
-        const links = treeData.descendants().slice(1);
+        // Get all links - filter out links where parent is virtual root
+        const links = allDescendants.slice(1).filter(d => !d.parent?.data._isVirtualRoot);
         nodes.forEach(attrs.layoutBindings[attrs.layout].swap)
 
         // Connections
@@ -1878,12 +1880,44 @@ export class OrgChart {
     setLayouts({ expandNodesFirst = true }) {
         const attrs = this.getChartState();
         // Store new root by converting flat data to hierarchy
+        
+        // Check for multiple root nodes (nodes with null/undefined parentId)
+        const rootNodes = attrs.data.filter(d => {
+            const parentId = attrs.parentNodeId(d);
+            return parentId === null || parentId === undefined || parentId === '';
+        });
+        
+        // If there are multiple roots, create a virtual root to be their parent
+        let dataWithVirtualRoot = attrs.data;
+        if (rootNodes.length > 1) {
+            // Create a virtual root node with a unique ID
+            const virtualRootId = '__virtual_root__';
+            const virtualRoot = {
+                id: virtualRootId,
+                _isVirtualRoot: true,
+                _virtualRootHeight: 0,
+                _virtualRootWidth: 0
+            };
+            
+            // Update all root nodes to have the virtual root as their parent
+            dataWithVirtualRoot = attrs.data.map(d => {
+                const parentId = attrs.parentNodeId(d);
+                if (parentId === null || parentId === undefined || parentId === '') {
+                    // Create a copy with parentId pointing to virtual root
+                    return { ...d, _originalParentId: parentId, parentId: virtualRootId, parentNodeId: virtualRootId };
+                }
+                return d;
+            });
+            
+            // Add virtual root to the data
+            dataWithVirtualRoot = [virtualRoot, ...dataWithVirtualRoot];
+        }
 
         attrs.generateRoot = d3
             .stratify()
             .id((d) => attrs.nodeId(d))
             .parentId(d => attrs.parentNodeId(d))
-        attrs.root = attrs.generateRoot(attrs.data);
+        attrs.root = attrs.generateRoot(dataWithVirtualRoot);
 
         const descendantsBefore = attrs.root.descendants();
         if (attrs.initialExpandLevel > 1 && descendantsBefore.length > 0) {
@@ -1942,12 +1976,13 @@ export class OrgChart {
         attrs.root = d3
             .stratify()
             .id((d) => attrs.nodeId(d))
-            .parentId(d => attrs.parentNodeId(d))(attrs.data.filter(d => hiddenNodesMap[d.id] !== true));
+            .parentId(d => attrs.parentNodeId(d))(dataWithVirtualRoot.filter(d => hiddenNodesMap[d.id] !== true));
 
         attrs.root.each((node, i, arr) => {
             let _hierarchyHeight = node._hierarchyHeight || node.height
-            let width = attrs.nodeWidth(node);
-            let height = attrs.nodeHeight(node);
+            // Virtual root should have zero dimensions to be invisible
+            let width = node.data._isVirtualRoot ? 0 : attrs.nodeWidth(node);
+            let height = node.data._isVirtualRoot ? 0 : attrs.nodeHeight(node);
             Object.assign(node, { width, height, _hierarchyHeight })
         })
 
