@@ -117,6 +117,57 @@ header h1 {
   font-size: 14px;
 }
 
+/* CodeMirror lint error styling */
+.cm-editor .cm-lintRange-error {
+  background-color: rgba(255, 0, 0, 0.15);
+  border-bottom: 2px wavy #ff4444;
+}
+
+.cm-editor .cm-lintRange-warning {
+  background-color: rgba(255, 200, 0, 0.15);
+  border-bottom: 2px wavy #ffaa00;
+}
+
+.cm-editor .cm-gutter-lint {
+  width: 12px;
+}
+
+.cm-editor .cm-lint-marker-error {
+  content: "●";
+  color: #ff4444;
+}
+
+.cm-editor .cm-lint-marker-warning {
+  content: "●";
+  color: #ffaa00;
+}
+
+/* Lint tooltip styling */
+.cm-editor .cm-tooltip-lint {
+  background-color: #2d2d2d;
+  border: 1px solid #555;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 13px;
+  max-width: 350px;
+}
+
+.cm-editor .cm-diagnostic {
+  padding: 4px 8px;
+  border-left: 3px solid;
+  margin: 2px 0;
+}
+
+.cm-editor .cm-diagnostic-error {
+  border-left-color: #ff4444;
+  background-color: rgba(255, 68, 68, 0.1);
+}
+
+.cm-editor .cm-diagnostic-warning {
+  border-left-color: #ffaa00;
+  background-color: rgba(255, 170, 0, 0.1);
+}
+
 #chart {
   flex: 1;
   overflow: hidden;
