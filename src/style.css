@@ -124,6 +124,44 @@ header h1 {
   background: linear-gradient(to bottom, #fafbfc 0%, #f5f7fa 100%);
 }
 
+/* Safari HTML overlay for foreignObject workaround */
+.html-overlay-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.html-overlay-container .overlay-node {
+  pointer-events: auto;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.html-overlay-container .overlay-content {
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.html-overlay-container .overlay-content .details-btn,
+.html-overlay-container .overlay-content button,
+.html-overlay-container .overlay-content a {
+  cursor: pointer;
+}
+
+.html-overlay-container .overlay-button {
+  z-index: 5;
+}
+
+.html-overlay-container .overlay-button:hover {
+  opacity: 0.8;
+}
+
 #chart svg {
   display: block;
   cursor: grab;
@@ -369,4 +407,31 @@ header h1 {
 
 #chart svg g {
   cursor: move;
+}
+
+/* Safari foreignObject fix */
+@supports (-webkit-touch-callout: none) {
+  /* Safari-only styles - minimal intervention */
+  svg foreignObject {
+    overflow: visible !important;
+  }
+}
+
+/* General foreignObject fixes */
+svg .node-foreign-object {
+  overflow: visible;
+}
+
+svg .node-foreign-object-div {
+  position: relative;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+/* Allow pointer cursor on interactive elements within cards */
+svg .node-foreign-object-div .details-btn,
+svg .node-foreign-object-div button,
+svg .node-foreign-object-div a {
+  cursor: pointer;
 }

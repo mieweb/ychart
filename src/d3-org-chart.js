@@ -630,6 +630,22 @@ export class OrgChart {
             .attr("aria-label", "Organizational Chart")
             .on("keydown", (event) => this.handleKeydown(event));
 
+        // For Safari, create an HTML overlay container
+        if (this.isSafari()) {
+            attrs.htmlOverlay = container
+                .patternify({
+                    tag: "div",
+                    selector: "html-overlay-container"
+                })
+                .style("position", "absolute")
+                .style("top", "0")
+                .style("left", "0")
+                .style("width", "100%")
+                .style("height", "100%")
+                .style("pointer-events", "none")
+                .style("overflow", "hidden");
+        }
+
         if (attrs.firstDraw) {
             svg.call(attrs.zoomBehavior)
                 .on("dblclick.zoom", null)
@@ -898,22 +914,39 @@ export class OrgChart {
                     .filter(d => !d.children)
 
                 if (compactChildren.length < 2) return;
+                
+                // Use the minimum of configured/default columns and actual child count
+                const maxColumns = node.data._childColumns || this.getDefaultColumns();
+                const columns = Math.min(maxColumns, compactChildren.length);
+                console.log('Calculating dimensions for node', node.data.id, 'with columns:', columns, 'children:', compactChildren.length);
+
                 compactChildren.forEach((child, i) => {
                     if (!i) child.firstCompact = true;
-                    if (i % 2) child.compactEven = false;
-                    else child.compactEven = true;
-                    child.row = Math.floor(i / 2);
+                    child.compactColumn = i % columns;
+                    child.row = Math.floor(i / columns);
+                    child.compactEven = child.compactColumn >= (columns / 2);
                 })
-                const evenMaxColumnDimension = d3.max(compactChildren.filter(d => d.compactEven), attrs.layoutBindings[attrs.layout].compactDimension.sizeColumn);
-                const oddMaxColumnDimension = d3.max(compactChildren.filter(d => !d.compactEven), attrs.layoutBindings[attrs.layout].compactDimension.sizeColumn);
-                const columnSize = Math.max(evenMaxColumnDimension, oddMaxColumnDimension) * 2;
+                
+                const columnDimensions = [];
+                for(let c = 0; c < columns; c++) {
+                    const colNodes = compactChildren.filter(d => d.compactColumn === c);
+                    if (colNodes.length > 0) {
+                         columnDimensions[c] = d3.max(colNodes, attrs.layoutBindings[attrs.layout].compactDimension.sizeColumn);
+                    } else {
+                        columnDimensions[c] = 0;
+                    }
+                }
+                
+                const maxColDim = d3.max(columnDimensions);
+                const columnSize = maxColDim * columns;
+                
                 const rowsMapNew = this.groupBy(compactChildren, d => d.row, reducedGroup => d3.max(reducedGroup, d => attrs.layoutBindings[attrs.layout].compactDimension.sizeRow(d) + attrs.compactMarginBetween(d)));
                 const rowSize = d3.sum(rowsMapNew.map(v => v[1]))
                 compactChildren.forEach(node => {
                     node.firstCompactNode = compactChildren[0];
                     if (node.firstCompact) {
                         node.flexCompactDim = [
-                            columnSize + attrs.compactMarginPair(node),
+                            columnSize + attrs.compactMarginPair(node) * (columns - 1),
                             rowSize - attrs.compactMarginBetween(node)
                         ];
                     } else {
@@ -932,13 +965,25 @@ export class OrgChart {
                 const compactChildren = node.children.filter(d => d.flexCompactDim);
                 const fch = compactChildren[0];
                 if (!fch) return;
+                
+                // Use the minimum of configured/default columns and actual child count
+                const maxColumns = node.data._childColumns || this.getDefaultColumns();
+                const columns = Math.min(maxColumns, compactChildren.length);
+                const startX = fch.x - fch.flexCompactDim[0] / 2;
+                
                 compactChildren.forEach((child, i, arr) => {
-                    if (i == 0) fch.x -= fch.flexCompactDim[0] / 2;
-                    if (i & i % 2 - 1) child.x = fch.x + fch.flexCompactDim[0] * 0.25 - attrs.compactMarginPair(child) / 4;
-                    else if (i) child.x = fch.x + fch.flexCompactDim[0] * 0.75 + attrs.compactMarginPair(child) / 4;
+                    const colIndex = child.compactColumn;
+                    const totalWidth = fch.flexCompactDim[0];
+                    const margin = attrs.compactMarginPair(child);
+                    const contentWidth = totalWidth - margin * (columns - 1);
+                    const colWidth = contentWidth / columns;
+                    
+                    const xOffset = colIndex * (colWidth + margin) + colWidth / 2;
+                    
+                    child.x = startX + xOffset;
                 })
-                const centerX = fch.x + fch.flexCompactDim[0] * 0.5;
-                fch.x = fch.x + fch.flexCompactDim[0] * 0.25 - attrs.compactMarginPair(fch) / 4;
+                
+                const centerX = startX + fch.flexCompactDim[0] * 0.5;
                 const offsetX = node.x - centerX;
                 if (Math.abs(offsetX) < 10) {
                     compactChildren.forEach(d => d.x += offsetX);
@@ -958,6 +1003,7 @@ export class OrgChart {
             }
         })
     }
+
 
     // This function basically redraws visible graph, based on nodes state
     update({ x0, y0, x = 0, y = 0, width, height }) {
@@ -1033,7 +1079,7 @@ export class OrgChart {
             .attr("fill", "none")
 
 
-        if (this.isEdge()) {
+        if (this.isEdge() || this.isSafari()) {
             linkUpdate
                 .style('display', d => {
                     const display = d.data._pagingButton ? 'none' : 'auto'
@@ -1055,26 +1101,19 @@ export class OrgChart {
             .transition()
             .duration(attrs.duration)
             .attr("d", (d) => {
-                const n = attrs.compact && d.flexCompactDim ?
-                    {
-                        x: attrs.layoutBindings[attrs.layout].compactLinkMidX(d, attrs),
-                        y: attrs.layoutBindings[attrs.layout].compactLinkMidY(d, attrs)
-                    } :
-                    {
-                        x: attrs.layoutBindings[attrs.layout].linkX(d),
-                        y: attrs.layoutBindings[attrs.layout].linkY(d)
-                    };
+                // Always draw direct parent-to-child links (not peer connections)
+                const n = {
+                    x: attrs.layoutBindings[attrs.layout].linkX(d),
+                    y: attrs.layoutBindings[attrs.layout].linkY(d)
+                };
 
                 const p = {
                     x: attrs.layoutBindings[attrs.layout].linkParentX(d),
                     y: attrs.layoutBindings[attrs.layout].linkParentY(d),
                 };
 
-                const m = attrs.compact && d.flexCompactDim ? {
-                    x: attrs.layoutBindings[attrs.layout].linkCompactXStart(d),
-                    y: attrs.layoutBindings[attrs.layout].linkCompactYStart(d),
-                } : n;
-                return attrs.layoutBindings[attrs.layout].diagonal(n, p, m, { sy: attrs.linkYOffset });
+                // Use node position as midpoint for straight parent-child connection
+                return attrs.layoutBindings[attrs.layout].diagonal(n, p, n, { sy: attrs.linkYOffset });
             });
 
         // Remove any  links which is exiting after animation
@@ -1159,6 +1198,12 @@ export class OrgChart {
             })
             .attr("cursor", "pointer")
             .on("click.node", (event, node) => {
+                // Don't trigger node selection if user is selecting text
+                const selection = window.getSelection();
+                if (selection && selection.toString().length > 0) {
+                    return;
+                }
+                
                 const { data } = node;
                 if ([...event.srcElement.classList].includes("node-button-foreign-object")) {
                     return;
@@ -1232,13 +1277,26 @@ export class OrgChart {
             data: (d) => [d]
         })
             .style('overflow', 'visible')
+            .attr('width', d => d.width)
+            .attr('height', d => d.height)
+            .attr('x', 0)
+            .attr('y', 0)
 
-        // Add foreign object
+        // Add foreign object div for content
         fo.patternify({
             tag: "xhtml:div",
             selector: "node-foreign-object-div",
             data: (d) => [d]
         })
+            .style('width', d => `${d.width}px`)
+            .style('height', d => `${d.height}px`)
+            .style('overflow', 'hidden')
+            .style('user-select', 'text')
+            .style('-webkit-user-select', 'text')
+            .on('mousedown', function(event) {
+                // Stop propagation to allow text selection instead of pan/drag
+                event.stopPropagation();
+            })
 
         this.restyleForeignObjectElements();
 
@@ -1311,7 +1369,7 @@ export class OrgChart {
             .attr("x", ({ width }) => 0)
             .attr("y", ({ height }) => 0)
             .attr("cursor", "pointer")
-            .attr('rx', 3)
+            .attr('rx', 8)
             .attr("fill", attrs.nodeDefaultBackground)
 
 
@@ -1385,6 +1443,20 @@ export class OrgChart {
             d.y0 = d.y;
         });
 
+        // Safari fix: force repaint after transitions complete
+        if (this.isSafari()) {
+            setTimeout(() => {
+                this.restyleForeignObjectElements();
+                // Force Safari to repaint foreignObject elements
+                attrs.svg.selectAll('.node-foreign-object').each(function() {
+                    const fo = this;
+                    fo.style.visibility = 'hidden';
+                    fo.getBoundingClientRect(); // Force reflow
+                    fo.style.visibility = 'visible';
+                });
+            }, attrs.duration + 50);
+        }
+
         // CHECK FOR CENTERING
         const centeredNode = attrs.allNodes.filter(d => d.data._centered)[0]
         if (centeredNode) {
@@ -1421,6 +1493,36 @@ export class OrgChart {
         return window.navigator.userAgent.includes("Edge");
     }
 
+    // This function detects whether current browser is Safari
+    isSafari() {
+        return /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent);
+    }
+
+    // Calculate default columns based on viewport aspect ratio
+    // 16:9 (landscape) -> 10 columns, 9:16 (portrait) -> 3 columns, linear interpolation between
+    getDefaultColumns() {
+        const attrs = this.getChartState();
+        const width = attrs.svgWidth || 800;
+        const height = attrs.svgHeight || 600;
+        const aspectRatio = width / height;
+        
+        // 16:9 ≈ 1.78, 9:16 ≈ 0.56
+        // Map aspect ratio to columns: 0.56 -> 3, 1.78 -> 10
+        const minRatio = 9 / 16;  // 0.5625 (portrait)
+        const maxRatio = 16 / 9;  // 1.7778 (landscape)
+        const minColumns = 3;
+        const maxColumns = 10;
+        
+        // Clamp aspect ratio to range
+        const clampedRatio = Math.max(minRatio, Math.min(maxRatio, aspectRatio));
+        
+        // Linear interpolation
+        const t = (clampedRatio - minRatio) / (maxRatio - minRatio);
+        const columns = Math.round(minColumns + t * (maxColumns - minColumns));
+        
+        return columns;
+    }
+
     // Generate horizontal diagonal - play with it here - https://observablehq.com/@bumbeishvili/curved-edges-horizontal-d3-v3-v4-v5-v6
     hdiagonal(s, t, m, offsets) {
         const state = this.getChartState();
@@ -1435,23 +1537,237 @@ export class OrgChart {
 
     restyleForeignObjectElements() {
         const attrs = this.getChartState();
+        const isSafari = this.isSafari();
 
         attrs.svg
             .selectAll(".node-foreign-object")
             .attr("width", ({ width }) => width)
             .attr("height", ({ height }) => height)
-            .attr("x", ({ width }) => 0)
-            .attr("y", ({ height }) => 0);
-        attrs.svg
-            .selectAll(".node-foreign-object-div")
-            .style("width", ({ width }) => `${width}px`)
-            .style("height", ({ height }) => `${height}px`)
-            .html(function (d, i, arr) {
-                if (d.data._pagingButton) {
-                    return `<div class="paging-button-wrapper"><div style="pointer-events:none">${attrs.pagingButton(d, i, arr, attrs)}</div></div>`;
+            .attr("x", 0)
+            .attr("y", 0);
+        
+        // For Safari, hide foreignObject content and use HTML overlay instead
+        if (isSafari && attrs.htmlOverlay) {
+            // Hide SVG foreignObject content
+            attrs.svg
+                .selectAll(".node-foreign-object-div")
+                .style("visibility", "hidden");
+            
+            // Update HTML overlay with node content
+            this.updateHtmlOverlay();
+        } else {
+            attrs.svg
+                .selectAll(".node-foreign-object-div")
+                .style("width", ({ width }) => `${width}px`)
+                .style("height", ({ height }) => `${height}px`)
+                .style("overflow", "hidden")
+                .style("visibility", "visible")
+                .html(function (d, i, arr) {
+                    if (d.data._pagingButton) {
+                        return `<div class="paging-button-wrapper" style="display:block;"><div style="pointer-events:none">${attrs.pagingButton(d, i, arr, attrs)}</div></div>`;
+                    }
+                    return attrs.nodeContent.bind(this)(d, i, arr, attrs);
+                })
+        }
+    }
+    
+    // Update HTML overlay for Safari
+    updateHtmlOverlay() {
+        const attrs = this.getChartState();
+        if (!attrs.htmlOverlay) return;
+        
+        const nodes = attrs.allNodes || [];
+        const transform = attrs.lastTransform || { x: 0, y: 0, k: 1 };
+        
+        // Get the center group transform
+        const centerG = attrs.centerG;
+        const centerTransform = centerG.attr("transform") || "";
+        
+        // Parse center transform
+        let centerX = 0, centerY = 0;
+        const centerMatch = centerTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+        if (centerMatch) {
+            centerX = parseFloat(centerMatch[1]);
+            centerY = parseFloat(centerMatch[2]);
+        }
+        
+        const self = this;
+        
+        // Create/update overlay divs for each visible node
+        const overlayNodes = attrs.htmlOverlay
+            .selectAll(".overlay-node")
+            .data(nodes.filter(d => d.x !== undefined), d => attrs.nodeId(d.data));
+        
+        // Remove old nodes
+        overlayNodes.exit().remove();
+        
+        // Enter new nodes
+        const overlayEnter = overlayNodes.enter()
+            .append("div")
+            .attr("class", "overlay-node")
+            .style("position", "absolute")
+            .style("pointer-events", "auto")
+            .style("overflow", "visible")
+            .style("cursor", "pointer");
+        
+        // Update all nodes
+        const overlayMerged = overlayEnter.merge(overlayNodes);
+        
+        // Forward wheel events to SVG for zoom handling
+        overlayMerged.on("wheel", function(event) {
+            // Create a new wheel event and dispatch it to the SVG
+            const svgNode = attrs.svg.node();
+            if (svgNode) {
+                const newEvent = new WheelEvent('wheel', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: event.clientX,
+                    clientY: event.clientY,
+                    deltaX: event.deltaX,
+                    deltaY: event.deltaY,
+                    deltaZ: event.deltaZ,
+                    deltaMode: event.deltaMode,
+                    ctrlKey: event.ctrlKey,
+                    shiftKey: event.shiftKey,
+                    altKey: event.altKey,
+                    metaKey: event.metaKey
+                });
+                svgNode.dispatchEvent(newEvent);
+                event.preventDefault();
+            }
+        });
+        
+        // Add click handler for node selection
+        overlayMerged.on("click", function(event, d) {
+            // Don't trigger node selection if user is selecting text
+            const selection = window.getSelection();
+            if (selection && selection.toString().length > 0) {
+                return;
+            }
+            
+            // Don't handle if clicking on button
+            if (event.target.closest('.overlay-button')) {
+                return;
+            }
+            // Check for details button click
+            if (event.target.closest('.details-btn')) {
+                if (attrs.onNodeDetailsClick) {
+                    attrs.onNodeDetailsClick(d);
                 }
-                return attrs.nodeContent.bind(this)(d, i, arr, attrs)
-            })
+                return;
+            }
+            // Check for paging button
+            if (event.target.closest('.paging-button-wrapper')) {
+                self.loadPagingNodes(d);
+                return;
+            }
+            
+            if (!d.data._pagingButton) {
+                // Handle swap mode click
+                if (attrs.swapMode) {
+                    self.handleSwapNodeClick(d);
+                } else {
+                    // Select the node on click
+                    attrs.selectedNodeId = attrs.nodeId(d.data);
+                    d.data._centered = true;
+                    self.update(attrs.root);
+                    if (attrs.onNodeSelect) attrs.onNodeSelect(attrs.selectedNodeId);
+                    
+                    attrs.onNodeClick(d);
+                }
+                
+                // Focus the SVG so keyboard navigation works
+                if (attrs.svg && attrs.svg.node()) {
+                    attrs.svg.node().focus();
+                }
+            }
+        });
+        
+        overlayMerged
+            .style("width", d => `${d.width}px`)
+            .style("height", d => `${d.height}px`)
+            .each(function(d) {
+                const nodeX = d.x;
+                const nodeY = d.y;
+                // Apply layout transform
+                const layoutTransform = attrs.layoutBindings[attrs.layout].nodeUpdateTransform({ x: nodeX, y: nodeY, width: d.width, height: d.height });
+                const match = layoutTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+                let tx = nodeX, ty = nodeY;
+                if (match) {
+                    tx = parseFloat(match[1]);
+                    ty = parseFloat(match[2]);
+                }
+                // Apply center offset and zoom transform
+                const screenX = (tx + centerX) * transform.k + transform.x;
+                const screenY = (ty + centerY) * transform.k + transform.y;
+                
+                d3.select(this)
+                    .style("left", `${screenX}px`)
+                    .style("top", `${screenY}px`)
+                    .style("transform", `scale(${transform.k})`)
+                    .style("transform-origin", "0 0");
+            });
+        
+        // Add node content
+        overlayMerged.each(function(d, i, arr) {
+            const container = d3.select(this);
+            
+            // Create content wrapper if not exists
+            let contentWrapper = container.select(".overlay-content");
+            if (contentWrapper.empty()) {
+                contentWrapper = container.append("div")
+                    .attr("class", "overlay-content")
+                    .style("width", "100%")
+                    .style("height", "100%")
+                    .style("overflow", "hidden")
+                    .style("user-select", "text")
+                    .style("-webkit-user-select", "text")
+                    .style("cursor", "text");
+            }
+            
+            // Update content
+            if (d.data._pagingButton) {
+                contentWrapper.html(`<div class="paging-button-wrapper" style="display:block;"><div style="pointer-events:none">${attrs.pagingButton(d, i, arr, attrs)}</div></div>`);
+            } else {
+                contentWrapper.html(attrs.nodeContent.bind(this)(d, i, arr, attrs));
+            }
+            
+            // Add expand/collapse button if node has children
+            const hasChildren = d.data._directSubordinates > 0;
+            let buttonWrapper = container.select(".overlay-button");
+            
+            if (hasChildren && !d.data._pagingButton) {
+                if (buttonWrapper.empty()) {
+                    buttonWrapper = container.append("div")
+                        .attr("class", "overlay-button")
+                        .style("position", "absolute")
+                        .style("cursor", "pointer")
+                        .style("pointer-events", "auto");
+                }
+                
+                // Get button position from layout
+                const buttonX = attrs.layoutBindings[attrs.layout].buttonX({ width: d.width, height: d.height });
+                const buttonY = attrs.layoutBindings[attrs.layout].buttonY({ width: d.width, height: d.height });
+                const buttonWidth = attrs.nodeButtonWidth(d);
+                const buttonHeight = attrs.nodeButtonHeight(d);
+                
+                buttonWrapper
+                    .style("left", `${buttonX + attrs.nodeButtonX(d)}px`)
+                    .style("top", `${buttonY + attrs.nodeButtonY(d)}px`)
+                    .style("width", `${buttonWidth}px`)
+                    .style("height", `${buttonHeight}px`)
+                    .style("display", "flex")
+                    .style("align-items", "center")
+                    .style("justify-content", "center")
+                    .html(attrs.buttonContent({ node: d, state: attrs }))
+                    .on("click", function(event) {
+                        event.stopPropagation();
+                        self.onButtonClick(event, d);
+                    });
+            } else {
+                buttonWrapper.remove();
+            }
+        });
     }
 
     // Toggle children on click.
@@ -1694,7 +2010,7 @@ export class OrgChart {
         chart.attr("transform", transform);
 
         // Apply new styles to the foreign object element
-        if (this.isEdge()) {
+        if (this.isEdge() || this.isSafari()) {
             this.restyleForeignObjectElements();
         }
     }
