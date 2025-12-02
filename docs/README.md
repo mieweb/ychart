@@ -1,6 +1,16 @@
 # YChart Editor Documentation
 
-This documentation covers the YAML editor features including real-time linting, error reporting, and keyboard navigation.
+This documentation covers the YAML editor features including real-time linting, error reporting, flexible data formats, and keyboard navigation.
+
+## Table of Contents
+
+- [Editor Panel](#editor-panel)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Flexible YAML Data Formats](#flexible-yaml-data-formats)
+- [YAML Linting & Validation](#yaml-linting--validation)
+- [Error Types](#error-types)
+- [API Reference](#api-reference)
+- [Best Practices](#best-practices)
 
 ## Editor Panel
 
@@ -34,6 +44,132 @@ Press `Ctrl + \`` (Control + backtick) to:
 2. **If editor is open** - Close the editor panel
 
 This is useful when you select a node in the chart and want to quickly edit its properties in the YAML.
+
+## Flexible YAML Data Formats
+
+YChart supports flexible YAML data formats that minimize boilerplate. You can omit `id` and `parentId` fields in many cases, and the parser will intelligently resolve relationships.
+
+### Auto-Generated IDs
+
+Nodes don't require an explicit `id` field. YChart will auto-generate IDs using the following priority:
+
+1. **Email field** (preferred) - If the node has an `email` field, it becomes the ID (lowercased)
+2. **Numeric IDs** - If other nodes use numeric IDs, continues the sequence
+3. **String IDs** - Otherwise generates a unique string ID
+
+#### Example: Using Email as ID
+
+```yaml
+# No explicit id needed - email becomes the ID
+- name: Sarah Chen
+  email: sarah.chen@company.com
+  title: CEO
+
+- name: Michael Rodriguez
+  email: michael.rodriguez@company.com
+  title: CTO
+  parentId: sarah.chen@company.com  # Reference by email
+```
+
+#### Example: Mixed ID Styles
+
+```yaml
+# Explicit numeric ID
+- id: 1
+  name: Sarah Chen
+  title: CEO
+
+# Auto-generated ID (will be 2)
+- name: Michael Rodriguez
+  title: CTO
+  parentId: 1
+```
+
+### Supervisor Name Lookup
+
+Instead of using `parentId`, you can specify a supervisor by name. YChart will automatically look up the parent node by matching names.
+
+#### Supported Field Names
+
+The following fields are checked (in order) for supervisor lookup:
+
+| Field | Example |
+|-------|---------|
+| `supervisor` | `supervisor: Sarah Chen` |
+| `reports` | `reports: Sarah Chen` |
+| `reports_to` | `reports_to: Sarah Chen` |
+| `manager` | `manager: Sarah Chen` |
+| `leader` | `leader: Sarah Chen` |
+| `parent` | `parent: Sarah Chen` |
+
+#### Example: Supervisor-Based Hierarchy
+
+```yaml
+# Root node (no supervisor, no parentId)
+- name: Sarah Chen
+  email: sarah.chen@company.com
+  title: CEO
+
+# Child nodes use supervisor name
+- name: Michael Rodriguez
+  email: michael.rodriguez@company.com
+  title: CTO
+  supervisor: Sarah Chen
+
+- name: Emily Watson
+  email: emily.watson@company.com
+  title: CFO
+  supervisor: Sarah Chen
+
+- name: Jennifer Martinez
+  email: jennifer.martinez@company.com
+  title: VP Engineering
+  supervisor: Michael Rodriguez
+```
+
+This is equivalent to:
+
+```yaml
+- id: sarah.chen@company.com
+  name: Sarah Chen
+  title: CEO
+  parentId: null
+
+- id: michael.rodriguez@company.com
+  name: Michael Rodriguez
+  title: CTO
+  parentId: sarah.chen@company.com
+
+- id: emily.watson@company.com
+  name: Emily Watson
+  title: CFO
+  parentId: sarah.chen@company.com
+
+- id: jennifer.martinez@company.com
+  name: Jennifer Martinez
+  title: VP Engineering
+  parentId: michael.rodriguez@company.com
+```
+
+### Resolution Priority
+
+When determining parent relationships, YChart uses this priority:
+
+1. **Explicit `parentId`** - Always takes precedence if specified
+2. **Supervisor name lookup** - Checked if `parentId` is missing
+3. **Root node** - If no parent can be resolved, node becomes a root
+
+### Case-Insensitive Matching
+
+Name lookups are case-insensitive:
+
+```yaml
+- name: Sarah Chen
+  title: CEO
+
+- name: Michael Rodriguez
+  supervisor: SARAH CHEN  # Matches "Sarah Chen"
+```
 
 ## YAML Linting & Validation
 
@@ -115,9 +251,56 @@ employees:
 
 The org chart data must be a YAML array (starting with `- `), not an object.
 
+## API Reference
+
+### supervisorLookup()
+
+Configure which fields are used for supervisor name lookup and name matching.
+
+```typescript
+supervisorLookup(supervisorFieldNames: string | string[], nameFieldName?: string): this
+```
+
+#### Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `supervisorFieldNames` | `string \| string[]` | `['supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent']` | Field name(s) to check for supervisor |
+| `nameFieldName` | `string` | `'name'` | Field containing the node's name for matching |
+
+#### Example: Custom Field Names
+
+```typescript
+// Use 'reports_to' field to look up by 'fullName'
+new YChartEditor()
+  .initView('container', yamlData)
+  .supervisorLookup('reports_to', 'fullName');
+```
+
+```yaml
+# YAML using custom field names
+- fullName: Sarah Chen
+  title: CEO
+
+- fullName: Michael Rodriguez
+  title: CTO
+  reports_to: Sarah Chen
+```
+
+#### Example: Multiple Lookup Fields
+
+```typescript
+// Check multiple fields in order
+new YChartEditor()
+  .initView('container', yamlData)
+  .supervisorLookup(['manager', 'team_lead', 'supervisor']);
+```
+
 ## Best Practices
 
 1. **Fix errors before switching views** - Errors may prevent the chart from rendering correctly
 2. **Use the error banner** - Click line numbers to quickly navigate to issues
-3. **Check parent references** - Ensure all `parentId` values reference existing node `id` values
+3. **Check parent references** - Ensure all `parentId` values reference existing node `id` values or valid email addresses
 4. **Multiple roots supported** - You can have multiple nodes with `parentId: null` or omit `parentId` to create multiple tree hierarchies
+5. **Use email as ID** - For cleaner YAML, omit `id` fields and let emails serve as natural identifiers
+6. **Use supervisor names** - Omit `parentId` and use human-readable supervisor names for easier maintenance
