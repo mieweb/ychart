@@ -1,11 +1,9 @@
 import { EditorView, basicSetup } from 'codemirror';
 import { yaml } from '@codemirror/lang-yaml';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import * as jsyaml from 'js-yaml';
 import { OrgChart } from './d3-org-chart.js';
 import { ForceGraph } from './forceGraph.js';
-import './style.css';
 
 interface YChartOptions {
   nodeWidth?: number;
@@ -20,6 +18,7 @@ interface YChartOptions {
   patternColor?: string;
   toolbarPosition?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright' | 'topcenter' | 'bottomcenter';
   toolbarOrientation?: 'horizontal' | 'vertical';
+  experimental?: boolean;
 }
 
 interface FieldSchema {
@@ -50,6 +49,15 @@ interface FrontMatter {
   data: string;
 }
 
+// Generate a unique identifier for each editor instance
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 class YChartEditor {
   private viewContainer: HTMLElement | null = null;
   private editorContainer: HTMLElement | null = null;
@@ -72,11 +80,11 @@ class YChartEditor {
   private cardTemplate: CardElement[] | null = null;
   private columnAdjustMode = false;
   private columnAdjustButtons: HTMLElement | null = null;
-  private errorBanner: HTMLElement | null = null;
-  private supervisorFields: string[] = ['supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'];
-  private nameField: string = 'name';
+  private experimental = false;
+  private instanceId: string;
   
   constructor(options?: YChartOptions) {
+    this.instanceId = generateUUID();
     this.defaultOptions = {
       nodeWidth: 220,
       nodeHeight: 110,
@@ -94,6 +102,7 @@ class YChartEditor {
     // Set toolbar position and orientation from options
     this.toolbarPosition = this.defaultOptions.toolbarPosition!;
     this.toolbarOrientation = this.defaultOptions.toolbarOrientation!;
+    this.experimental = this.defaultOptions.experimental || false;
   }
 
   /**
@@ -117,9 +126,6 @@ class YChartEditor {
     // Initialize the editor
     this.initializeEditor();
     
-    // Set up keyboard shortcuts
-    this.setupKeyboardShortcuts();
-    
     // Render initial chart
     this.renderChart();
 
@@ -140,19 +146,18 @@ class YChartEditor {
 
     // Create chart container (now on left side)
     const chartWrapper = document.createElement('div');
-    chartWrapper.className = 'ychart-chart-wrapper';
     chartWrapper.style.cssText = 'flex:1;height:100%;position:relative;display:flex;flex-direction:column;overflow:hidden;';
 
     this.chartContainer = document.createElement('div');
-    this.chartContainer.id = 'ychart-chart';
-    this.chartContainer.className = 'ychart-chart-container';
+    this.chartContainer.id = `ychart-chart-${this.instanceId}`;
+    this.chartContainer.setAttribute('data-id', `ychart-chart-${this.instanceId}`);
     this.chartContainer.style.cssText = 'flex:1;width:100%;height:100%;position:relative;';
     chartWrapper.appendChild(this.chartContainer);
 
     // Create details panel
     this.detailsPanel = document.createElement('div');
-    this.detailsPanel.id = 'ychart-node-details';
-    this.detailsPanel.className = 'ychart-details-panel';
+    this.detailsPanel.id = `ychart-node-details-${this.instanceId}`;
+    this.detailsPanel.setAttribute('data-id', `ychart-node-details-${this.instanceId}`);
     this.detailsPanel.style.cssText = `
       display: none;
       position: absolute;
@@ -176,8 +181,8 @@ class YChartEditor {
 
     // Create editor sidebar (now on right side, open by default)
     const editorSidebar = document.createElement('div');
-    editorSidebar.id = 'ychart-editor-sidebar';
-    editorSidebar.className = 'ychart-editor-sidebar';
+    editorSidebar.id = `ychart-editor-sidebar-${this.instanceId}`;
+    editorSidebar.setAttribute('data-id', `ychart-editor-sidebar-${this.instanceId}`);
     editorSidebar.style.cssText = `
       width: 400px;
       height: 100%;
@@ -186,38 +191,66 @@ class YChartEditor {
       position: relative;
       transition: width 0.3s ease, border-left-width 0s 0.3s;
       flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
     `;
 
-    // Create error banner container (above editor)
-    this.errorBanner = document.createElement('div');
-    this.errorBanner.id = 'ychart-error-banner';
-    this.errorBanner.className = 'ychart-error-banner';
-    this.errorBanner.style.cssText = `
-      display: none;
-      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-      border-bottom: 2px solid #ef4444;
+    // Create editor header with format button
+    const editorHeader = document.createElement('div');
+    editorHeader.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       padding: 8px 12px;
-      max-height: 120px;
-      overflow-y: auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
+      background: #282c34;
+      border-bottom: 1px solid #3e4451;
     `;
-    editorSidebar.appendChild(this.errorBanner);
+
+    const editorTitle = document.createElement('div');
+    editorTitle.textContent = 'YAML Editor';
+    editorTitle.style.cssText = 'color: #abb2bf; font-size: 12px; font-weight: 600;';
+    editorHeader.appendChild(editorTitle);
+
+    const formatBtn = document.createElement('button');
+    formatBtn.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16 18 22 12 16 6"/>
+        <polyline points="8 6 2 12 8 18"/>
+      </svg>
+      <span style="margin-left: 4px;">Format</span>
+    `;
+    formatBtn.style.cssText = `
+      display: flex;
+      align-items: center;
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: background 0.2s ease;
+    `;
+    formatBtn.onmouseenter = () => {
+      formatBtn.style.background = '#5568d3';
+    };
+    formatBtn.onmouseleave = () => {
+      formatBtn.style.background = '#667eea';
+    };
+    formatBtn.onclick = () => this.handleFormatYAML();
+    editorHeader.appendChild(formatBtn);
+
+    editorSidebar.appendChild(editorHeader);
 
     // Create editor container
     this.editorContainer = document.createElement('div');
-    this.editorContainer.id = 'ychart-editor';
-    this.editorContainer.className = 'ychart-editor-container';
-    this.editorContainer.style.cssText = 'width:100%;height:100%;flex:1;overflow:hidden;';
+    this.editorContainer.id = `ychart-editor-${this.instanceId}`;
+    this.editorContainer.setAttribute('data-id', `ychart-editor-${this.instanceId}`);
+    this.editorContainer.style.cssText = 'width:100%;height:calc(100% - 41px);';
     editorSidebar.appendChild(this.editorContainer);
 
     // Create collapse button (positioned outside sidebar, on the left side of editor)
     if (this.defaultOptions.collapsible) {
       const collapseBtn = document.createElement('button');
-      collapseBtn.id = 'ychart-collapse-editor';
-      collapseBtn.className = 'ychart-collapse-btn';
+      collapseBtn.setAttribute('data-id', `ychart-collapse-editor-${this.instanceId}`);
       collapseBtn.innerHTML = '▶';
       collapseBtn.style.cssText = `
         position: absolute;
@@ -289,8 +322,7 @@ class YChartEditor {
 
   private createToolbar(): HTMLElement {
     const toolbar = document.createElement('div');
-    toolbar.id = 'ychart-toolbar';
-    toolbar.className = 'ychart-toolbar';
+    toolbar.setAttribute('data-id', `ychart-toolbar-${this.instanceId}`);
     
     // Calculate position styles
     const positionStyles = this.getToolbarPositionStyles();
@@ -332,14 +364,22 @@ class YChartEditor {
       { id: 'collapseAll', icon: icons.collapseAll, tooltip: 'Collapse All', action: () => this.handleCollapseAll() },
       { id: 'columnAdjust', icon: icons.columnAdjust, tooltip: 'Adjust Child Columns', action: () => this.handleColumnAdjustToggle() },
       { id: 'swap', icon: icons.swap, tooltip: 'Swap Mode', action: () => this.handleSwapToggle() },
-      { id: 'toggleView', icon: this.currentView === 'hierarchy' ? icons.forceGraph : icons.orgChart, tooltip: this.currentView === 'hierarchy' ? 'Switch to Force Graph' : 'Switch to Org Chart', action: () => this.handleToggleView() },
       { id: 'export', icon: icons.export, tooltip: 'Export SVG', action: () => this.handleExport() },
     ];
 
+    // Add Force Graph toggle button only if experimental mode is enabled
+    if (this.experimental) {
+      buttons.splice(6, 0, { 
+        id: 'toggleView', 
+        icon: this.currentView === 'hierarchy' ? icons.forceGraph : icons.orgChart, 
+        tooltip: this.currentView === 'hierarchy' ? 'Switch to Force Graph (Experimental)' : 'Switch to Org Chart', 
+        action: () => this.handleToggleView() 
+      });
+    }
+
     buttons.forEach(btn => {
       const button = document.createElement('button');
-      button.id = `ychart-btn-${btn.id}`;
-      button.className = `ychart-toolbar-btn ychart-btn-${btn.id}`;
+      button.setAttribute('data-id', `ychart-btn-${btn.id}-${this.instanceId}`);
       button.innerHTML = btn.icon;
       button.setAttribute('data-tooltip', btn.tooltip);
       button.style.cssText = `
@@ -384,6 +424,29 @@ class YChartEditor {
       `;
       
       button.appendChild(tooltip);
+
+      // Add experimental badge for Force Graph toggle button
+      if (btn.id === 'toggleView' && this.experimental) {
+        const badge = document.createElement('span');
+        badge.textContent = '!';
+        badge.style.cssText = `
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #f59e0b;
+          color: white;
+          border-radius: 50%;
+          width: 16px;
+          height: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          font-weight: bold;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        `;
+        button.appendChild(badge);
+      }
 
       button.onmouseenter = () => {
         button.style.background = '#667eea';
@@ -464,7 +527,7 @@ class YChartEditor {
     }
 
     // Update button style
-    const swapBtn = document.getElementById('ychart-btn-swap');
+    const swapBtn = document.querySelector(`[data-id="ychart-btn-swap-${this.instanceId}"]`) as HTMLElement;
     if (swapBtn) {
       if (this.swapModeEnabled) {
         swapBtn.style.background = '#e74c3c';
@@ -484,7 +547,7 @@ class YChartEditor {
     }
 
     // Update the toggle view button icon and tooltip
-    const toggleBtn = document.getElementById('ychart-btn-toggleView');
+    const toggleBtn = document.querySelector(`[data-id="ychart-btn-toggleView-${this.instanceId}"]`) as HTMLElement;
     if (toggleBtn) {
       const icons = {
         forceGraph: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="14" y1="12" x2="17" y2="12"/><line x1="7" y1="12" x2="10" y2="12"/></svg>`,
@@ -504,6 +567,77 @@ class YChartEditor {
   private handleExport(): void {
     if (this.orgChart && typeof this.orgChart.exportSvg === 'function') {
       this.orgChart.exportSvg();
+    }
+  }
+
+  private handleFormatYAML(): void {
+    if (!this.editor) return;
+
+    try {
+      // Get current YAML content
+      const currentContent = this.editor.state.doc.toString();
+      
+      // Check if content has front matter (starts with ---)
+      if (currentContent.startsWith('---')) {
+        const parts = currentContent.split('---');
+        if (parts.length >= 3) {
+          // Parse front matter and data separately
+          const frontMatter = parts[1].trim();
+          const dataContent = parts.slice(2).join('---').trim();
+          
+          // Parse and format front matter
+          const parsedFrontMatter = jsyaml.load(frontMatter);
+          const formattedFrontMatter = jsyaml.dump(parsedFrontMatter, {
+            indent: 2,
+            lineWidth: -1,
+            noRefs: true,
+            sortKeys: false,
+          });
+          
+          // Parse and format data content
+          const parsedData = jsyaml.load(dataContent);
+          const formattedData = jsyaml.dump(parsedData, {
+            indent: 2,
+            lineWidth: -1,
+            noRefs: true,
+            sortKeys: false,
+          });
+          
+          // Reconstruct the complete YAML with front matter
+          const formatted = `---\n${formattedFrontMatter.trim()}\n---\n\n${formattedData.trim()}\n`;
+          
+          // Update the editor with formatted YAML
+          this.editor.dispatch({
+            changes: {
+              from: 0,
+              to: this.editor.state.doc.length,
+              insert: formatted
+            }
+          });
+        }
+      } else {
+        // No front matter, format as single document
+        const parsed = jsyaml.load(currentContent);
+        const formatted = jsyaml.dump(parsed, {
+          indent: 2,
+          lineWidth: -1,
+          noRefs: true,
+          sortKeys: false,
+        });
+        
+        this.editor.dispatch({
+          changes: {
+            from: 0,
+            to: this.editor.state.doc.length,
+            insert: formatted
+          }
+        });
+      }
+
+      console.log('YAML formatted successfully');
+    } catch (error) {
+      console.error('Failed to format YAML:', error);
+      alert(`Failed to format YAML: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -539,7 +673,7 @@ class YChartEditor {
     this.columnAdjustMode = !this.columnAdjustMode;
 
     // Update button style
-    const columnAdjustBtn = document.getElementById('ychart-btn-columnAdjust');
+    const columnAdjustBtn = document.querySelector(`[data-id="ychart-btn-columnAdjust-${this.instanceId}"]`) as HTMLElement;
     if (columnAdjustBtn) {
       if (this.columnAdjustMode) {
         columnAdjustBtn.style.background = '#9b59b6';
@@ -579,8 +713,7 @@ class YChartEditor {
 
     // Create column adjust controls
     this.columnAdjustButtons = document.createElement('div');
-    this.columnAdjustButtons.id = 'ychart-column-adjust-controls';
-    this.columnAdjustButtons.className = 'ychart-column-adjust-controls';
+    this.columnAdjustButtons.setAttribute('data-id', `ychart-column-adjust-controls-${this.instanceId}`);
     this.columnAdjustButtons.style.cssText = `
       position: absolute;
       top: 50%;
@@ -597,7 +730,6 @@ class YChartEditor {
     `;
 
     const title = document.createElement('div');
-    title.className = 'ychart-column-adjust-title';
     title.textContent = `Adjust Children Columns`;
     title.style.cssText = `
       font-size: 16px;
@@ -609,7 +741,6 @@ class YChartEditor {
     this.columnAdjustButtons.appendChild(title);
 
     const info = document.createElement('div');
-    info.className = 'ychart-column-adjust-info';
     info.textContent = `Node: ${nodeData.data.name || nodeData.data.id} (${childrenCount} children)`;
     info.style.cssText = `
       font-size: 13px;
@@ -621,7 +752,6 @@ class YChartEditor {
 
     // Column controls
     const controlsWrapper = document.createElement('div');
-    controlsWrapper.className = 'ychart-column-controls-wrapper';
     controlsWrapper.style.cssText = `
       display: flex;
       align-items: center;
@@ -631,7 +761,6 @@ class YChartEditor {
     `;
 
     const decreaseBtn = document.createElement('button');
-    decreaseBtn.className = 'ychart-column-decrease-btn';
     decreaseBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
     decreaseBtn.disabled = currentColumns <= 2;
     decreaseBtn.style.cssText = `
@@ -654,7 +783,6 @@ class YChartEditor {
     }
 
     const columnDisplay = document.createElement('div');
-    columnDisplay.className = 'ychart-column-display';
     columnDisplay.textContent = `${currentColumns} Columns`;
     columnDisplay.style.cssText = `
       font-size: 18px;
@@ -665,7 +793,6 @@ class YChartEditor {
     `;
 
     const increaseBtn = document.createElement('button');
-    increaseBtn.className = 'ychart-column-increase-btn';
     increaseBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
     increaseBtn.disabled = currentColumns >= childrenCount;
     increaseBtn.style.cssText = `
@@ -694,7 +821,6 @@ class YChartEditor {
 
     // Close button
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'ychart-column-close-btn';
     closeBtn.textContent = 'Close';
     closeBtn.style.cssText = `
       width: 100%;
@@ -747,125 +873,9 @@ class YChartEditor {
   private initializeEditor(): void {
     if (!this.editorContainer) return;
 
-    // Create YAML linter that validates syntax and structure
-    const yamlLinter = linter((view) => {
-      const diagnostics: Diagnostic[] = [];
-      const content = view.state.doc.toString();
-      
-      try {
-        // Parse the full content (front matter + data)
-        const { data: yamlData } = this.parseFrontMatter(content);
-        const parsed = jsyaml.load(yamlData);
-        
-        // Validate that the data is an array
-        if (parsed !== null && parsed !== undefined && !Array.isArray(parsed)) {
-          // Find the start of the data section (after front matter)
-          const dataStart = content.lastIndexOf('---');
-          const pos = dataStart !== -1 ? dataStart + 3 : 0;
-          
-          diagnostics.push({
-            from: pos,
-            to: Math.min(pos + 50, content.length),
-            severity: 'error',
-            message: 'YAML data must be an array of objects (start each item with "- ")'
-          });
-        } else if (Array.isArray(parsed)) {
-          // Validate parent-child relationships
-          // Build set of valid IDs: explicit IDs + emails (as potential auto-generated IDs)
-          const nodeIds = new Set<string>();
-          for (const item of parsed as any[]) {
-            if (item.id !== undefined && item.id !== null) {
-              nodeIds.add(String(item.id));
-            }
-            // Also add email as a valid ID (since it can be auto-generated)
-            if (item.email) {
-              nodeIds.add(String(item.email).toLowerCase());
-            }
-          }
-          
-          // Check for missing/invalid parentId references
-          for (const item of parsed as any[]) {
-            const parentId = item.parentId;
-            // parentId should be null for root, or reference an existing node (by id or email)
-            if (parentId !== null && parentId !== undefined && !nodeIds.has(String(parentId)) && !nodeIds.has(String(parentId).toLowerCase())) {
-              // Find the line with this item's parentId
-              const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
-              const parentIdPattern = new RegExp(`parentId:\\s*${parentId}`, 'm');
-              
-              // Find the parentId line for this item
-              const itemMatch = content.match(itemIdPattern);
-              let errorPos = 0;
-              let errorEnd = content.length;
-              
-              if (itemMatch && itemMatch.index !== undefined) {
-                // Look for parentId after this item's id
-                const afterId = content.substring(itemMatch.index);
-                const parentIdMatch = afterId.match(parentIdPattern);
-                if (parentIdMatch && parentIdMatch.index !== undefined) {
-                  errorPos = itemMatch.index + parentIdMatch.index;
-                  errorEnd = errorPos + parentIdMatch[0].length;
-                }
-              }
-              
-              // Calculate line number for the error message
-              const lineNumber = content.substring(0, errorPos).split('\n').length;
-              
-              diagnostics.push({
-                from: errorPos,
-                to: errorEnd,
-                severity: 'error',
-                message: `Line ${lineNumber}: Invalid parentId "${parentId}" - no node with this id exists`
-              });
-            }
-          }
-        }
-      } catch (e: unknown) {
-        if (e instanceof jsyaml.YAMLException) {
-          // js-yaml provides mark with line and column info
-          const mark = e.mark;
-          if (mark) {
-            // Convert line/column to document position
-            const line = Math.min(mark.line + 1, view.state.doc.lines);
-            const lineInfo = view.state.doc.line(line);
-            const from = lineInfo.from + Math.min(mark.column, lineInfo.length);
-            const to = lineInfo.to;
-            
-            diagnostics.push({
-              from,
-              to,
-              severity: 'error',
-              message: `Line ${line}: ${e.reason || e.message}`
-            });
-          } else {
-            // Fallback if no mark is available
-            diagnostics.push({
-              from: 0,
-              to: Math.min(50, content.length),
-              severity: 'error',
-              message: e.message
-            });
-          }
-        } else if (e instanceof Error) {
-          diagnostics.push({
-            from: 0,
-            to: Math.min(50, content.length),
-            severity: 'error',
-            message: e.message
-          });
-        }
-      }
-      
-      // Update the error banner with all diagnostics
-      this.updateErrorBanner(diagnostics, view);
-      
-      return diagnostics;
-    }, { delay: 300 });
-
     const extensions = [
       basicSetup,
       yaml(),
-      lintGutter(),
-      yamlLinter,
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !this.isUpdatingProgrammatically) {
           this.renderChart();
@@ -903,131 +913,9 @@ class YChartEditor {
     }, 100);
   }
 
-  /**
-   * Update the error banner with current diagnostics
-   */
-  private updateErrorBanner(diagnostics: Diagnostic[], view: EditorView): void {
-    if (!this.errorBanner) return;
-
-    const errors = diagnostics.filter(d => d.severity === 'error');
-    const warnings = diagnostics.filter(d => d.severity === 'warning');
-    const banner = this.errorBanner; // Capture for TypeScript
-
-    if (errors.length === 0 && warnings.length === 0) {
-      banner.style.display = 'none';
-      return;
-    }
-
-    banner.style.display = 'block';
-    banner.innerHTML = '';
-
-    // Create header
-    const header = document.createElement('div');
-    header.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-      font-weight: 600;
-      color: #b91c1c;
-    `;
-    header.innerHTML = `
-      <span style="font-size: 16px;">⚠️</span>
-      <span>${errors.length} error${errors.length !== 1 ? 's' : ''}${warnings.length > 0 ? `, ${warnings.length} warning${warnings.length !== 1 ? 's' : ''}` : ''}</span>
-    `;
-    banner.appendChild(header);
-
-    // Create error list
-    const allDiagnostics = [...errors, ...warnings];
-    allDiagnostics.forEach((diagnostic, index) => {
-      const errorItem = document.createElement('div');
-      errorItem.style.cssText = `
-        display: flex;
-        align-items: flex-start;
-        gap: 8px;
-        padding: 4px 0;
-        ${index < allDiagnostics.length - 1 ? 'border-bottom: 1px solid rgba(239, 68, 68, 0.2);' : ''}
-      `;
-
-      // Extract line number from message or calculate it
-      const lineMatch = diagnostic.message.match(/^Line (\d+):/);
-      let lineNumber: number;
-      let displayMessage: string;
-      
-      if (lineMatch) {
-        lineNumber = parseInt(lineMatch[1], 10);
-        displayMessage = diagnostic.message.replace(/^Line \d+:\s*/, '');
-      } else {
-        // Calculate line from position
-        const doc = view.state.doc;
-        lineNumber = doc.lineAt(diagnostic.from).number;
-        displayMessage = diagnostic.message;
-      }
-
-      // Create jump button
-      const jumpBtn = document.createElement('button');
-      jumpBtn.textContent = `L${lineNumber}`;
-      jumpBtn.title = `Jump to line ${lineNumber}`;
-      jumpBtn.style.cssText = `
-        background: ${diagnostic.severity === 'error' ? '#dc2626' : '#d97706'};
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 2px 8px;
-        font-size: 11px;
-        font-weight: 600;
-        cursor: pointer;
-        flex-shrink: 0;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
-      `;
-      jumpBtn.onmouseover = () => {
-        jumpBtn.style.background = diagnostic.severity === 'error' ? '#b91c1c' : '#b45309';
-      };
-      jumpBtn.onmouseleave = () => {
-        jumpBtn.style.background = diagnostic.severity === 'error' ? '#dc2626' : '#d97706';
-      };
-      jumpBtn.onclick = () => {
-        this.jumpToLine(lineNumber);
-      };
-
-      // Create message text
-      const messageSpan = document.createElement('span');
-      messageSpan.textContent = displayMessage;
-      messageSpan.style.cssText = `
-        color: #7f1d1d;
-        flex: 1;
-        word-break: break-word;
-      `;
-
-      errorItem.appendChild(jumpBtn);
-      errorItem.appendChild(messageSpan);
-      banner.appendChild(errorItem);
-    });
-  }
-
-  /**
-   * Jump to a specific line in the editor
-   */
-  private jumpToLine(lineNumber: number): void {
-    if (!this.editor) return;
-
-    const doc = this.editor.state.doc;
-    const line = doc.line(Math.min(lineNumber, doc.lines));
-    
-    // Set cursor to the start of the line and scroll it into view
-    this.editor.dispatch({
-      selection: { anchor: line.from },
-      scrollIntoView: true,
-      effects: EditorView.scrollIntoView(line.from, { y: 'center' })
-    });
-
-    // Focus the editor
-    this.editor.focus();
-  }
-
   private toggleEditor(): void {
-    const sidebar = document.getElementById('ychart-editor-sidebar');
-    const collapseBtn = document.getElementById('ychart-collapse-editor');
+    const sidebar = document.getElementById(`ychart-editor-sidebar-${this.instanceId}`);
+    const collapseBtn = document.querySelector(`[data-id="ychart-collapse-editor-${this.instanceId}"]`) as HTMLElement;
     
     if (!sidebar || !collapseBtn) return;
 
@@ -1066,95 +954,6 @@ class YChartEditor {
     }, 250);
   }
 
-  /**
-   * Set up keyboard shortcuts for the editor
-   */
-  private setupKeyboardShortcuts(): void {
-    document.addEventListener('keydown', (event) => {
-      // Ctrl + ` (backtick) to toggle editor and find selected node
-      if (event.ctrlKey && event.key === '`') {
-        event.preventDefault();
-        this.toggleEditorAndFindSelectedNode();
-      }
-    });
-  }
-
-  /**
-   * Toggle the editor panel and scroll to the currently selected node
-   */
-  private toggleEditorAndFindSelectedNode(): void {
-    const sidebar = document.getElementById('ychart-editor-sidebar');
-    if (!sidebar) return;
-
-    const isCollapsed = sidebar.style.width === '0px';
-    
-    // Toggle the editor
-    this.toggleEditor();
-    
-    // If we're opening the editor, find and scroll to the selected node
-    if (isCollapsed) {
-      // Wait for the editor to expand before scrolling
-      setTimeout(() => {
-        this.scrollToSelectedNode();
-      }, 400);
-    }
-  }
-
-  /**
-   * Find the currently selected node in the YAML and scroll to it in the editor
-   */
-  private scrollToSelectedNode(): void {
-    if (!this.editor || !this.orgChart) return;
-
-    // Get the selected node ID from the org chart
-    const chartState = this.orgChart.getChartState();
-    const selectedNodeId = chartState?.selectedNodeId;
-    
-    if (!selectedNodeId) {
-      console.log('No node selected');
-      return;
-    }
-
-    console.log('Finding node with ID:', selectedNodeId);
-
-    const content = this.editor.state.doc.toString();
-    
-    // Find the position of the node entry in YAML
-    // Look for patterns like "- id: 5" or "  id: 5" at the start of a line
-    const idPattern = new RegExp(`^-?\\s*id:\\s*${selectedNodeId}\\s*$`, 'm');
-    const match = content.match(idPattern);
-    
-    if (match && match.index !== undefined) {
-      // Find the start of the YAML block (look backwards for "- id:" pattern)
-      let blockStart = match.index;
-      
-      // Look backwards to find the start of the list item (the "- " before id)
-      const beforeMatch = content.substring(0, match.index);
-      const lastDash = beforeMatch.lastIndexOf('\n- ');
-      if (lastDash !== -1) {
-        blockStart = lastDash + 1; // +1 to skip the newline
-      }
-
-      // Calculate the line number
-      const lineNumber = content.substring(0, blockStart).split('\n').length;
-      
-      // Scroll to the line and highlight it
-      const line = this.editor.state.doc.line(lineNumber);
-      
-      this.editor.dispatch({
-        selection: { anchor: line.from, head: line.to },
-        scrollIntoView: true
-      });
-      
-      // Focus the editor
-      this.editor.focus();
-      
-      console.log(`Scrolled to node ${selectedNodeId} at line ${lineNumber}`);
-    } else {
-      console.log(`Node with ID ${selectedNodeId} not found in YAML`);
-    }
-  }
-
   private parseFrontMatter(content: string): FrontMatter {
     if (content.startsWith('---')) {
       const parts = content.split('---');
@@ -1178,7 +977,7 @@ class YChartEditor {
           
           return { options, schema: schemaDef, card: cardDef, data: yamlData };
         } catch (error) {
-          // Silently handle - linter will display errors in the editor
+          console.error('Error parsing front matter:', error);
           return { options: {}, schema: {}, card: undefined, data: content };
         }
       }
@@ -1193,101 +992,6 @@ class YChartEditor {
       required: parts.includes('required'),
       missing: parts.includes('missing')
     };
-  }
-
-  /**
-   * Resolve missing parentId values by looking up supervisor names.
-   * This allows YAML data to omit parentId if a supervisor field contains
-   * the name of another node. Also auto-generates missing id values.
-   */
-  private resolveMissingParentIds(data: any[]): any[] {
-    // First pass: auto-generate missing ids
-    // Detect if existing IDs are numeric or string-based (UUIDs, etc.)
-    let hasNumericIds = false;
-    let maxNumericId = 0;
-    const existingIds = new Set<string>();
-
-    for (const item of data) {
-      if (item.id !== undefined && item.id !== null) {
-        existingIds.add(String(item.id));
-        const numId = typeof item.id === 'number' ? item.id : parseInt(String(item.id), 10);
-        if (!isNaN(numId) && String(numId) === String(item.id)) {
-          hasNumericIds = true;
-          if (numId > maxNumericId) {
-            maxNumericId = numId;
-          }
-        }
-      }
-    }
-
-    // Helper to generate a unique ID
-    let autoIdCounter = maxNumericId;
-    const generateId = (item: any): string | number => {
-      // Prefer email as ID if available
-      if (item.email) {
-        const emailId = String(item.email).toLowerCase();
-        if (!existingIds.has(emailId)) {
-          existingIds.add(emailId);
-          return emailId;
-        }
-      }
-      
-      if (hasNumericIds || existingIds.size === 0) {
-        // Use numeric IDs if existing IDs are numeric or if no IDs exist
-        autoIdCounter++;
-        return autoIdCounter;
-      } else {
-        // Generate a simple unique string ID (pseudo-UUID style)
-        let newId: string;
-        do {
-          newId = `auto-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        } while (existingIds.has(newId));
-        existingIds.add(newId);
-        return newId;
-      }
-    };
-
-    // Assign ids to items that don't have them
-    const dataWithIds = data.map((item) => {
-      if (item.id === undefined || item.id === null) {
-        return { ...item, id: generateId(item), _autoGeneratedId: true };
-      }
-      return item;
-    });
-
-    // Build a map of name -> id for quick lookup
-    const nameToId = new Map<string, any>();
-    for (const item of dataWithIds) {
-      const name = item[this.nameField];
-      if (name) {
-        // Store the name (normalized to lowercase for case-insensitive matching)
-        nameToId.set(String(name).toLowerCase(), item.id);
-      }
-    }
-
-    // Process each item and resolve missing parentId
-    return dataWithIds.map(item => {
-      // Skip if parentId is already set (including explicit null for root nodes)
-      if (item.parentId !== undefined) {
-        return item;
-      }
-
-      // Try to resolve parentId from supervisor field aliases
-      for (const field of this.supervisorFields) {
-        const supervisorName = item[field];
-        if (supervisorName) {
-          const normalizedName = String(supervisorName).toLowerCase();
-          const parentId = nameToId.get(normalizedName);
-          if (parentId !== undefined) {
-            // Return a new object with the resolved parentId
-            return { ...item, parentId };
-          }
-        }
-      }
-
-      // No parentId and couldn't resolve from supervisor - treat as root node
-      return { ...item, parentId: null };
-    });
   }
 
   private renderCardElement(element: CardElement, data: any): string {
@@ -1361,23 +1065,20 @@ class YChartEditor {
         throw new Error('YAML must be an array');
       }
 
-      // Resolve missing parentId values by looking up supervisor names
-      const resolvedData = this.resolveMissingParentIds(parsedData);
-
       if (!this.orgChart) {
         this.orgChart = new OrgChart();
       }
 
       this.orgChart
-        .container('#ychart-chart')
-        .data(resolvedData)
+        .container(`#ychart-chart-${this.instanceId}`)
+        .data(parsedData)
         .nodeHeight(() => options.nodeHeight!)
         .nodeWidth(() => options.nodeWidth!)
         .childrenMargin(() => options.childrenMargin!)
         .compactMarginBetween(() => options.compactMarginBetween!)
         .compactMarginPair(() => options.compactMarginPair!)
         .neighbourMargin(() => options.neighbourMargin!)
-        .onNodeClick((d: any) => {
+        .onNodeClick((d: any, i: number, arr: any) => {
           // Handle column adjust mode first
           if (this.columnAdjustMode) {
             this.handleNodeClickForColumnAdjust(d);
@@ -1415,7 +1116,7 @@ class YChartEditor {
       
       this.currentView = 'hierarchy';
     } catch (error) {
-      // Silently handle - linter will display errors in the editor
+      console.error('Error rendering chart:', error);
     }
   }
 
@@ -1432,8 +1133,8 @@ class YChartEditor {
         .join('');
       
       return `
-        <div class="ychart-node-card ychart-card-template" style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;position:relative">
-          <div class="ychart-details-btn details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+        <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;position:relative">
+          <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
           ${cardHtml}
         </div>
       `;
@@ -1441,12 +1142,12 @@ class YChartEditor {
     
     // Priority 3: Default template
     return `
-      <div class="ychart-node-card ychart-default-template" style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px;position:relative">
-        <div class="ychart-details-btn details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
-        <div class="ychart-node-content" style="flex:1;min-width:0">
-          <div class="ychart-node-name" style="font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ''}</div>
-          <div class="ychart-node-title" style="font-size:12px;color:#666;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ''}</div>
-          <div class="ychart-node-department" style="font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ''}</div>
+      <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px;position:relative">
+        <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ''}</div>
+          <div style="font-size:12px;color:#666;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ''}</div>
+          <div style="font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ''}</div>
         </div>
       </div>
     `;
@@ -1455,24 +1156,24 @@ class YChartEditor {
   private showNodeDetails(data: any): void {
     if (!this.detailsPanel) return;
 
-    let html = '<div class="ychart-details-content node-details-content" style="font-family:sans-serif;">';
-    html += `<h3 class="ychart-details-title" style="margin:0 0 1rem 0;color:#333;">${data.name || 'Unknown'}</h3>`;
-    html += '<div class="ychart-details-grid" style="display:grid;gap:0.5rem;">';
+    let html = '<div class="node-details-content" style="font-family:sans-serif;">';
+    html += `<h3 style="margin:0 0 1rem 0;color:#333;">${data.name || 'Unknown'}</h3>`;
+    html += '<div style="display:grid;gap:0.5rem;">';
     
     for (const [key, value] of Object.entries(data)) {
       if (key.startsWith('_') || key === 'picture') continue;
       
       const label = key.charAt(0).toUpperCase() + key.slice(1);
       html += `
-        <div class="ychart-details-row" style="display:grid;grid-template-columns:120px 1fr;gap:0.5rem;">
-          <span class="ychart-details-label" style="font-weight:600;color:#666;">${label}:</span>
-          <span class="ychart-details-value" style="color:#333;">${value || 'N/A'}</span>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:0.5rem;">
+          <span style="font-weight:600;color:#666;">${label}:</span>
+          <span style="color:#333;">${value || 'N/A'}</span>
         </div>
       `;
     }
     
     html += '</div>';
-    html += `<button class="ychart-details-close-btn" onclick="document.getElementById('ychart-node-details').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
+    html += `<button onclick="document.getElementById('ychart-node-details-${this.instanceId}').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
     html += '</div>';
     
     this.detailsPanel.innerHTML = html;
@@ -1653,19 +1354,16 @@ class YChartEditor {
         throw new Error('YAML must be an array');
       }
 
-      // Resolve missing parentId values by looking up supervisor names
-      const resolvedData = this.resolveMissingParentIds(parsedData);
-
       if (this.forceGraph) {
         this.forceGraph.stop();
       }
 
       this.forceGraph = new ForceGraph('ychart-chart', (data: any) => this.showNodeDetails(data));
-      this.forceGraph.render(resolvedData);
+      this.forceGraph.render(parsedData);
       
       this.currentView = 'force';
     } catch (error) {
-      // Silently handle - linter will display errors in the editor
+      console.error('Error rendering force graph:', error);
     }
   }
 
@@ -1785,30 +1483,6 @@ class YChartEditor {
     this.customTemplate = templateFn;
     
     // Re-render chart with new template if already initialized
-    if (this.orgChart) {
-      this.renderChart();
-    }
-    
-    return this;
-  }
-
-  /**
-   * Configure the field names used for supervisor-based parentId resolution.
-   * When a node is missing a parentId, the parser will attempt to find a parent
-   * by matching the supervisor field value to another node's name field.
-   * 
-   * By default, the following fields are checked in order:
-   * 'supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'
-   * 
-   * @param supervisorFieldNames - The field(s) containing the supervisor's name. 
-   *                               Can be a single string or an array of field names to check in order.
-   * @param nameFieldName - The field containing the node's name for matching (default: 'name')
-   */
-  supervisorLookup(supervisorFieldNames: string | string[], nameFieldName: string = 'name'): this {
-    this.supervisorFields = Array.isArray(supervisorFieldNames) ? supervisorFieldNames : [supervisorFieldNames];
-    this.nameField = nameFieldName;
-    
-    // Re-render chart if already initialized
     if (this.orgChart) {
       this.renderChart();
     }
