@@ -1,6 +1,45 @@
 import './style.css';
 import YChartEditor from './ychartEditor';
 import orgChartDataRaw from './orgchart.yaml?raw';
+import { commitHash, commitHashFull, repoUrl } from 'virtual:git-info';
+
+// Update git info in header
+function updateGitInfo() {
+  const commitHashEl = document.getElementById('commit-hash');
+  const commitLinkEl = document.getElementById('commit-link') as HTMLAnchorElement;
+  const repoLinkEl = document.getElementById('repo-link') as HTMLAnchorElement;
+
+  if (commitHashEl) {
+    commitHashEl.textContent = commitHash || 'dev';
+  }
+  if (commitLinkEl && commitHashFull && repoUrl) {
+    commitLinkEl.href = `${repoUrl}/commit/${commitHashFull}`;
+    commitLinkEl.title = `View commit ${commitHash} on GitHub`;
+  }
+  if (repoLinkEl && repoUrl) {
+    repoLinkEl.href = repoUrl;
+  }
+}
+
+updateGitInfo();
+
+// HMR support - update git info when the virtual module changes
+if (import.meta.hot) {
+  import.meta.hot.accept('virtual:git-info', (newModule) => {
+    if (newModule) {
+      const commitHashEl = document.getElementById('commit-hash');
+      const commitLinkEl = document.getElementById('commit-link') as HTMLAnchorElement;
+      
+      if (commitHashEl) {
+        commitHashEl.textContent = newModule.commitHash || 'dev';
+      }
+      if (commitLinkEl && newModule.commitHashFull && newModule.repoUrl) {
+        commitLinkEl.href = `${newModule.repoUrl}/commit/${newModule.commitHashFull}`;
+        commitLinkEl.title = `View commit ${newModule.commitHash} on GitHub`;
+      }
+    }
+  });
+}
 
 // Sample YAML data with front matter for options and schema configuration
 const defaultYAML = orgChartDataRaw;
