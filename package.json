@@ -13,6 +13,7 @@
     "dev:https": "vite --mode https",
     "build": "tsc && vite build",
     "build:lib": "tsc && vite build --mode production",
+    "build:prod": "pnpm build && sudo mkdir -p /var/www/html/dist && sudo cp -r dist/* /var/www/html/dist/ && sudo cp production.html /var/www/html/index.html",
     "preview": "vite preview",
     "serve:dist": "vite preview --outDir dist"
   },

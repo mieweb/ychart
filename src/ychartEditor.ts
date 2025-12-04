@@ -5,6 +5,7 @@ import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import * as jsyaml from 'js-yaml';
 import { OrgChart } from './d3-org-chart.js';
 import { ForceGraph } from './forceGraph.js';
+import './style.css';
 
 interface YChartOptions {
   nodeWidth?: number;
