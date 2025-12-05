@@ -18706,7 +18706,6 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     { key: "Alt-A", run: toggleBlockComment },
     { key: "Ctrl-m", mac: "Shift-Alt-m", run: toggleTabFocusMode }
   ].concat(standardKeymap);
-  const indentWithTab = { key: "Tab", run: indentMore, shift: indentLess };
   const basicNormalize = typeof String.prototype.normalize == "function" ? (x2) => x2.normalize("NFKD") : (x2) => x2;
   class SearchCursor {
     /**
@@ -21407,6 +21406,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         diagnostics = diagnosticFilter(diagnostics, state);
       let sorted = diagnostics.slice().sort((a2, b) => a2.from - b.from || a2.to - b.to);
       let deco = new RangeSetBuilder(), active = [], pos = 0;
+      let scan = state.doc.iter(), scanPos = 0, docLen = state.doc.length;
       for (let i2 = 0; ; ) {
         let next = i2 == sorted.length ? null : sorted[i2];
         if (!next && !active.length)
@@ -21417,6 +21417,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           to = active.reduce((p, d) => Math.min(p, d.to), next && next.from > from ? next.from : 1e8);
         } else {
           from = next.from;
+          if (from > docLen)
+            break;
           to = next.to;
           active.push(next);
           i2++;
@@ -21432,8 +21434,31 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
             break;
           }
         }
+        to = Math.min(to, docLen);
+        let widget = false;
+        if (active.some((d) => d.from == from && (d.to == to || to == docLen))) {
+          widget = from == to;
+          if (!widget && to - from < 10) {
+            let behind = from - (scanPos + scan.value.length);
+            if (behind > 0) {
+              scan.next(behind);
+              scanPos = from;
+            }
+            for (let check = from; ; ) {
+              if (check >= to) {
+                widget = true;
+                break;
+              }
+              if (!scan.lineBreak && scanPos + scan.value.length > check)
+                break;
+              check = scanPos + scan.value.length;
+              scanPos += scan.value.length;
+              scan.next();
+            }
+          }
+        }
         let sev = maxSeverity(active);
-        if (active.some((d) => d.from == d.to || d.from == d.to - 1 && state.doc.lineAt(d.from).to == d.from)) {
+        if (widget) {
           deco.add(from, from, Decoration.widget({
             widget: new DiagnosticWidget(sev),
             diagnostics: active.slice()
@@ -21447,6 +21472,8 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           }));
         }
         pos = to;
+        if (pos == docLen)
+          break;
         for (let i3 = 0; i3 < active.length; i3++)
           if (active[i3].to <= pos)
             active.splice(i3--, 1);
@@ -30765,33 +30792,36 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
              </div>`,
         /* Node expand & collapse button content and styling. You can access same helper methods as above */
         buttonContent: ({ node, state }) => {
+          const direct = node.data._directSubordinatesPaging;
+          const total = node.data._totalSubordinates;
+          const countDisplay = total && total > direct ? `${direct}&nbsp[${total}]` : `${direct}`;
           const icons = {
-            "left": (d) => d ? `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            "left": (d) => d ? `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M14.283 3.50094L6.51 11.4749C6.37348 11.615 6.29707 11.8029 6.29707 11.9984C6.29707 12.194 6.37348 12.3819 6.51 12.5219L14.283 20.4989C14.3466 20.5643 14.4226 20.6162 14.5066 20.6516C14.5906 20.6871 14.6808 20.7053 14.772 20.7053C14.8632 20.7053 14.9534 20.6871 15.0374 20.6516C15.1214 20.6162 15.1974 20.5643 15.261 20.4989C15.3918 20.365 15.4651 20.1852 15.4651 19.9979C15.4651 19.8107 15.3918 19.6309 15.261 19.4969L7.9515 11.9984L15.261 4.50144C15.3914 4.36756 15.4643 4.18807 15.4643 4.00119C15.4643 3.81431 15.3914 3.63482 15.261 3.50094C15.1974 3.43563 15.1214 3.38371 15.0374 3.34827C14.9534 3.31282 14.8632 3.29456 14.772 3.29456C14.6808 3.29456 14.5906 3.31282 14.5066 3.34827C14.4226 3.38371 14.3466 3.43563 14.283 3.50094V3.50094Z" fill="#716E7B" stroke="#716E7B"/>
-                      </svg></span><span style="color:#716E7B">${node.data._directSubordinatesPaging} </span></div>` : `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      </svg></span><span class="ychart-expand-btn-count" style="color:#716E7B">${countDisplay} </span></div>` : `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M7.989 3.49944C7.85817 3.63339 7.78492 3.8132 7.78492 4.00044C7.78492 4.18768 7.85817 4.36749 7.989 4.50144L15.2985 11.9999L7.989 19.4969C7.85817 19.6309 7.78492 19.8107 7.78492 19.9979C7.78492 20.1852 7.85817 20.365 7.989 20.4989C8.05259 20.5643 8.12863 20.6162 8.21261 20.6516C8.2966 20.6871 8.38684 20.7053 8.478 20.7053C8.56916 20.7053 8.6594 20.6871 8.74338 20.6516C8.82737 20.6162 8.90341 20.5643 8.967 20.4989L16.74 12.5234C16.8765 12.3834 16.9529 12.1955 16.9529 11.9999C16.9529 11.8044 16.8765 11.6165 16.74 11.4764L8.967 3.50094C8.90341 3.43563 8.82737 3.38371 8.74338 3.34827C8.6594 3.31282 8.56916 3.29456 8.478 3.29456C8.38684 3.29456 8.2966 3.31282 8.21261 3.34827C8.12863 3.38371 8.05259 3.43563 7.989 3.50094V3.49944Z" fill="#716E7B" stroke="#716E7B"/>
-                          </svg></span><span style="color:#716E7B">${node.data._directSubordinatesPaging} </span></div>`,
-            "bottom": (d) => d ? `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          </svg></span><span class="ychart-expand-btn-count" style="color:#716E7B">${countDisplay} </span></div>`,
+            "bottom": (d) => d ? `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                        <path d="M19.497 7.98903L12 15.297L4.503 7.98903C4.36905 7.85819 4.18924 7.78495 4.002 7.78495C3.81476 7.78495 3.63495 7.85819 3.501 7.98903C3.43614 8.05257 3.38462 8.12842 3.34944 8.21213C3.31427 8.29584 3.29615 8.38573 3.29615 8.47653C3.29615 8.56733 3.31427 8.65721 3.34944 8.74092C3.38462 8.82463 3.43614 8.90048 3.501 8.96403L11.4765 16.74C11.6166 16.8765 11.8044 16.953 12 16.953C12.1956 16.953 12.3834 16.8765 12.5235 16.74L20.499 8.96553C20.5643 8.90193 20.6162 8.8259 20.6517 8.74191C20.6871 8.65792 20.7054 8.56769 20.7054 8.47653C20.7054 8.38537 20.6871 8.29513 20.6517 8.21114C20.6162 8.12715 20.5643 8.05112 20.499 7.98753C20.3651 7.85669 20.1852 7.78345 19.998 7.78345C19.8108 7.78345 19.6309 7.85669 19.497 7.98753V7.98903Z" fill="#716E7B" stroke="#716E7B"/>
-                       </svg></span><span style="margin-left:1px;color:#716E7B" >${node.data._directSubordinatesPaging} </span></div>
-                       ` : `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                       </svg></span><span class="ychart-expand-btn-count" style="margin-left:1px;color:#716E7B" >${countDisplay} </span></div>
+                       ` : `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                        <path d="M11.457 8.07005L3.49199 16.4296C3.35903 16.569 3.28485 16.7543 3.28485 16.9471C3.28485 17.1398 3.35903 17.3251 3.49199 17.4646L3.50099 17.4736C3.56545 17.5414 3.64304 17.5954 3.72904 17.6324C3.81504 17.6693 3.90765 17.6883 4.00124 17.6883C4.09483 17.6883 4.18745 17.6693 4.27344 17.6324C4.35944 17.5954 4.43703 17.5414 4.50149 17.4736L12.0015 9.60155L19.4985 17.4736C19.563 17.5414 19.6405 17.5954 19.7265 17.6324C19.8125 17.6693 19.9052 17.6883 19.9987 17.6883C20.0923 17.6883 20.1849 17.6693 20.2709 17.6324C20.3569 17.5954 20.4345 17.5414 20.499 17.4736L20.508 17.4646C20.641 17.3251 20.7151 17.1398 20.7151 16.9471C20.7151 16.7543 20.641 16.569 20.508 16.4296L12.543 8.07005C12.4729 7.99653 12.3887 7.93801 12.2954 7.89801C12.202 7.85802 12.1015 7.8374 12 7.8374C11.8984 7.8374 11.798 7.85802 11.7046 7.89801C11.6113 7.93801 11.527 7.99653 11.457 8.07005Z" fill="#716E7B" stroke="#716E7B"/>
-                       </svg></span><span style="margin-left:1px;color:#716E7B" >${node.data._directSubordinatesPaging} </span></div>
+                       </svg></span><span class="ychart-expand-btn-count" style="margin-left:1px;color:#716E7B" >${countDisplay} </span></div>
                     `,
-            "right": (d) => d ? `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            "right": (d) => d ? `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                        <path d="M7.989 3.49944C7.85817 3.63339 7.78492 3.8132 7.78492 4.00044C7.78492 4.18768 7.85817 4.36749 7.989 4.50144L15.2985 11.9999L7.989 19.4969C7.85817 19.6309 7.78492 19.8107 7.78492 19.9979C7.78492 20.1852 7.85817 20.365 7.989 20.4989C8.05259 20.5643 8.12863 20.6162 8.21261 20.6516C8.2966 20.6871 8.38684 20.7053 8.478 20.7053C8.56916 20.7053 8.6594 20.6871 8.74338 20.6516C8.82737 20.6162 8.90341 20.5643 8.967 20.4989L16.74 12.5234C16.8765 12.3834 16.9529 12.1955 16.9529 11.9999C16.9529 11.8044 16.8765 11.6165 16.74 11.4764L8.967 3.50094C8.90341 3.43563 8.82737 3.38371 8.74338 3.34827C8.6594 3.31282 8.56916 3.29456 8.478 3.29456C8.38684 3.29456 8.2966 3.31282 8.21261 3.34827C8.12863 3.38371 8.05259 3.43563 7.989 3.50094V3.49944Z" fill="#716E7B" stroke="#716E7B"/>
-                       </svg></span><span style="color:#716E7B">${node.data._directSubordinatesPaging} </span></div>` : `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                       </svg></span><span class="ychart-expand-btn-count" style="color:#716E7B">${countDisplay} </span></div>` : `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                        <path d="M14.283 3.50094L6.51 11.4749C6.37348 11.615 6.29707 11.8029 6.29707 11.9984C6.29707 12.194 6.37348 12.3819 6.51 12.5219L14.283 20.4989C14.3466 20.5643 14.4226 20.6162 14.5066 20.6516C14.5906 20.6871 14.6808 20.7053 14.772 20.7053C14.8632 20.7053 14.9534 20.6871 15.0374 20.6516C15.1214 20.6162 15.1974 20.5643 15.261 20.4989C15.3918 20.365 15.4651 20.1852 15.4651 19.9979C15.4651 19.8107 15.3918 19.6309 15.261 19.4969L7.9515 11.9984L15.261 4.50144C15.3914 4.36756 15.4643 4.18807 15.4643 4.00119C15.4643 3.81431 15.3914 3.63482 15.261 3.50094C15.1974 3.43563 15.1214 3.38371 15.0374 3.34827C14.9534 3.31282 14.8632 3.29456 14.772 3.29456C14.6808 3.29456 14.5906 3.31282 14.5066 3.34827C14.4226 3.38371 14.3466 3.43563 14.283 3.50094V3.50094Z" fill="#716E7B" stroke="#716E7B"/>
-                       </svg></span><span style="color:#716E7B">${node.data._directSubordinatesPaging} </span></div>`,
-            "top": (d) => d ? `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                       </svg></span><span class="ychart-expand-btn-count" style="color:#716E7B">${countDisplay} </span></div>`,
+            "top": (d) => d ? `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M11.457 8.07005L3.49199 16.4296C3.35903 16.569 3.28485 16.7543 3.28485 16.9471C3.28485 17.1398 3.35903 17.3251 3.49199 17.4646L3.50099 17.4736C3.56545 17.5414 3.64304 17.5954 3.72904 17.6324C3.81504 17.6693 3.90765 17.6883 4.00124 17.6883C4.09483 17.6883 4.18745 17.6693 4.27344 17.6324C4.35944 17.5954 4.43703 17.5414 4.50149 17.4736L12.0015 9.60155L19.4985 17.4736C19.563 17.5414 19.6405 17.5954 19.7265 17.6324C19.8125 17.6693 19.9052 17.6883 19.9987 17.6883C20.0923 17.6883 20.1849 17.6693 20.2709 17.6324C20.3569 17.5954 20.4345 17.5414 20.499 17.4736L20.508 17.4646C20.641 17.3251 20.7151 17.1398 20.7151 16.9471C20.7151 16.7543 20.641 16.569 20.508 16.4296L12.543 8.07005C12.4729 7.99653 12.3887 7.93801 12.2954 7.89801C12.202 7.85802 12.1015 7.8374 12 7.8374C11.8984 7.8374 11.798 7.85802 11.7046 7.89801C11.6113 7.93801 11.527 7.99653 11.457 8.07005Z" fill="#716E7B" stroke="#716E7B"/>
-                        </svg></span><span style="margin-left:1px;color:#716E7B">${node.data._directSubordinatesPaging} </span></div>
-                        ` : `<div style="display:flex;"><span style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        </svg></span><span class="ychart-expand-btn-count" style="margin-left:1px;color:#716E7B">${countDisplay} </span></div>
+                        ` : `<div class="ychart-expand-btn-content" style="display:flex;"><span class="ychart-expand-btn-icon" style="align-items:center;display:flex;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M19.497 7.98903L12 15.297L4.503 7.98903C4.36905 7.85819 4.18924 7.78495 4.002 7.78495C3.81476 7.78495 3.63495 7.85819 3.501 7.98903C3.43614 8.05257 3.38462 8.12842 3.34944 8.21213C3.31427 8.29584 3.29615 8.38573 3.29615 8.47653C3.29615 8.56733 3.31427 8.65721 3.34944 8.74092C3.38462 8.82463 3.43614 8.90048 3.501 8.96403L11.4765 16.74C11.6166 16.8765 11.8044 16.953 12 16.953C12.1956 16.953 12.3834 16.8765 12.5235 16.74L20.499 8.96553C20.5643 8.90193 20.6162 8.8259 20.6517 8.74191C20.6871 8.65792 20.7054 8.56769 20.7054 8.47653C20.7054 8.38537 20.6871 8.29513 20.6517 8.21114C20.6162 8.12715 20.5643 8.05112 20.499 7.98753C20.3651 7.85669 20.1852 7.78345 19.998 7.78345C19.8108 7.78345 19.6309 7.85669 19.497 7.98753V7.98903Z" fill="#716E7B" stroke="#716E7B"/>
-                        </svg></span><span style="margin-left:1px;color:#716E7B">${node.data._directSubordinatesPaging} </span></div>
+                        </svg></span><span class="ychart-expand-btn-count" style="margin-left:1px;color:#716E7B">${countDisplay} </span></div>
                     `
           };
-          return `<div style="border:1px solid #E4E2E9;border-radius:3px;padding:3px;font-size:9px;margin:auto auto;background-color:white"> ${icons[state.layout](node.children)}  </div>`;
+          return `<div class="ychart-expand-btn-wrapper" style="border:1px solid #E4E2E9;border-radius:3px;padding:3px;font-size:9px;margin:auto auto;background-color:white"> ${icons[state.layout](node.children)}  </div>`;
         },
         /* Node paging button content and styling. You can access same helper methods as above. */
         pagingButton: (d, i2, arr, state) => {
@@ -30800,12 +30830,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const diff = d.parent.data._directSubordinatesPaging - currentIndex;
           const min2 = Math.min(diff, step);
           return `
-                   <div style="margin-top:90px;">
-                      <div style="display:flex;width:170px;border-radius:20px;padding:5px 15px; padding-bottom:4px;;background-color:#E5E9F2">
-                      <div><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                   <div class="ychart-paging-button" style="margin-top:90px;">
+                      <div class="ychart-paging-button-inner" style="display:flex;width:170px;border-radius:20px;padding:5px 15px; padding-bottom:4px;;background-color:#E5E9F2">
+                      <div class="ychart-paging-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M5.59 7.41L10.18 12L5.59 16.59L7 18L13 12L7 6L5.59 7.41ZM16 6H18V18H16V6Z" fill="#716E7B" stroke="#716E7B"/>
                       </svg>
-                      </div><div style="line-height:2"> Show next ${min2}  nodes </div></div>
+                      </div><div class="ychart-paging-text" style="line-height:2"> Show next ${min2}  nodes </div></div>
                    </div>
                 `;
         },
@@ -31199,6 +31229,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         tag: "svg",
         selector: "svg-chart-container"
       }).attr("width", attrs.svgWidth).attr("height", attrs.svgHeight).attr("font-family", attrs.defaultFont).attr("tabindex", "0").attr("role", "tree").attr("aria-label", "Organizational Chart").on("keydown", (event) => this.handleKeydown(event));
+      if (this.isSafari()) {
+        attrs.htmlOverlay = container.patternify({
+          tag: "div",
+          selector: "html-overlay-container"
+        }).style("position", "absolute").style("top", "0").style("left", "0").style("width", "100%").style("height", "100%").style("pointer-events", "none").style("overflow", "hidden");
+      }
       if (attrs.firstDraw) {
         svg2.call(attrs.zoomBehavior).on("dblclick.zoom", null).attr("cursor", "move");
       }
@@ -31398,22 +31434,33 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         if (node.children && node.children.length > 1) {
           const compactChildren = node.children.filter((d) => !d.children);
           if (compactChildren.length < 2) return;
+          const maxColumns = node.data._childColumns || this.getDefaultColumns();
+          const columns = Math.min(maxColumns, compactChildren.length);
+          console.log("Calculating dimensions for node", node.data.id, "with columns:", columns, "children:", compactChildren.length);
           compactChildren.forEach((child, i2) => {
             if (!i2) child.firstCompact = true;
-            if (i2 % 2) child.compactEven = false;
-            else child.compactEven = true;
-            child.row = Math.floor(i2 / 2);
+            child.compactColumn = i2 % columns;
+            child.row = Math.floor(i2 / columns);
+            child.compactEven = child.compactColumn >= columns / 2;
           });
-          const evenMaxColumnDimension = d3.max(compactChildren.filter((d) => d.compactEven), attrs.layoutBindings[attrs.layout].compactDimension.sizeColumn);
-          const oddMaxColumnDimension = d3.max(compactChildren.filter((d) => !d.compactEven), attrs.layoutBindings[attrs.layout].compactDimension.sizeColumn);
-          const columnSize = Math.max(evenMaxColumnDimension, oddMaxColumnDimension) * 2;
+          const columnDimensions = [];
+          for (let c2 = 0; c2 < columns; c2++) {
+            const colNodes = compactChildren.filter((d) => d.compactColumn === c2);
+            if (colNodes.length > 0) {
+              columnDimensions[c2] = d3.max(colNodes, attrs.layoutBindings[attrs.layout].compactDimension.sizeColumn);
+            } else {
+              columnDimensions[c2] = 0;
+            }
+          }
+          const maxColDim = d3.max(columnDimensions);
+          const columnSize = maxColDim * columns;
           const rowsMapNew = this.groupBy(compactChildren, (d) => d.row, (reducedGroup) => d3.max(reducedGroup, (d) => attrs.layoutBindings[attrs.layout].compactDimension.sizeRow(d) + attrs.compactMarginBetween(d)));
           const rowSize = d3.sum(rowsMapNew.map((v) => v[1]));
           compactChildren.forEach((node2) => {
             node2.firstCompactNode = compactChildren[0];
             if (node2.firstCompact) {
               node2.flexCompactDim = [
-                columnSize + attrs.compactMarginPair(node2),
+                columnSize + attrs.compactMarginPair(node2) * (columns - 1),
                 rowSize - attrs.compactMarginBetween(node2)
               ];
             } else {
@@ -31431,13 +31478,19 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           const compactChildren = node.children.filter((d) => d.flexCompactDim);
           const fch = compactChildren[0];
           if (!fch) return;
+          const maxColumns = node.data._childColumns || this.getDefaultColumns();
+          const columns = Math.min(maxColumns, compactChildren.length);
+          const startX = fch.x - fch.flexCompactDim[0] / 2;
           compactChildren.forEach((child, i2, arr) => {
-            if (i2 == 0) fch.x -= fch.flexCompactDim[0] / 2;
-            if (i2 & i2 % 2 - 1) child.x = fch.x + fch.flexCompactDim[0] * 0.25 - attrs.compactMarginPair(child) / 4;
-            else if (i2) child.x = fch.x + fch.flexCompactDim[0] * 0.75 + attrs.compactMarginPair(child) / 4;
+            const colIndex = child.compactColumn;
+            const totalWidth = fch.flexCompactDim[0];
+            const margin = attrs.compactMarginPair(child);
+            const contentWidth = totalWidth - margin * (columns - 1);
+            const colWidth = contentWidth / columns;
+            const xOffset = colIndex * (colWidth + margin) + colWidth / 2;
+            child.x = startX + xOffset;
           });
-          const centerX = fch.x + fch.flexCompactDim[0] * 0.5;
-          fch.x = fch.x + fch.flexCompactDim[0] * 0.25 - attrs.compactMarginPair(fch) / 4;
+          const centerX = startX + fch.flexCompactDim[0] * 0.5;
           const offsetX = node.x - centerX;
           if (Math.abs(offsetX) < 10) {
             compactChildren.forEach((d) => d.x += offsetX);
@@ -31465,9 +31518,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       if (attrs.compact) {
         this.calculateCompactFlexPositions(attrs.root);
       }
-      const nodes = treeData.descendants();
+      const allDescendants = treeData.descendants();
+      const nodes = allDescendants.filter((d) => !d.data._isVirtualRoot);
       attrs.visibleNodes = nodes;
-      const links = treeData.descendants().slice(1);
+      const links = allDescendants.slice(1).filter((d) => {
+        var _a2;
+        return !((_a2 = d.parent) == null ? void 0 : _a2.data._isVirtualRoot);
+      });
       nodes.forEach(attrs.layoutBindings[attrs.layout].swap);
       const connections = attrs.connections;
       const allNodesMap = {};
@@ -31495,7 +31552,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       });
       const linkUpdate = linkEnter.merge(linkSelection);
       linkUpdate.attr("fill", "none");
-      if (this.isEdge()) {
+      if (this.isEdge() || this.isSafari()) {
         linkUpdate.style("display", (d) => {
           const display = d.data._pagingButton ? "none" : "auto";
           return display;
@@ -31508,10 +31565,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       }
       linkUpdate.each(attrs.linkUpdate);
       linkUpdate.transition().duration(attrs.duration).attr("d", (d) => {
-        const n = attrs.compact && d.flexCompactDim ? {
-          x: attrs.layoutBindings[attrs.layout].compactLinkMidX(d, attrs),
-          y: attrs.layoutBindings[attrs.layout].compactLinkMidY(d, attrs)
-        } : {
+        const n = {
           x: attrs.layoutBindings[attrs.layout].linkX(d),
           y: attrs.layoutBindings[attrs.layout].linkY(d)
         };
@@ -31519,11 +31573,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           x: attrs.layoutBindings[attrs.layout].linkParentX(d),
           y: attrs.layoutBindings[attrs.layout].linkParentY(d)
         };
-        const m2 = attrs.compact && d.flexCompactDim ? {
-          x: attrs.layoutBindings[attrs.layout].linkCompactXStart(d),
-          y: attrs.layoutBindings[attrs.layout].linkCompactYStart(d)
-        } : n;
-        return attrs.layoutBindings[attrs.layout].diagonal(n, p, m2, { sy: attrs.linkYOffset });
+        return attrs.layoutBindings[attrs.layout].diagonal(n, p, n, { sy: attrs.linkYOffset });
       });
       linkSelection.exit().transition().duration(attrs.duration).attr("d", (d) => {
         const xo = attrs.layoutBindings[attrs.layout].linkJoinX({ x: x2, y: y2, width, height });
@@ -31556,6 +31606,10 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         const yj = attrs.layoutBindings[attrs.layout].nodeJoinY({ x: x0, y: y0, width, height });
         return `translate(${xj},${yj})`;
       }).attr("cursor", "pointer").on("click.node", (event, node) => {
+        const selection2 = window.getSelection();
+        if (selection2 && selection2.toString().length > 0) {
+          return;
+        }
         const { data } = node;
         if ([...event.srcElement.classList].includes("node-button-foreign-object")) {
           return;
@@ -31609,11 +31663,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         tag: "foreignObject",
         selector: "node-foreign-object",
         data: (d) => [d]
-      }).style("overflow", "visible");
+      }).style("overflow", "visible").attr("width", (d) => d.width).attr("height", (d) => d.height).attr("x", 0).attr("y", 0);
       fo.patternify({
         tag: "xhtml:div",
         selector: "node-foreign-object-div",
         data: (d) => [d]
+      }).style("width", (d) => `${d.width}px`).style("height", (d) => `${d.height}px`).style("overflow", "hidden").style("user-select", "text").style("-webkit-user-select", "text").on("mousedown", function(event) {
+        event.stopPropagation();
       });
       this.restyleForeignObjectElements();
       const nodeButtonGroups = nodeEnter.patternify({
@@ -31642,7 +31698,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       nodeUpdate.transition().attr("opacity", 0).duration(attrs.duration).attr("transform", ({ x: x3, y: y3, width: width2, height: height2 }) => {
         return attrs.layoutBindings[attrs.layout].nodeUpdateTransform({ x: x3, y: y3, width: width2, height: height2 });
       }).attr("opacity", 1);
-      nodeUpdate.select(".node-rect").attr("width", ({ width: width2 }) => width2).attr("height", ({ height: height2 }) => height2).attr("x", ({ width: width2 }) => 0).attr("y", ({ height: height2 }) => 0).attr("cursor", "pointer").attr("rx", 3).attr("fill", attrs.nodeDefaultBackground);
+      nodeUpdate.select(".node-rect").attr("width", ({ width: width2 }) => width2).attr("height", ({ height: height2 }) => height2).attr("x", ({ width: width2 }) => 0).attr("y", ({ height: height2 }) => 0).attr("cursor", "pointer").attr("rx", 8).attr("fill", attrs.nodeDefaultBackground);
       nodeUpdate.select(".node-button-g").attr("transform", ({ data, width: width2, height: height2 }) => {
         const x3 = attrs.layoutBindings[attrs.layout].buttonX({ width: width2, height: height2 });
         const y3 = attrs.layoutBindings[attrs.layout].buttonY({ width: width2, height: height2 });
@@ -31684,6 +31740,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         d.x0 = d.x;
         d.y0 = d.y;
       });
+      if (this.isSafari()) {
+        setTimeout(() => {
+          this.restyleForeignObjectElements();
+          attrs.svg.selectAll(".node-foreign-object").each(function() {
+            const fo2 = this;
+            fo2.style.visibility = "hidden";
+            fo2.getBoundingClientRect();
+            fo2.style.visibility = "visible";
+          });
+        }, attrs.duration + 50);
+      }
       const centeredNode = attrs.allNodes.filter((d) => d.data._centered)[0];
       if (centeredNode) {
         let centeredNodes = [centeredNode];
@@ -31714,6 +31781,26 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     isEdge() {
       return window.navigator.userAgent.includes("Edge");
     }
+    // This function detects whether current browser is Safari
+    isSafari() {
+      return /^((?!chrome|android).)*safari/i.test(window.navigator.userAgent);
+    }
+    // Calculate default columns based on viewport aspect ratio
+    // 16:9 (landscape) -> 10 columns, 9:16 (portrait) -> 3 columns, linear interpolation between
+    getDefaultColumns() {
+      const attrs = this.getChartState();
+      const width = attrs.svgWidth || 800;
+      const height = attrs.svgHeight || 600;
+      const aspectRatio = width / height;
+      const minRatio = 9 / 16;
+      const maxRatio = 16 / 9;
+      const minColumns = 3;
+      const maxColumns = 10;
+      const clampedRatio = Math.max(minRatio, Math.min(maxRatio, aspectRatio));
+      const t2 = (clampedRatio - minRatio) / (maxRatio - minRatio);
+      const columns = Math.round(minColumns + t2 * (maxColumns - minColumns));
+      return columns;
+    }
     // Generate horizontal diagonal - play with it here - https://observablehq.com/@bumbeishvili/curved-edges-horizontal-d3-v3-v4-v5-v6
     hdiagonal(s, t2, m2, offsets) {
       const state = this.getChartState();
@@ -31726,12 +31813,135 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     restyleForeignObjectElements() {
       const attrs = this.getChartState();
-      attrs.svg.selectAll(".node-foreign-object").attr("width", ({ width }) => width).attr("height", ({ height }) => height).attr("x", ({ width }) => 0).attr("y", ({ height }) => 0);
-      attrs.svg.selectAll(".node-foreign-object-div").style("width", ({ width }) => `${width}px`).style("height", ({ height }) => `${height}px`).html(function(d, i2, arr) {
-        if (d.data._pagingButton) {
-          return `<div class="paging-button-wrapper"><div style="pointer-events:none">${attrs.pagingButton(d, i2, arr, attrs)}</div></div>`;
+      const isSafari = this.isSafari();
+      attrs.svg.selectAll(".node-foreign-object").attr("width", ({ width }) => width).attr("height", ({ height }) => height).attr("x", 0).attr("y", 0);
+      if (isSafari && attrs.htmlOverlay) {
+        attrs.svg.selectAll(".node-foreign-object-div").style("visibility", "hidden");
+        this.updateHtmlOverlay();
+      } else {
+        attrs.svg.selectAll(".node-foreign-object-div").style("width", ({ width }) => `${width}px`).style("height", ({ height }) => `${height}px`).style("overflow", "hidden").style("visibility", "visible").html(function(d, i2, arr) {
+          if (d.data._pagingButton) {
+            return `<div class="ychart-paging-button-wrapper paging-button-wrapper" style="display:block;"><div class="ychart-paging-button-content" style="pointer-events:none">${attrs.pagingButton(d, i2, arr, attrs)}</div></div>`;
+          }
+          return attrs.nodeContent.bind(this)(d, i2, arr, attrs);
+        });
+      }
+    }
+    // Update HTML overlay for Safari
+    updateHtmlOverlay() {
+      const attrs = this.getChartState();
+      if (!attrs.htmlOverlay) return;
+      const nodes = attrs.visibleNodes || [];
+      const transform = attrs.lastTransform || { x: 0, y: 0, k: 1 };
+      const centerG = attrs.centerG;
+      const centerTransform = centerG.attr("transform") || "";
+      let centerX = 0, centerY = 0;
+      const centerMatch = centerTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+      if (centerMatch) {
+        centerX = parseFloat(centerMatch[1]);
+        centerY = parseFloat(centerMatch[2]);
+      }
+      const self = this;
+      const overlayNodes = attrs.htmlOverlay.selectAll(".overlay-node").data(nodes.filter((d) => d.x !== void 0), (d) => attrs.nodeId(d.data));
+      overlayNodes.exit().remove();
+      const overlayEnter = overlayNodes.enter().append("div").attr("class", "ychart-overlay-node overlay-node").style("position", "absolute").style("pointer-events", "auto").style("overflow", "visible").style("cursor", "pointer");
+      const overlayMerged = overlayEnter.merge(overlayNodes);
+      overlayMerged.on("wheel", function(event) {
+        const svgNode2 = attrs.svg.node();
+        if (svgNode2) {
+          const newEvent = new WheelEvent("wheel", {
+            bubbles: true,
+            cancelable: true,
+            clientX: event.clientX,
+            clientY: event.clientY,
+            deltaX: event.deltaX,
+            deltaY: event.deltaY,
+            deltaZ: event.deltaZ,
+            deltaMode: event.deltaMode,
+            ctrlKey: event.ctrlKey,
+            shiftKey: event.shiftKey,
+            altKey: event.altKey,
+            metaKey: event.metaKey
+          });
+          svgNode2.dispatchEvent(newEvent);
+          event.preventDefault();
         }
-        return attrs.nodeContent.bind(this)(d, i2, arr, attrs);
+      });
+      overlayMerged.on("click", function(event, d) {
+        const selection2 = window.getSelection();
+        if (selection2 && selection2.toString().length > 0) {
+          return;
+        }
+        if (event.target.closest(".overlay-button")) {
+          return;
+        }
+        if (event.target.closest(".details-btn")) {
+          if (attrs.onNodeDetailsClick) {
+            attrs.onNodeDetailsClick(d);
+          }
+          return;
+        }
+        if (event.target.closest(".paging-button-wrapper")) {
+          self.loadPagingNodes(d);
+          return;
+        }
+        if (!d.data._pagingButton) {
+          if (attrs.swapMode) {
+            self.handleSwapNodeClick(d);
+          } else {
+            attrs.selectedNodeId = attrs.nodeId(d.data);
+            d.data._centered = true;
+            self.update(attrs.root);
+            if (attrs.onNodeSelect) attrs.onNodeSelect(attrs.selectedNodeId);
+            attrs.onNodeClick(d);
+          }
+          if (attrs.svg && attrs.svg.node()) {
+            attrs.svg.node().focus();
+          }
+        }
+      });
+      overlayMerged.style("width", (d) => `${d.width}px`).style("height", (d) => `${d.height}px`).each(function(d) {
+        const nodeX = d.x;
+        const nodeY = d.y;
+        const layoutTransform = attrs.layoutBindings[attrs.layout].nodeUpdateTransform({ x: nodeX, y: nodeY, width: d.width, height: d.height });
+        const match = layoutTransform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+        let tx = nodeX, ty = nodeY;
+        if (match) {
+          tx = parseFloat(match[1]);
+          ty = parseFloat(match[2]);
+        }
+        const screenX = (tx + centerX) * transform.k + transform.x;
+        const screenY = (ty + centerY) * transform.k + transform.y;
+        d3.select(this).style("left", `${screenX}px`).style("top", `${screenY}px`).style("transform", `scale(${transform.k})`).style("transform-origin", "0 0");
+      });
+      overlayMerged.each(function(d, i2, arr) {
+        const container = d3.select(this);
+        let contentWrapper = container.select(".overlay-content");
+        if (contentWrapper.empty()) {
+          contentWrapper = container.append("div").attr("class", "ychart-overlay-content overlay-content").style("width", "100%").style("height", "100%").style("overflow", "hidden").style("user-select", "text").style("-webkit-user-select", "text").style("cursor", "text");
+        }
+        if (d.data._pagingButton) {
+          contentWrapper.html(`<div class="ychart-paging-button-wrapper paging-button-wrapper" style="display:block;"><div class="ychart-paging-button-content" style="pointer-events:none">${attrs.pagingButton(d, i2, arr, attrs)}</div></div>`);
+        } else {
+          contentWrapper.html(attrs.nodeContent.bind(this)(d, i2, arr, attrs));
+        }
+        const hasChildren = d.data._directSubordinates > 0;
+        let buttonWrapper = container.select(".overlay-button");
+        if (hasChildren && !d.data._pagingButton) {
+          if (buttonWrapper.empty()) {
+            buttonWrapper = container.append("div").attr("class", "ychart-overlay-button overlay-button").style("position", "absolute").style("cursor", "pointer").style("pointer-events", "auto");
+          }
+          const buttonX = attrs.layoutBindings[attrs.layout].buttonX({ width: d.width, height: d.height });
+          const buttonY = attrs.layoutBindings[attrs.layout].buttonY({ width: d.width, height: d.height });
+          const buttonWidth = attrs.nodeButtonWidth(d);
+          const buttonHeight = attrs.nodeButtonHeight(d);
+          buttonWrapper.style("left", `${buttonX + attrs.nodeButtonX(d)}px`).style("top", `${buttonY + attrs.nodeButtonY(d)}px`).style("width", `${buttonWidth}px`).style("height", `${buttonHeight}px`).style("display", "flex").style("align-items", "center").style("justify-content", "center").html(attrs.buttonContent({ node: d, state: attrs })).on("click", function(event) {
+            event.stopPropagation();
+            self.onButtonClick(event, d);
+          });
+        } else {
+          buttonWrapper.remove();
+        }
       });
     }
     // Toggle children on click.
@@ -31798,8 +32008,30 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     setLayouts({ expandNodesFirst = true }) {
       const attrs = this.getChartState();
+      const rootNodes = attrs.data.filter((d) => {
+        const parentId = attrs.parentNodeId(d);
+        return parentId === null || parentId === void 0 || parentId === "";
+      });
+      let dataWithVirtualRoot = attrs.data;
+      if (rootNodes.length > 1) {
+        const virtualRootId = "__virtual_root__";
+        const virtualRoot = {
+          id: virtualRootId,
+          _isVirtualRoot: true,
+          _virtualRootHeight: 0,
+          _virtualRootWidth: 0
+        };
+        dataWithVirtualRoot = attrs.data.map((d) => {
+          const parentId = attrs.parentNodeId(d);
+          if (parentId === null || parentId === void 0 || parentId === "") {
+            return __spreadProps(__spreadValues({}, d), { _originalParentId: parentId, parentId: virtualRootId, parentNodeId: virtualRootId });
+          }
+          return d;
+        });
+        dataWithVirtualRoot = [virtualRoot, ...dataWithVirtualRoot];
+      }
       attrs.generateRoot = d3.stratify().id((d) => attrs.nodeId(d)).parentId((d) => attrs.parentNodeId(d));
-      attrs.root = attrs.generateRoot(attrs.data);
+      attrs.root = attrs.generateRoot(dataWithVirtualRoot);
       const descendantsBefore = attrs.root.descendants();
       if (attrs.initialExpandLevel > 1 && descendantsBefore.length > 0) {
         descendantsBefore.forEach((d) => {
@@ -31844,11 +32076,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
           });
         }
       });
-      attrs.root = d3.stratify().id((d) => attrs.nodeId(d)).parentId((d) => attrs.parentNodeId(d))(attrs.data.filter((d) => hiddenNodesMap[d.id] !== true));
+      attrs.root = d3.stratify().id((d) => attrs.nodeId(d)).parentId((d) => attrs.parentNodeId(d))(dataWithVirtualRoot.filter((d) => hiddenNodesMap[d.id] !== true));
       attrs.root.each((node, i2, arr) => {
         let _hierarchyHeight = node._hierarchyHeight || node.height;
-        let width = attrs.nodeWidth(node);
-        let height = attrs.nodeHeight(node);
+        let width = node.data._isVirtualRoot ? 0 : attrs.nodeWidth(node);
+        let height = node.data._isVirtualRoot ? 0 : attrs.nodeHeight(node);
         Object.assign(node, { width, height, _hierarchyHeight });
       });
       attrs.root.x0 = 0;
@@ -31895,7 +32127,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       const transform = event.transform;
       attrs.lastTransform = transform;
       chart.attr("transform", transform);
-      if (this.isEdge()) {
+      if (this.isEdge() || this.isSafari()) {
         this.restyleForeignObjectElements();
       }
     }
@@ -33732,8 +33964,6 @@ ${formattedData.trim()}
       const extensions = [
         basicSetup,
         yaml(),
-        keymap.of([indentWithTab]),
-        // Allow Tab key to indent instead of navigating away
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !this.isUpdatingProgrammatically) {
             this.renderChart();
@@ -33758,7 +33988,6 @@ ${formattedData.trim()}
         extensions,
         parent: this.editorContainer
       });
-      this.editorContainer.editorView = this.editor;
       setTimeout(() => {
         if (this.editor) {
           this.editor.requestMeasure();
@@ -33883,7 +34112,7 @@ ${formattedData.trim()}
         if (!this.orgChart) {
           this.orgChart = new OrgChart();
         }
-        this.orgChart.container(`#ychart-chart-${this.instanceId}`).data(parsedData).nodeHeight(() => options.nodeHeight).nodeWidth(() => options.nodeWidth).childrenMargin(() => options.childrenMargin).compactMarginBetween(() => options.compactMarginBetween).compactMarginPair(() => options.compactMarginPair).neighbourMargin(() => options.neighbourMargin).onNodeClick((d) => {
+        this.orgChart.container(`#ychart-chart-${this.instanceId}`).data(parsedData).nodeHeight(() => options.nodeHeight).nodeWidth(() => options.nodeWidth).childrenMargin(() => options.childrenMargin).compactMarginBetween(() => options.compactMarginBetween).compactMarginPair(() => options.compactMarginPair).neighbourMargin(() => options.neighbourMargin).onNodeClick((d, _i, _arr) => {
           if (this.columnAdjustMode) {
             this.handleNodeClickForColumnAdjust(d);
           }
