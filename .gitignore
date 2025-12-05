@@ -14,6 +14,7 @@ dist-ssr
 # Ignore dist except for the built library files
 dist/*
 !dist/ychart-editor.js
+!dist/ychart-editor.css
 !dist/ychart-editor.umd.js
 !dist/style.css
 !dist/vite.svg
