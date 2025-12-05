@@ -8,9 +8,15 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
 dist-ssr
 *.local
+
+# Ignore dist except for the built library files
+dist/*
+!dist/ychart-editor.js
+!dist/ychart-editor.umd.js
+!dist/style.css
+!dist/vite.svg
 
 # Playwright
 playwright-report/
