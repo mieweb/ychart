@@ -21,3 +21,55 @@
   align-items: center;
   justify-content: center;
 }
+
+.screenshotSection {
+  padding: 2rem 0 4rem;
+  background: linear-gradient(180deg, var(--ifm-hero-background-color) 0%, transparent 100%);
+}
+
+.screenshotLink {
+  display: block;
+  position: relative;
+  max-width: 1100px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.screenshotLink:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+}
+
+.screenshot {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.screenshotOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.screenshotLink:hover .screenshotOverlay {
+  opacity: 1;
+}
+
+.playButton {
+  padding: 1rem 2rem;
+  background: var(--ifm-color-primary);
+  color: white;
+  font-size: 1.25rem;
+  font-weight: bold;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
