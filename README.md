@@ -476,3 +476,7 @@ Built with:
 - [D3.js](https://d3js.org/) - Data visualization
 - [CodeMirror](https://codemirror.net/) - Code editor
 - [js-yaml](https://github.com/nodeca/js-yaml) - YAML parser
+
+---
+
+Made with ❤️ by [MIE](https://mieweb.com/)

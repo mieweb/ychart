@@ -79,3 +79,7 @@ The `build/` directory contains:
 - [Full Deployment Guide](../DEPLOYMENT.md)
 - [Build Summary](BUILD_SUMMARY.md)
 - [Docusaurus Documentation](https://docusaurus.io/)
+
+---
+
+Made with ❤️ by [MIE](https://mieweb.com/)

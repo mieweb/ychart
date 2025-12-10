@@ -63,3 +63,7 @@ YChart is tested and works on:
 ## Next Steps
 
 Ready to get started? Check out our [Installation Guide](./getting-started/installation) to install YChart in your project.
+
+---
+
+Made with ❤️ by [MIE](https://mieweb.com/)
