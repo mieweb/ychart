@@ -1,7 +1,7 @@
 import { defineConfig, Plugin } from 'vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import { execSync } from 'child_process';
-import { watch } from 'fs';
+import { watch, readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const getGitInfo = () => {
@@ -87,8 +87,46 @@ export const repoUrl = ${JSON.stringify(info.repoUrl)};`;
   };
 }
 
+// Plugin to inline CSS into JS bundle
+function inlineCssPlugin(): Plugin {
+  return {
+    name: 'inline-css',
+    apply: 'build',
+    enforce: 'post',
+    generateBundle(options, bundle) {
+      // Find the CSS file
+      const cssFileName = Object.keys(bundle).find(name => name.endsWith('.css'));
+      const jsFileName = Object.keys(bundle).find(name => name.endsWith('.js'));
+      
+      if (cssFileName && jsFileName) {
+        const cssAsset = bundle[cssFileName];
+        const jsChunk = bundle[jsFileName];
+        
+        if (cssAsset && 'source' in cssAsset && jsChunk && 'code' in jsChunk) {
+          // Inject CSS auto-loading code at the beginning of the JS bundle
+          const cssInjectionCode = `
+(function() {
+  if (typeof document !== 'undefined') {
+    var style = document.createElement('style');
+    style.textContent = ${JSON.stringify(cssAsset.source)};
+    document.head.appendChild(style);
+  }
+})();
+
+`;
+          jsChunk.code = cssInjectionCode + jsChunk.code;
+          
+          // Optionally, still keep the CSS file for users who want separate loading
+          // Or delete it if you want single-file only:
+          // delete bundle[cssFileName];
+        }
+      }
+    }
+  };
+}
+
 export default defineConfig(({ mode }) => {
-  const plugins: Plugin[] = [gitInfoPlugin()];
+  const plugins: Plugin[] = [gitInfoPlugin(), inlineCssPlugin()];
   if (mode === 'https') {
     plugins.push(basicSsl());
   }
