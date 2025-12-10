@@ -4,6 +4,7 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import * as jsyaml from 'js-yaml';
 import { OrgChart } from './d3-org-chart.js';
 import { ForceGraph } from './forceGraph.js';
+import './style.css';
 
 interface YChartOptions {
   nodeWidth?: number;
@@ -1078,7 +1079,7 @@ class YChartEditor {
         .compactMarginBetween(() => options.compactMarginBetween!)
         .compactMarginPair(() => options.compactMarginPair!)
         .neighbourMargin(() => options.neighbourMargin!)
-        .onNodeClick((d: any, i: number, arr: any) => {
+        .onNodeClick((d: any, _i: number, _arr: any) => {
           // Handle column adjust mode first
           if (this.columnAdjustMode) {
             this.handleNodeClickForColumnAdjust(d);
