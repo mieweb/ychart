@@ -2,6 +2,9 @@
 
 A beautiful, interactive organizational chart editor with YAML input powered by **d3-org-chart**. Edit YAML in real-time with front-matter schema configuration and see your org chart update instantly!
 
+* Try it in the [Playground](https://orgchart.opensource.mieweb.org/)
+* [Read the docs](https://orgchart.opensource.mieweb.org/docs)
+
 ## Features
 
 - 📝 **YAML Editor** - CodeMirror editor with syntax highlighting
