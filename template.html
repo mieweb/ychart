@@ -1,0 +1,241 @@
+<!-- Load YChart Editor from CDN -->
+<script src="https://orgchart.opensource.mieweb.org/dist/ychart-editor.js"></script>
+
+<style>
+    /*.wc_main > * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }*/
+	/*
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }*/
+
+    header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        z-index: 10;
+    }
+
+    header h1 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .controls {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: translateY(-1px);
+    }
+
+    #container {
+        flex: 1;
+        overflow: hidden;
+    }
+    
+    .ychart-wrapper {
+        background-color: white;
+        border-radius: 5px;
+        overflow: hidden;
+        max-height: 95vh;
+        height: 95vh; /* Fixed height instead of 100% */
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    #ychart-container {
+        flex: 1;
+        overflow: hidden;
+        min-height: 0; /* Critical for flex children with overflow */
+    }
+    
+    /* Ensure CodeMirror editor can scroll properly */
+    #ychart-editor {
+        height: 100% !important;
+        overflow: hidden !important; /* Let CodeMirror handle its own scrolling */
+    }
+    
+    /* Ensure CodeMirror's scroller fills available space */
+    #ychart-editor .cm-editor {
+        height: 100% !important;
+    }
+    
+    #ychart-editor .cm-scroller {
+        overflow-y: auto !important;
+        max-height: 100% !important;
+    }
+</style>
+
+<div class="ychart-wrapper">
+    <header>
+        <h1>YChart Editor - Production Example</h1>
+        <p style="margin: 0.5rem 0; opacity: 0.9; font-size: 0.9rem;">
+            ℹ️ Control buttons are now integrated into the canvas (bottom-left corner). External buttons are deprecated but still work.
+        </p>
+    </header>
+
+    <div id="ychart-container"></div>
+</div>
+
+<pre id="yaml-editor" style="display: none;">
+{{#each [
+            	SELECT 
+                    CONCAT(p.last_name, ', ', p.first_name) AS full_name,
+                    p.pat_id,
+                    CONCAT(sup.last_name, ', ', sup.first_name) AS supervisor_name,
+                    p.email,
+                    sup.pat_id AS sup_id,
+                    obs_position.obs_result AS title
+                FROM patients AS p 
+                LEFT JOIN pat_pat_relations AS r
+                    ON r.pat_id = p.pat_id
+                    AND r.relation_type_id = (SELECT relation_type_id FROM relation_types WHERE relation_type = 'Supervisor')
+                    AND r.end_date > NOW()
+                LEFT JOIN observations_current oc_position 
+                    ON oc_position.obs_code = (select obs_code from observation_codes where obs_name = 'Position Title') 
+                    AND oc_position.pat_id = p.pat_id
+                LEFT JOIN observations obs_position 
+                    ON obs_position.obs_id = oc_position.obs_id
+                LEFT JOIN patients AS sup 
+                    ON sup.pat_id = r.related_pat_id
+                WHERE p.pat_id = @pat_id
+                GROUP BY p.pat_id
+                LIMIT 1
+                ]}}
+- id: {{pat_id}}
+  name: {{full_name}}
+  title: {{title}}
+  email: {{email}}
+  supervisor: {{supervisor_name}}
+<WCQUERY QUERY="SELECT 
+        r.pat_id, 
+        CONCAT(p.last_name, ', ', p.first_name) AS full_name,
+        p.email,
+        r.related_pat_id AS parent_id,
+        sup.pat_id AS sup_id,
+        CONCAT(sup.last_name, ', ', sup.first_name) AS supervisor_name,
+        obs_position.obs_result AS title
+    FROM pat_pat_relations r 
+    LEFT JOIN patients p 
+        ON p.pat_id = r.pat_id
+    LEFT JOIN observations_current oc_position 
+        ON oc_position.obs_code = (select obs_code from observation_codes where obs_name = 'Position Title') 
+        AND oc_position.pat_id = p.pat_id
+    LEFT JOIN observations obs_position 
+        ON obs_position.obs_id = oc_position.obs_id
+    LEFT JOIN patients AS sup
+        ON sup.pat_id = r.related_pat_id
+    WHERE r.related_pat_id = {{%pq pat_id}}
+        AND r.relation_type_id = (SELECT relation_type_id FROM relation_types WHERE relation_type = 'Supervisor')
+        AND p.active = 1
+        AND r.end_date > CURDATE()"
+    LAYOUT="YAMLTreeLayout" />
+{{/each}}
+</pre>
+
+
+<script>
+    // Get YAML data from the pre element
+    var preElement = document.getElementById('yaml-editor');
+    var yamlFromPre = preElement ? preElement.textContent.trim() : '';
+    var yamlData = `---
+options:
+  nodeWidth: 230
+  nodeHeight: 100
+  childrenMargin: 50
+schema:
+  id: number | required
+  name: string | required
+  title: string | optional
+  email: string | required
+  supervisor: string | optional
+card:
+  - div:
+      class: employee-name
+      style: font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;
+      content: $name$
+  - div:
+      style: font-size:10px;color:#e43434;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-style:italic;
+      content: $title$
+  - div:
+      class: contact-info
+      style: font-size:11px;color:#999;
+      children:
+        - span:
+            style: font-weight:600;
+            content: "Email: "
+        - span:
+            style: color:#667eea;
+            content: $email$
+  - div:
+      class: supervisor-info
+      style: font-size:10px;color:#999;margin-top:4px;
+      children:
+        - span: "Reports to: "
+        - span:
+            style: font-weight:600;
+            content: $supervisor$
+---
+
+${yamlFromPre}`;
+
+    function initializeYChartEditor() {
+        console.log('Initializing YChart Editor...');
+        
+        // Initialize YChart Editor with the latest API
+        // IIFE build exposes YChartEditor as a global class
+        var editor = new window.YChartEditor({
+            nodeWidth: 220,
+            nodeHeight: 110,
+            editorTheme: 'dark',
+            collapsible: true,
+            // Optional: Configure toolbar position and orientation
+            toolbarPosition: 'bottomleft',  // or 'topright', 'topcenter', etc.
+            toolbarOrientation: 'horizontal' // or 'vertical'
+        });
+
+        // Setup the editor with the new simplified API
+        // Note: Buttons are now built-in! No need to attach external buttons.
+        editor
+            .initView('ychart-container', yamlData)
+            .bgPatternStyle('dotted')  // Optional: add background pattern
+            .actionBtnPos('topleft', 'horizontal'); // Optional: customize toolbar position
+        
+        // You can also change position at runtime:
+        // editor.actionBtnPos('topright', 'vertical');
+
+        console.log('✅ YChart Editor initialized successfully!');
+        console.log('???? Use built-in toolbar buttons in the canvas (bottom-left corner)');
+        
+        // Make it accessible globally for debugging
+        window.ychartEditor = editor;
+    }
+    
+    // Initialize after the page loads
+    initializeYChartEditor();
+</script>

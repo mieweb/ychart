@@ -40,6 +40,7 @@ const config: Config = {
       'classic',
       {
         docs: {
+          routeBasePath: '/',  // Serve docs at /docs/ root instead of /docs/docs/
           sidebarPath: './sidebars.ts',
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
@@ -88,11 +89,11 @@ const config: Config = {
           items: [
             {
               label: 'Introduction',
-              to: '/docs/intro',
+              to: '/intro',
             },
             {
               label: 'Tutorial',
-              to: '/docs/tutorial-basics/create-a-document',
+              to: '/tutorial-basics/create-a-document',
             },
           ],
         },
