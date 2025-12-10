@@ -87,37 +87,12 @@ const config: Config = {
           title: 'Documentation',
           items: [
             {
-              label: 'Getting Started',
-              to: '/docs/getting-started/installation',
+              label: 'Introduction',
+              to: '/docs/intro',
             },
             {
-              label: 'API Reference',
-              to: '/docs/api/configuration',
-            },
-            {
-              label: 'Examples',
-              to: '/docs/examples/basic-org-chart',
-            },
-          ],
-        },
-        {
-          title: 'Framework Integration',
-          items: [
-            {
-              label: 'Vanilla JavaScript',
-              to: '/docs/framework-integration/vanilla-js',
-            },
-            {
-              label: 'React',
-              to: '/docs/framework-integration/react',
-            },
-            {
-              label: 'Svelte',
-              to: '/docs/framework-integration/svelte',
-            },
-            {
-              label: 'Vue',
-              to: '/docs/framework-integration/vue',
+              label: 'Tutorial',
+              to: '/docs/tutorial-basics/create-a-document',
             },
           ],
         },
