@@ -41,11 +41,9 @@ jobs:
         
       - name: Deploy to web server
         run: |
-          sudo mkdir -p /var/www/html/dist
-          sudo cp -r dist/* /var/www/html/dist/
-          sudo cp production.html /var/www/html/index.html
-          sudo chown -R www-data:www-data /var/www/html
-          sudo chmod -R 755 /var/www/html
+          mkdir -p /var/www/html/dist
+          cp -r dist/* /var/www/html/dist/
+          cp production.html /var/www/html/index.html
           echo "Application deployed at $(date)"
           
       - name: Reload Nginx

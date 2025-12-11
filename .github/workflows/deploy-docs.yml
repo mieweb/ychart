@@ -39,10 +39,8 @@ jobs:
       - name: Deploy to web server
         working-directory: docs
         run: |
-          sudo mkdir -p /var/www/html/docs
-          sudo cp -r build/* /var/www/html/docs/
-          sudo chown -R www-data:www-data /var/www/html/docs
-          sudo chmod -R 755 /var/www/html/docs
+          mkdir -p /var/www/html/docs
+          cp -r build/* /var/www/html/docs/
           echo "Documentation deployed at $(date)"
           
       - name: Reload Nginx
