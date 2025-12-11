@@ -42,6 +42,3 @@ jobs:
           mkdir -p /var/www/html/docs
           cp -r build/* /var/www/html/docs/
           echo "Documentation deployed at $(date)"
-          
-      - name: Reload Nginx
-        run: sudo systemctl reload nginx

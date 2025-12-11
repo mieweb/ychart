@@ -45,6 +45,3 @@ jobs:
           cp -r dist/* /var/www/html/dist/
           cp production.html /var/www/html/index.html
           echo "Application deployed at $(date)"
-          
-      - name: Reload Nginx
-        run: sudo systemctl reload nginx
