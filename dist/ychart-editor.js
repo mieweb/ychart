@@ -33554,6 +33554,9 @@ ${d.email || ""}`);
       __publicField(this, "searchPopup", null);
       __publicField(this, "searchHistoryPopup", null);
       __publicField(this, "errorBanner", null);
+      // Default supervisor field aliases - can be overridden via schema or supervisorLookup()
+      __publicField(this, "supervisorFields", ["supervisor", "reports", "reports_to", "manager", "leader", "parent"]);
+      __publicField(this, "nameField", "name");
       this.instanceId = generateUUID();
       this.defaultOptions = __spreadValues({
         nodeWidth: 220,
@@ -35014,61 +35017,137 @@ ${formattedData.trim()}
               message: 'YAML data must be an array of objects (start each item with "- ")'
             });
           } else if (Array.isArray(parsed)) {
-            const nodeIds = new Set(parsed.map((item) => String(item.id)));
-            const rootNodes = parsed.filter(
-              (item) => item.parentId === null || item.parentId === void 0
-            );
-            if (rootNodes.length > 1) {
-              for (let i2 = 1; i2 < rootNodes.length; i2++) {
-                const item = rootNodes[i2];
-                const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, "m");
-                const parentIdPattern = new RegExp(`parentId:\\s*null`, "m");
-                const itemMatch = content2.match(itemIdPattern);
-                let errorPos = 0;
-                let errorEnd = content2.length;
-                if (itemMatch && itemMatch.index !== void 0) {
-                  const afterId = content2.substring(itemMatch.index);
-                  const parentIdMatch = afterId.match(parentIdPattern);
-                  if (parentIdMatch && parentIdMatch.index !== void 0) {
-                    errorPos = itemMatch.index + parentIdMatch.index;
-                    errorEnd = errorPos + parentIdMatch[0].length;
-                  } else {
+            const hasNameField = parsed.some((item) => item.name !== void 0);
+            const hasIdField = parsed.some((item) => item.id !== void 0);
+            const usesNameFormat = hasNameField && !hasIdField;
+            if (usesNameFormat) {
+              const names = new Set(parsed.map((item) => item[this.nameField]));
+              const getSupervisor = (item) => {
+                for (const field of this.supervisorFields) {
+                  if (item[field]) return item[field];
+                }
+                return void 0;
+              };
+              const rootNodes = parsed.filter((item) => {
+                const supervisor = getSupervisor(item);
+                return !supervisor || !names.has(supervisor);
+              });
+              if (rootNodes.length > 1) {
+                for (let i2 = 1; i2 < rootNodes.length; i2++) {
+                  const item = rootNodes[i2];
+                  const namePattern = new RegExp(`^-\\s*name:\\s*${this.escapeRegex(item.name)}`, "m");
+                  const itemMatch = content2.match(namePattern);
+                  let errorPos = 0;
+                  let errorEnd = content2.length;
+                  if (itemMatch && itemMatch.index !== void 0) {
                     errorPos = itemMatch.index;
                     errorEnd = itemMatch.index + itemMatch[0].length;
                   }
+                  const lineNumber = content2.substring(0, errorPos).split("\n").length;
+                  diagnostics.push({
+                    from: errorPos,
+                    to: errorEnd,
+                    severity: "error",
+                    message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have no supervisor (name: ${item.name})`
+                  });
                 }
-                const lineNumber = content2.substring(0, errorPos).split("\n").length;
-                diagnostics.push({
-                  from: errorPos,
-                  to: errorEnd,
-                  severity: "error",
-                  message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have parentId: null (node id: ${item.id})`
-                });
               }
-            }
-            for (const item of parsed) {
-              const parentId = item.parentId;
-              if (parentId !== null && parentId !== void 0 && !nodeIds.has(String(parentId))) {
-                const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, "m");
-                const parentIdPattern = new RegExp(`parentId:\\s*${parentId}`, "m");
-                const itemMatch = content2.match(itemIdPattern);
-                let errorPos = 0;
-                let errorEnd = content2.length;
-                if (itemMatch && itemMatch.index !== void 0) {
-                  const afterId = content2.substring(itemMatch.index);
-                  const parentIdMatch = afterId.match(parentIdPattern);
-                  if (parentIdMatch && parentIdMatch.index !== void 0) {
-                    errorPos = itemMatch.index + parentIdMatch.index;
-                    errorEnd = errorPos + parentIdMatch[0].length;
+              for (const item of parsed) {
+                const supervisor = getSupervisor(item);
+                if (supervisor && !names.has(supervisor)) {
+                  let match = null;
+                  for (const field of this.supervisorFields) {
+                    if (item[field]) {
+                      const pattern = new RegExp(`${field}:\\s*${this.escapeRegex(supervisor)}`, "m");
+                      match = content2.match(pattern);
+                      if (match) break;
+                    }
+                  }
+                  let errorPos = 0;
+                  let errorEnd = content2.length;
+                  if (match && match.index !== void 0) {
+                    errorPos = match.index;
+                    errorEnd = errorPos + match[0].length;
+                  }
+                  const lineNumber = content2.substring(0, errorPos).split("\n").length;
+                  diagnostics.push({
+                    from: errorPos,
+                    to: errorEnd,
+                    severity: "error",
+                    message: `Line ${lineNumber}: Invalid supervisor "${supervisor}" - no person with this name exists`
+                  });
+                }
+              }
+            } else {
+              const nodeIds = /* @__PURE__ */ new Set();
+              for (const item of parsed) {
+                if (item.id !== void 0 && item.id !== null) {
+                  nodeIds.add(String(item.id));
+                }
+                if (item.email) {
+                  nodeIds.add(String(item.email).toLowerCase());
+                }
+              }
+              const hasSupervisorFields = parsed.some(
+                (item) => this.supervisorFields.some((field) => item[field] !== void 0)
+              );
+              if (!hasSupervisorFields) {
+                const rootNodes = parsed.filter(
+                  (item) => item.parentId === null || item.parentId === void 0
+                );
+                if (rootNodes.length > 1) {
+                  for (let i2 = 1; i2 < rootNodes.length; i2++) {
+                    const item = rootNodes[i2];
+                    const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, "m");
+                    const parentIdPattern = new RegExp(`parentId:\\s*null`, "m");
+                    const itemMatch = content2.match(itemIdPattern);
+                    let errorPos = 0;
+                    let errorEnd = content2.length;
+                    if (itemMatch && itemMatch.index !== void 0) {
+                      const afterId = content2.substring(itemMatch.index);
+                      const parentIdMatch = afterId.match(parentIdPattern);
+                      if (parentIdMatch && parentIdMatch.index !== void 0) {
+                        errorPos = itemMatch.index + parentIdMatch.index;
+                        errorEnd = errorPos + parentIdMatch[0].length;
+                      } else {
+                        errorPos = itemMatch.index;
+                        errorEnd = itemMatch.index + itemMatch[0].length;
+                      }
+                    }
+                    const lineNumber = content2.substring(0, errorPos).split("\n").length;
+                    diagnostics.push({
+                      from: errorPos,
+                      to: errorEnd,
+                      severity: "error",
+                      message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have parentId: null (node id: ${item.id})`
+                    });
                   }
                 }
-                const lineNumber = content2.substring(0, errorPos).split("\n").length;
-                diagnostics.push({
-                  from: errorPos,
-                  to: errorEnd,
-                  severity: "error",
-                  message: `Line ${lineNumber}: Invalid parentId "${parentId}" - no node with this id exists`
-                });
+              }
+              for (const item of parsed) {
+                const parentId = item.parentId;
+                if (parentId !== null && parentId !== void 0 && !nodeIds.has(String(parentId)) && !nodeIds.has(String(parentId).toLowerCase())) {
+                  const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, "m");
+                  const parentIdPattern = new RegExp(`parentId:\\s*${parentId}`, "m");
+                  const itemMatch = content2.match(itemIdPattern);
+                  let errorPos = 0;
+                  let errorEnd = content2.length;
+                  if (itemMatch && itemMatch.index !== void 0) {
+                    const afterId = content2.substring(itemMatch.index);
+                    const parentIdMatch = afterId.match(parentIdPattern);
+                    if (parentIdMatch && parentIdMatch.index !== void 0) {
+                      errorPos = itemMatch.index + parentIdMatch.index;
+                      errorEnd = errorPos + parentIdMatch[0].length;
+                    }
+                  }
+                  const lineNumber = content2.substring(0, errorPos).split("\n").length;
+                  diagnostics.push({
+                    from: errorPos,
+                    to: errorEnd,
+                    severity: "error",
+                    message: `Line ${lineNumber}: Invalid parentId "${parentId}" - no node with this id exists`
+                  });
+                }
               }
             }
           }
@@ -35343,8 +35422,17 @@ ${formattedData.trim()}
             if (parsed.schema && typeof parsed.schema === "object") {
               for (const [fieldName, fieldDef] of Object.entries(parsed.schema)) {
                 if (typeof fieldDef === "string") {
-                  schemaDef[fieldName] = this.parseSchemaField(fieldDef);
+                  const fieldSchema = this.parseSchemaField(fieldDef, fieldName);
+                  schemaDef[fieldName] = fieldSchema;
+                  if (fieldSchema.aliases && fieldSchema.aliases.length > 0) {
+                    for (const alias of fieldSchema.aliases) {
+                      schemaDef[alias] = __spreadProps(__spreadValues({}, fieldSchema), { aliases: [fieldName] });
+                    }
+                  }
                 }
+              }
+              if (schemaDef.supervisor && schemaDef.supervisor.aliases) {
+                this.supervisorFields = ["supervisor", ...schemaDef.supervisor.aliases];
               }
             }
             return { options, schema: schemaDef, card: cardDef, data: yamlData };
@@ -35355,13 +35443,43 @@ ${formattedData.trim()}
       }
       return { options: {}, schema: {}, card: void 0, data: content2 };
     }
-    parseSchemaField(fieldDefinition) {
+    /**
+     * Parse a schema field definition string.
+     * Format: "type | required | missing | alias1 | alias2"
+     * Or for field aliases: "[ field1 | field2 | field3 ]"
+     * Examples:
+     *   - "string | required" -> type: string, required: true
+     *   - "string | optional" -> type: string, required: false
+     *   - "[ supervisor | leader | manager ]" -> aliases: ['leader', 'manager']
+     */
+    parseSchemaField(fieldDefinition, _fieldName) {
+      const aliasMatch = fieldDefinition.match(/^\s*\[\s*(.+?)\s*\]\s*(.*)$/);
+      if (aliasMatch) {
+        const aliasesStr = aliasMatch[1];
+        const restStr = aliasMatch[2];
+        const aliasParts = aliasesStr.split("|").map((p) => p.trim()).filter((p) => p);
+        const aliases = aliasParts.slice(1);
+        const restParts = restStr ? restStr.split("|").map((p) => p.trim()).filter((p) => p) : [];
+        const type2 = restParts.find((p) => !["required", "optional", "missing"].includes(p)) || "string";
+        return {
+          type: type2,
+          required: restParts.includes("required"),
+          missing: restParts.includes("missing"),
+          aliases: aliases.length > 0 ? aliases : void 0
+        };
+      }
       const parts = fieldDefinition.split("|").map((p) => p.trim());
       return {
         type: parts[0] || "string",
         required: parts.includes("required"),
         missing: parts.includes("missing")
       };
+    }
+    /**
+     * Escape special regex characters in a string for safe use in RegExp constructor.
+     */
+    escapeRegex(str2) {
+      return str2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     }
     renderCardElement(element, data) {
       const tagName = Object.keys(element)[0];
@@ -35397,6 +35515,102 @@ ${formattedData.trim()}
         return String(value);
       });
     }
+    /**
+     * Resolve missing parentId values by looking up supervisor names.
+     * This allows YAML data to omit parentId if a supervisor field contains
+     * the name of another node. Also auto-generates missing id values.
+     * 
+     * Supports multiple supervisor field aliases configurable via schema:
+     *   supervisor: [ supervisor | leader | manager | reports_to ]
+     * Or via .supervisorLookup() fluent API.
+     */
+    resolveMissingParentIds(data) {
+      let hasNumericIds = false;
+      let maxNumericId = 0;
+      const existingIds = /* @__PURE__ */ new Set();
+      for (const item of data) {
+        if (item.id !== void 0 && item.id !== null) {
+          existingIds.add(String(item.id));
+          const numId = typeof item.id === "number" ? item.id : parseInt(String(item.id), 10);
+          if (!isNaN(numId) && String(numId) === String(item.id)) {
+            hasNumericIds = true;
+            if (numId > maxNumericId) {
+              maxNumericId = numId;
+            }
+          }
+        }
+      }
+      let autoIdCounter = maxNumericId;
+      const generateId = (item) => {
+        if (item.email) {
+          const emailId = String(item.email).toLowerCase();
+          if (!existingIds.has(emailId)) {
+            existingIds.add(emailId);
+            return emailId;
+          }
+        }
+        if (hasNumericIds || existingIds.size === 0) {
+          autoIdCounter++;
+          return autoIdCounter;
+        } else {
+          let newId2;
+          do {
+            newId2 = `auto-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+          } while (existingIds.has(newId2));
+          existingIds.add(newId2);
+          return newId2;
+        }
+      };
+      const dataWithIds = data.map((item) => {
+        if (item.id === void 0 || item.id === null) {
+          return __spreadProps(__spreadValues({}, item), { id: generateId(item), _autoGeneratedId: true });
+        }
+        return item;
+      });
+      const nameToId = /* @__PURE__ */ new Map();
+      for (const item of dataWithIds) {
+        const name2 = item[this.nameField];
+        if (name2) {
+          nameToId.set(String(name2).toLowerCase(), item.id);
+        }
+      }
+      return dataWithIds.map((item) => {
+        if (item.parentId !== void 0) {
+          return item;
+        }
+        for (const field of this.supervisorFields) {
+          const supervisorName = item[field];
+          if (supervisorName) {
+            const normalizedName = String(supervisorName).toLowerCase();
+            const parentId = nameToId.get(normalizedName);
+            if (parentId !== void 0) {
+              return __spreadProps(__spreadValues({}, item), { parentId });
+            }
+          }
+        }
+        return __spreadProps(__spreadValues({}, item), { parentId: null });
+      });
+    }
+    /**
+     * Configure the field names used for supervisor-based parentId resolution.
+     * When a node is missing a parentId, the parser will attempt to find a parent
+     * by matching the supervisor field value to another node's name field.
+     * 
+     * By default, the following fields are checked in order:
+     * 'supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'
+     * 
+     * @param supervisorFieldNames - The field(s) containing the supervisor's name. 
+     *                               Can be a single string or an array of field names to check in order.
+     * @param nameFieldName - The field containing the node's name for matching (default: 'name')
+     */
+    supervisorLookup(supervisorFieldNames, nameFieldName = "name") {
+      this.supervisorFields = Array.isArray(supervisorFieldNames) ? supervisorFieldNames : [supervisorFieldNames];
+      this.nameField = nameFieldName;
+      if (this.orgChart) {
+        this.renderChart();
+      }
+      return this;
+    }
     renderChart() {
       try {
         if (this.forceGraph) {
@@ -35407,12 +35621,13 @@ ${formattedData.trim()}
         const yamlContent = this.editor.state.doc.toString();
         const { options: userOptions, schema: schemaDef, card: cardDef, data: yamlData } = this.parseFrontMatter(yamlContent);
         const options = __spreadValues(__spreadValues({}, this.defaultOptions), userOptions);
-        const parsedData = load(yamlData);
+        let parsedData = load(yamlData);
         this.currentSchema = schemaDef;
         this.cardTemplate = cardDef || null;
         if (!Array.isArray(parsedData)) {
           throw new Error("YAML must be an array");
         }
+        parsedData = this.resolveMissingParentIds(parsedData);
         if (!this.orgChart) {
           this.orgChart = new OrgChart();
         }
@@ -35614,11 +35829,12 @@ ${formattedData.trim()}
         if (!Array.isArray(parsedData)) {
           throw new Error("YAML must be an array");
         }
+        const resolvedData = this.resolveMissingParentIds(parsedData);
         if (this.forceGraph) {
           this.forceGraph.stop();
         }
         this.forceGraph = new ForceGraph("ychart-chart", (data) => this.showNodeDetails(data));
-        this.forceGraph.render(parsedData);
+        this.forceGraph.render(resolvedData);
         this.currentView = "force";
       } catch (error) {
       }

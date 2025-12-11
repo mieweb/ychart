@@ -27,6 +27,7 @@ interface FieldSchema {
   type: string;
   required: boolean;
   missing: boolean;
+  aliases?: string[];  // Alternate field names that map to this field
 }
 
 interface SchemaDefinition {
@@ -87,6 +88,9 @@ class YChartEditor {
   private searchPopup: HTMLElement | null = null;
   private searchHistoryPopup: HTMLElement | null = null;
   private errorBanner: HTMLElement | null = null;
+  // Default supervisor field aliases - can be overridden via schema or supervisorLookup()
+  private supervisorFields: string[] = ['supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'];
+  private nameField: string = 'name';
   
   constructor(options?: YChartOptions) {
     this.instanceId = generateUUID();
@@ -1898,82 +1902,185 @@ class YChartEditor {
             message: 'YAML data must be an array of objects (start each item with "- ")'
           });
         } else if (Array.isArray(parsed)) {
-          // Validate parent-child relationships
-          const nodeIds = new Set(parsed.map((item: any) => String(item.id)));
+          // Detect which format is being used: id/parentId or name/supervisor
+          // If any item has 'name' but no 'id', treat as name-based format
+          const hasNameField = parsed.some((item: any) => item.name !== undefined);
+          const hasIdField = parsed.some((item: any) => item.id !== undefined);
+          const usesNameFormat = hasNameField && !hasIdField;
           
-          // Check for multiple roots (multiple nodes with parentId: null or undefined)
-          const rootNodes = (parsed as any[]).filter((item: any) => 
-            item.parentId === null || item.parentId === undefined
-          );
-          
-          if (rootNodes.length > 1) {
-            // Mark all root nodes after the first as errors
-            for (let i = 1; i < rootNodes.length; i++) {
-              const item = rootNodes[i];
-              const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
-              const parentIdPattern = new RegExp(`parentId:\\s*null`, 'm');
-              
-              const itemMatch = content.match(itemIdPattern);
-              let errorPos = 0;
-              let errorEnd = content.length;
-              
-              if (itemMatch && itemMatch.index !== undefined) {
-                const afterId = content.substring(itemMatch.index);
-                const parentIdMatch = afterId.match(parentIdPattern);
-                if (parentIdMatch && parentIdMatch.index !== undefined) {
-                  errorPos = itemMatch.index + parentIdMatch.index;
-                  errorEnd = errorPos + parentIdMatch[0].length;
-                } else {
-                  // If no explicit parentId: null, mark the id line
+          if (usesNameFormat) {
+            // Validate name/supervisor format
+            const names = new Set(parsed.map((item: any) => item[this.nameField]));
+            
+            // Helper to get supervisor value from any of the alias fields
+            const getSupervisor = (item: any): string | undefined => {
+              for (const field of this.supervisorFields) {
+                if (item[field]) return item[field];
+              }
+              return undefined;
+            };
+            
+            // Check for multiple roots (nodes with no supervisor or supervisor not in names)
+            const rootNodes = (parsed as any[]).filter((item: any) => {
+              const supervisor = getSupervisor(item);
+              return !supervisor || !names.has(supervisor);
+            });
+            
+            if (rootNodes.length > 1) {
+              // Mark all root nodes after the first as errors
+              for (let i = 1; i < rootNodes.length; i++) {
+                const item = rootNodes[i];
+                const namePattern = new RegExp(`^-\\s*name:\\s*${this.escapeRegex(item.name)}`, 'm');
+                
+                const itemMatch = content.match(namePattern);
+                let errorPos = 0;
+                let errorEnd = content.length;
+                
+                if (itemMatch && itemMatch.index !== undefined) {
                   errorPos = itemMatch.index;
                   errorEnd = itemMatch.index + itemMatch[0].length;
                 }
+                
+                const lineNumber = content.substring(0, errorPos).split('\n').length;
+                
+                diagnostics.push({
+                  from: errorPos,
+                  to: errorEnd,
+                  severity: 'error',
+                  message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have no supervisor (name: ${item.name})`
+                });
               }
-              
-              const lineNumber = content.substring(0, errorPos).split('\n').length;
-              
-              diagnostics.push({
-                from: errorPos,
-                to: errorEnd,
-                severity: 'error',
-                message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have parentId: null (node id: ${item.id})`
-              });
             }
-          }
-          
-          // Check for missing/invalid parentId references
-          for (const item of parsed as any[]) {
-            const parentId = item.parentId;
-            // parentId should be null for root, or reference an existing node
-            if (parentId !== null && parentId !== undefined && !nodeIds.has(String(parentId))) {
-              // Find the line with this item's parentId
-              const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
-              const parentIdPattern = new RegExp(`parentId:\\s*${parentId}`, 'm');
+            
+            // Check for invalid supervisor references
+            for (const item of parsed as any[]) {
+              const supervisor = getSupervisor(item);
+              if (supervisor && !names.has(supervisor)) {
+                // Find the line with this item's supervisor field
+                let match: RegExpMatchArray | null = null;
+                for (const field of this.supervisorFields) {
+                  if (item[field]) {
+                    const pattern = new RegExp(`${field}:\\s*${this.escapeRegex(supervisor)}`, 'm');
+                    match = content.match(pattern);
+                    if (match) break;
+                  }
+                }
+                
+                let errorPos = 0;
+                let errorEnd = content.length;
+                
+                if (match && match.index !== undefined) {
+                  errorPos = match.index;
+                  errorEnd = errorPos + match[0].length;
+                }
+                
+                const lineNumber = content.substring(0, errorPos).split('\n').length;
+                
+                diagnostics.push({
+                  from: errorPos,
+                  to: errorEnd,
+                  severity: 'error',
+                  message: `Line ${lineNumber}: Invalid supervisor "${supervisor}" - no person with this name exists`
+                });
+              }
+            }
+          } else {
+            // Validate id/parentId format (or mixed format with both id and supervisor)
+            // Build set of valid IDs: explicit IDs + emails (as potential auto-generated IDs)
+            const nodeIds = new Set<string>();
+            for (const item of parsed as any[]) {
+              if (item.id !== undefined && item.id !== null) {
+                nodeIds.add(String(item.id));
+              }
+              // Also add email as a valid ID (since it can be auto-generated)
+              if (item.email) {
+                nodeIds.add(String(item.email).toLowerCase());
+              }
+            }
+            
+            // Skip multiple roots check when using supervisor-based resolution
+            // (nodes without parentId will have it resolved from supervisor field)
+            const hasSupervisorFields = parsed.some((item: any) => 
+              this.supervisorFields.some(field => item[field] !== undefined)
+            );
+            
+            if (!hasSupervisorFields) {
+              // Only check for multiple roots if not using supervisor-based resolution
+              const rootNodes = (parsed as any[]).filter((item: any) => 
+                item.parentId === null || item.parentId === undefined
+              );
               
-              // Find the parentId line for this item
-              const itemMatch = content.match(itemIdPattern);
-              let errorPos = 0;
-              let errorEnd = content.length;
-              
-              if (itemMatch && itemMatch.index !== undefined) {
-                // Look for parentId after this item's id
-                const afterId = content.substring(itemMatch.index);
-                const parentIdMatch = afterId.match(parentIdPattern);
-                if (parentIdMatch && parentIdMatch.index !== undefined) {
-                  errorPos = itemMatch.index + parentIdMatch.index;
-                  errorEnd = errorPos + parentIdMatch[0].length;
+              if (rootNodes.length > 1) {
+                // Mark all root nodes after the first as errors
+                for (let i = 1; i < rootNodes.length; i++) {
+                  const item = rootNodes[i];
+                  const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
+                  const parentIdPattern = new RegExp(`parentId:\\s*null`, 'm');
+                  
+                  const itemMatch = content.match(itemIdPattern);
+                  let errorPos = 0;
+                  let errorEnd = content.length;
+                  
+                  if (itemMatch && itemMatch.index !== undefined) {
+                    const afterId = content.substring(itemMatch.index);
+                    const parentIdMatch = afterId.match(parentIdPattern);
+                    if (parentIdMatch && parentIdMatch.index !== undefined) {
+                      errorPos = itemMatch.index + parentIdMatch.index;
+                      errorEnd = errorPos + parentIdMatch[0].length;
+                    } else {
+                      // If no explicit parentId: null, mark the id line
+                      errorPos = itemMatch.index;
+                      errorEnd = itemMatch.index + itemMatch[0].length;
+                    }
+                  }
+                  
+                  const lineNumber = content.substring(0, errorPos).split('\n').length;
+                  
+                  diagnostics.push({
+                    from: errorPos,
+                    to: errorEnd,
+                    severity: 'error',
+                    message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have parentId: null (node id: ${item.id})`
+                  });
                 }
               }
-              
-              // Calculate line number for the error message
-              const lineNumber = content.substring(0, errorPos).split('\n').length;
-              
-              diagnostics.push({
-                from: errorPos,
-                to: errorEnd,
-                severity: 'error',
-                message: `Line ${lineNumber}: Invalid parentId "${parentId}" - no node with this id exists`
-              });
+            }
+            
+            // Check for missing/invalid parentId references (only if explicitly set)
+            for (const item of parsed as any[]) {
+              const parentId = item.parentId;
+              // parentId should be null for root, or reference an existing node (by id or email)
+              if (parentId !== null && parentId !== undefined && 
+                  !nodeIds.has(String(parentId)) && !nodeIds.has(String(parentId).toLowerCase())) {
+                // Find the line with this item's parentId
+                const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
+                const parentIdPattern = new RegExp(`parentId:\\s*${parentId}`, 'm');
+                
+                // Find the parentId line for this item
+                const itemMatch = content.match(itemIdPattern);
+                let errorPos = 0;
+                let errorEnd = content.length;
+                
+                if (itemMatch && itemMatch.index !== undefined) {
+                  // Look for parentId after this item's id
+                  const afterId = content.substring(itemMatch.index);
+                  const parentIdMatch = afterId.match(parentIdPattern);
+                  if (parentIdMatch && parentIdMatch.index !== undefined) {
+                    errorPos = itemMatch.index + parentIdMatch.index;
+                    errorEnd = errorPos + parentIdMatch[0].length;
+                  }
+                }
+                
+                // Calculate line number for the error message
+                const lineNumber = content.substring(0, errorPos).split('\n').length;
+                
+                diagnostics.push({
+                  from: errorPos,
+                  to: errorEnd,
+                  severity: 'error',
+                  message: `Line ${lineNumber}: Invalid parentId "${parentId}" - no node with this id exists`
+                });
+              }
             }
           }
         }
@@ -2329,8 +2436,21 @@ class YChartEditor {
           if (parsed.schema && typeof parsed.schema === 'object') {
             for (const [fieldName, fieldDef] of Object.entries(parsed.schema)) {
               if (typeof fieldDef === 'string') {
-                schemaDef[fieldName] = this.parseSchemaField(fieldDef as string);
+                const fieldSchema = this.parseSchemaField(fieldDef as string, fieldName);
+                schemaDef[fieldName] = fieldSchema;
+                
+                // If this field has aliases, also add the aliases to schema
+                if (fieldSchema.aliases && fieldSchema.aliases.length > 0) {
+                  for (const alias of fieldSchema.aliases) {
+                    schemaDef[alias] = { ...fieldSchema, aliases: [fieldName] };
+                  }
+                }
               }
+            }
+            
+            // Update supervisor fields based on schema aliases for 'supervisor' field
+            if (schemaDef.supervisor && schemaDef.supervisor.aliases) {
+              this.supervisorFields = ['supervisor', ...schemaDef.supervisor.aliases];
             }
           }
           
@@ -2344,13 +2464,53 @@ class YChartEditor {
     return { options: {}, schema: {}, card: undefined, data: content };
   }
 
-  private parseSchemaField(fieldDefinition: string): FieldSchema {
+  /**
+   * Parse a schema field definition string.
+   * Format: "type | required | missing | alias1 | alias2"
+   * Or for field aliases: "[ field1 | field2 | field3 ]"
+   * Examples:
+   *   - "string | required" -> type: string, required: true
+   *   - "string | optional" -> type: string, required: false
+   *   - "[ supervisor | leader | manager ]" -> aliases: ['leader', 'manager']
+   */
+  private parseSchemaField(fieldDefinition: string, _fieldName?: string): FieldSchema {
+    // Check for alias syntax: [ field1 | field2 | field3 ]
+    const aliasMatch = fieldDefinition.match(/^\s*\[\s*(.+?)\s*\]\s*(.*)$/);
+    
+    if (aliasMatch) {
+      const aliasesStr = aliasMatch[1];
+      const restStr = aliasMatch[2];
+      
+      // Parse aliases (split by |)
+      const aliasParts = aliasesStr.split('|').map(p => p.trim()).filter(p => p);
+      const aliases = aliasParts.slice(1);
+      
+      // Parse the rest of the definition for type, required, etc.
+      const restParts = restStr ? restStr.split('|').map(p => p.trim()).filter(p => p) : [];
+      const type = restParts.find(p => !['required', 'optional', 'missing'].includes(p)) || 'string';
+      
+      return {
+        type,
+        required: restParts.includes('required'),
+        missing: restParts.includes('missing'),
+        aliases: aliases.length > 0 ? aliases : undefined
+      };
+    }
+    
+    // Standard format: type | required | missing
     const parts = fieldDefinition.split('|').map(p => p.trim());
     return {
       type: parts[0] || 'string',
       required: parts.includes('required'),
       missing: parts.includes('missing')
     };
+  }
+
+  /**
+   * Escape special regex characters in a string for safe use in RegExp constructor.
+   */
+  private escapeRegex(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
   private renderCardElement(element: CardElement, data: any): string {
@@ -2402,6 +2562,129 @@ class YChartEditor {
     });
   }
 
+  /**
+   * Resolve missing parentId values by looking up supervisor names.
+   * This allows YAML data to omit parentId if a supervisor field contains
+   * the name of another node. Also auto-generates missing id values.
+   * 
+   * Supports multiple supervisor field aliases configurable via schema:
+   *   supervisor: [ supervisor | leader | manager | reports_to ]
+   * Or via .supervisorLookup() fluent API.
+   */
+  private resolveMissingParentIds(data: any[]): any[] {
+    // First pass: auto-generate missing ids
+    // Detect if existing IDs are numeric or string-based (UUIDs, etc.)
+    let hasNumericIds = false;
+    let maxNumericId = 0;
+    const existingIds = new Set<string>();
+
+    for (const item of data) {
+      if (item.id !== undefined && item.id !== null) {
+        existingIds.add(String(item.id));
+        const numId = typeof item.id === 'number' ? item.id : parseInt(String(item.id), 10);
+        if (!isNaN(numId) && String(numId) === String(item.id)) {
+          hasNumericIds = true;
+          if (numId > maxNumericId) {
+            maxNumericId = numId;
+          }
+        }
+      }
+    }
+
+    // Helper to generate a unique ID
+    let autoIdCounter = maxNumericId;
+    const generateId = (item: any): string | number => {
+      // Prefer email as ID if available
+      if (item.email) {
+        const emailId = String(item.email).toLowerCase();
+        if (!existingIds.has(emailId)) {
+          existingIds.add(emailId);
+          return emailId;
+        }
+      }
+      
+      if (hasNumericIds || existingIds.size === 0) {
+        // Use numeric IDs if existing IDs are numeric or if no IDs exist
+        autoIdCounter++;
+        return autoIdCounter;
+      } else {
+        // Generate a simple unique string ID (pseudo-UUID style)
+        let newId: string;
+        do {
+          newId = `auto-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        } while (existingIds.has(newId));
+        existingIds.add(newId);
+        return newId;
+      }
+    };
+
+    // Assign ids to items that don't have them
+    const dataWithIds = data.map((item) => {
+      if (item.id === undefined || item.id === null) {
+        return { ...item, id: generateId(item), _autoGeneratedId: true };
+      }
+      return item;
+    });
+
+    // Build a map of name -> id for quick lookup
+    const nameToId = new Map<string, any>();
+    for (const item of dataWithIds) {
+      const name = item[this.nameField];
+      if (name) {
+        // Store the name (normalized to lowercase for case-insensitive matching)
+        nameToId.set(String(name).toLowerCase(), item.id);
+      }
+    }
+
+    // Process each item and resolve missing parentId
+    return dataWithIds.map(item => {
+      // Skip if parentId is already set (including explicit null for root nodes)
+      if (item.parentId !== undefined) {
+        return item;
+      }
+
+      // Try to resolve parentId from supervisor field aliases
+      for (const field of this.supervisorFields) {
+        const supervisorName = item[field];
+        if (supervisorName) {
+          const normalizedName = String(supervisorName).toLowerCase();
+          const parentId = nameToId.get(normalizedName);
+          if (parentId !== undefined) {
+            // Return a new object with the resolved parentId
+            return { ...item, parentId };
+          }
+        }
+      }
+
+      // No parentId and couldn't resolve from supervisor - treat as root node
+      return { ...item, parentId: null };
+    });
+  }
+
+  /**
+   * Configure the field names used for supervisor-based parentId resolution.
+   * When a node is missing a parentId, the parser will attempt to find a parent
+   * by matching the supervisor field value to another node's name field.
+   * 
+   * By default, the following fields are checked in order:
+   * 'supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'
+   * 
+   * @param supervisorFieldNames - The field(s) containing the supervisor's name. 
+   *                               Can be a single string or an array of field names to check in order.
+   * @param nameFieldName - The field containing the node's name for matching (default: 'name')
+   */
+  supervisorLookup(supervisorFieldNames: string | string[], nameFieldName: string = 'name'): this {
+    this.supervisorFields = Array.isArray(supervisorFieldNames) ? supervisorFieldNames : [supervisorFieldNames];
+    this.nameField = nameFieldName;
+    
+    // Re-render chart if already initialized
+    if (this.orgChart) {
+      this.renderChart();
+    }
+    
+    return this;
+  }
+
   private renderChart(): void {
     try {
       if (this.forceGraph) {
@@ -2414,7 +2697,7 @@ class YChartEditor {
       const yamlContent = this.editor.state.doc.toString();
       const { options: userOptions, schema: schemaDef, card: cardDef, data: yamlData } = this.parseFrontMatter(yamlContent);
       const options = { ...this.defaultOptions, ...userOptions };
-      const parsedData = jsyaml.load(yamlData);
+      let parsedData = jsyaml.load(yamlData);
 
       // Store current schema and card template for template access
       this.currentSchema = schemaDef;
@@ -2423,6 +2706,9 @@ class YChartEditor {
       if (!Array.isArray(parsedData)) {
         throw new Error('YAML must be an array');
       }
+
+      // Resolve missing parentId values by looking up supervisor names
+      parsedData = this.resolveMissingParentIds(parsedData);
 
       if (!this.orgChart) {
         this.orgChart = new OrgChart();
@@ -2707,18 +2993,21 @@ class YChartEditor {
 
       const yamlContent = this.editor.state.doc.toString();
       const { data: yamlData } = this.parseFrontMatter(yamlContent);
-      const parsedData = jsyaml.load(yamlData);
+      const parsedData = jsyaml.load(yamlData) as any[];
 
       if (!Array.isArray(parsedData)) {
         throw new Error('YAML must be an array');
       }
+
+      // Resolve missing parentId values by looking up supervisor names
+      const resolvedData = this.resolveMissingParentIds(parsedData);
 
       if (this.forceGraph) {
         this.forceGraph.stop();
       }
 
       this.forceGraph = new ForceGraph('ychart-chart', (data: any) => this.showNodeDetails(data));
-      this.forceGraph.render(parsedData);
+      this.forceGraph.render(resolvedData);
       
       this.currentView = 'force';
     } catch (error) {

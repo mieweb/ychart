@@ -262,7 +262,6 @@ options:
   compactMarginPair: 35
   neighbourMargin: 25
 schema:
-  id: number | required
   name: string | required
   title: string | required
   department: string | optional
@@ -304,305 +303,245 @@ card:
             content: $supervisor$
 ---
 
-- id: 1
-  name: Sarah Chen
+- name: Sarah Chen
   title: Chief Executive Officer
   department: Executive
   email: sarah.chen@company.com
   phone: +1 (555) 100-0001
   location: San Francisco, CA
   supervisor: Board of Directors
-  parentId: null
 
-- id: 2
-  name: Michael Rodriguez
+- name: Michael Rodriguez
   title: Chief Technology Officer
   department: Technology
   email: michael.rodriguez@company.com
   phone: +1 (555) 100-0002
   location: San Francisco, CA
   supervisor: Sarah Chen
-  parentId: 1
 
-- id: 3
-  name: Emily Watson
+- name: Emily Watson
   title: Chief Financial Officer
   department: Finance
   email: emily.watson@company.com
   phone: +1 (555) 100-0003
   location: New York, NY
   supervisor: Sarah Chen
-  parentId: 1
 
-- id: 4
-  name: David Kim
+- name: David Kim
   title: Chief Marketing Officer
   department: Marketing
   email: david.kim@company.com
   phone: +1 (555) 100-0004
   location: Los Angeles, CA
   supervisor: Sarah Chen
-  parentId: 1
 
-- id: 5
-  name: Jennifer Martinez
+- name: Jennifer Martinez
   title: VP of Engineering
   department: Technology
   email: jennifer.martinez@company.com
   phone: +1 (555) 100-0005
   location: San Francisco, CA
   supervisor: Michael Rodriguez
-  parentId: 2
 
-- id: 6
-  name: Robert Taylor
+- name: Robert Taylor
   title: VP of Product
   department: Technology
   email: robert.taylor@company.com
   phone: +1 (555) 100-0006
   location: San Francisco, CA
   supervisor: Michael Rodriguez
-  parentId: 2
 
-- id: 7
-  name: Lisa Anderson
+- name: Lisa Anderson
   title: VP of Data Science
   department: Technology
   email: lisa.anderson@company.com
   phone: +1 (555) 100-0007
   location: Seattle, WA
   supervisor: Michael Rodriguez
-  parentId: 2
 
-- id: 8
-  name: James Wilson
+- name: James Wilson
   title: Controller
   department: Finance
   email: james.wilson@company.com
   phone: +1 (555) 100-0008
   location: New York, NY
   supervisor: Emily Watson
-  parentId: 3
 
-- id: 9
-  name: Maria Garcia
+- name: Maria Garcia
   title: Director of FP&A
   department: Finance
   email: maria.garcia@company.com
   phone: +1 (555) 100-0009
   location: New York, NY
   supervisor: Emily Watson
-  parentId: 3
 
-- id: 10
-  name: Christopher Lee
+- name: Christopher Lee
   title: Director of Brand Marketing
   department: Marketing
   email: christopher.lee@company.com
   phone: +1 (555) 100-0010
   location: Los Angeles, CA
   supervisor: David Kim
-  parentId: 4
 
-- id: 11
-  name: Amanda Brown
+- name: Amanda Brown
   title: Director of Growth Marketing
   department: Marketing
   email: amanda.brown@company.com
   phone: +1 (555) 100-0011
   location: Austin, TX
   supervisor: David Kim
-  parentId: 4
 
-- id: 12
-  name: Daniel Thompson
+- name: Daniel Thompson
   title: Senior Engineering Manager
   department: Technology
   email: daniel.thompson@company.com
   phone: +1 (555) 100-0012
   location: San Francisco, CA
   supervisor: Jennifer Martinez
-  parentId: 5
 
-- id: 13
-  name: Jessica White
+- name: Jessica White
   title: Engineering Manager - Frontend
   department: Technology
   email: jessica.white@company.com
   phone: +1 (555) 100-0013
   location: San Francisco, CA
   supervisor: Jennifer Martinez
-  parentId: 5
 
-- id: 14
-  name: Kevin Harris
+- name: Kevin Harris
   title: Engineering Manager - Backend
   department: Technology
   email: kevin.harris@company.com
   phone: +1 (555) 100-0014
   location: San Francisco, CA
   supervisor: Jennifer Martinez
-  parentId: 5
 
-- id: 15
-  name: Michelle Clark
+- name: Michelle Clark
   title: Senior Product Manager
   department: Technology
   email: michelle.clark@company.com
   phone: +1 (555) 100-0015
   location: San Francisco, CA
   supervisor: Robert Taylor
-  parentId: 6
 
-- id: 16
-  name: Ryan Lewis
+- name: Ryan Lewis
   title: Product Manager
   department: Technology
   email: ryan.lewis@company.com
   phone: +1 (555) 100-0016
   location: Remote
   supervisor: Robert Taylor
-  parentId: 6
 
-- id: 17
-  name: Samantha Walker
+- name: Samantha Walker
   title: Lead Data Scientist
   department: Technology
   email: samantha.walker@company.com
   phone: +1 (555) 100-0017
   location: Seattle, WA
   supervisor: Lisa Anderson
-  parentId: 7
 
-- id: 18
-  name: Brian Hall
+- name: Brian Hall
   title: ML Engineer
   department: Technology
   email: brian.hall@company.com
   phone: +1 (555) 100-0018
   location: Seattle, WA
   supervisor: Lisa Anderson
-  parentId: 7
 
-- id: 19
-  name: Nicole Young
+- name: Nicole Young
   title: Senior Accountant
   department: Finance
   email: nicole.young@company.com
   phone: +1 (555) 100-0019
   location: New York, NY
   supervisor: James Wilson
-  parentId: 8
 
-- id: 20
-  name: Andrew King
+- name: Andrew King
   title: Financial Analyst
   department: Finance
   email: andrew.king@company.com
   phone: +1 (555) 100-0020
   location: New York, NY
   supervisor: Maria Garcia
-  parentId: 9
 
-- id: 21
-  name: Rachel Wright
+- name: Rachel Wright
   title: Content Marketing Manager
   department: Marketing
   email: rachel.wright@company.com
   phone: +1 (555) 100-0021
   location: Los Angeles, CA
   supervisor: Christopher Lee
-  parentId: 10
 
-- id: 22
-  name: Justin Scott
+- name: Justin Scott
   title: Performance Marketing Manager
   department: Marketing
   email: justin.scott@company.com
   phone: +1 (555) 100-0022
   location: Austin, TX
   supervisor: Amanda Brown
-  parentId: 11
 
-- id: 23
-  name: Laura Green
+- name: Laura Green
   title: Senior Software Engineer
   department: Technology
   email: laura.green@company.com
   phone: +1 (555) 100-0023
   location: San Francisco, CA
   supervisor: Daniel Thompson
-  parentId: 12
 
-- id: 24
-  name: Marcus Adams
+- name: Marcus Adams
   title: Software Engineer
   department: Technology
   email: marcus.adams@company.com
   phone: +1 (555) 100-0024
   location: San Francisco, CA
   supervisor: Daniel Thompson
-  parentId: 12
 
-- id: 25
-  name: Olivia Baker
+- name: Olivia Baker
   title: Frontend Engineer
   department: Technology
   email: olivia.baker@company.com
   phone: +1 (555) 100-0025
   location: Remote
   supervisor: Jessica White
-  parentId: 13
 
-- id: 26
-  name: Ethan Nelson
+- name: Ethan Nelson
   title: Backend Engineer
   department: Technology
   email: ethan.nelson@company.com
   phone: +1 (555) 100-0026
   location: San Francisco, CA
   supervisor: Kevin Harris
-  parentId: 14
 
-- id: 27
-  name: Sophia Carter
+- name: Sophia Carter
   title: DevOps Engineer
   department: Technology
   email: sophia.carter@company.com
   phone: +1 (555) 100-0027
   location: Seattle, WA
   supervisor: Kevin Harris
-  parentId: 14
 
-- id: 28
-  name: Tyler Mitchell
+- name: Tyler Mitchell
   title: UX Designer
   department: Technology
   email: tyler.mitchell@company.com
   phone: +1 (555) 100-0028
   location: San Francisco, CA
   supervisor: Michelle Clark
-  parentId: 15
 
-- id: 29
-  name: Isabella Perez
+- name: Isabella Perez
   title: Data Analyst
   department: Technology
   email: isabella.perez@company.com
   phone: +1 (555) 100-0029
   location: Seattle, WA
   supervisor: Samantha Walker
-  parentId: 17
 
-- id: 30
-  name: Nathan Roberts
+- name: Nathan Roberts
   title: Marketing Coordinator
   department: Marketing
   email: nathan.roberts@company.com
   phone: +1 (555) 100-0030
   location: Austin, TX
   supervisor: Justin Scott
-  parentId: 22
 `;
 
         function initializeYChartEditor() {
