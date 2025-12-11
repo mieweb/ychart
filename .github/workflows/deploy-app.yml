@@ -45,3 +45,4 @@ jobs:
           cp -r dist/* /var/www/html/dist/
           cp production.html /var/www/html/index.html
           echo "Application deployed at $(date)"
+          echo "Commit: ${{ github.sha }}"

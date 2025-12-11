@@ -42,3 +42,4 @@ jobs:
           mkdir -p /var/www/html/docs
           cp -r build/* /var/www/html/docs/
           echo "Documentation deployed at $(date)"
+          echo "Commit: ${{ github.sha }}"
