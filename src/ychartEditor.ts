@@ -590,8 +590,17 @@ class YChartEditor {
           const frontMatter = parts[1].trim();
           const dataContent = parts.slice(2).join('---').trim();
           
-          // Parse and format front matter
-          const parsedFrontMatter = jsyaml.load(frontMatter);
+          // Parse front matter to extract card template (if exists)
+          const parsedFrontMatter = jsyaml.load(frontMatter) as any;
+          const cardTemplate = parsedFrontMatter?.card || null;
+          
+          // Remove card from parsed object before formatting
+          // (we'll add it back as raw YAML to preserve structure)
+          if (parsedFrontMatter && parsedFrontMatter.card) {
+            delete parsedFrontMatter.card;
+          }
+          
+          // Format the rest of front matter (options, schema)
           const formattedFrontMatter = jsyaml.dump(parsedFrontMatter, {
             indent: 2,
             lineWidth: -1,
@@ -608,8 +617,24 @@ class YChartEditor {
             sortKeys: false,
           });
           
+          // If card template exists, extract its raw YAML from original
+          let cardYaml = '';
+          if (cardTemplate) {
+            // Find the card section in the original front matter
+            const cardMatch = frontMatter.match(/^card:\s*\n((?:[ \t]+.*\n?)*)/m);
+            if (cardMatch) {
+              cardYaml = 'card:\n' + cardMatch[1];
+            }
+          }
+          
           // Reconstruct the complete YAML with front matter
-          const formatted = `---\n${formattedFrontMatter.trim()}\n---\n\n${formattedData.trim()}\n`;
+          let reconstructedFrontMatter = formattedFrontMatter.trim();
+          if (cardYaml) {
+            // Append card template after other front matter sections
+            reconstructedFrontMatter += '\n' + cardYaml.trim();
+          }
+          
+          const formatted = `---\n${reconstructedFrontMatter}\n---\n\n${formattedData.trim()}\n`;
           
           // Update the editor with formatted YAML
           this.editor.dispatch({
