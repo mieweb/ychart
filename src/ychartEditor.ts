@@ -1920,7 +1920,8 @@ class YChartEditor {
               return undefined;
             };
             
-            // Check for multiple roots (nodes with no supervisor or supervisor not in names)
+            // Identify root nodes: nodes with no supervisor OR supervisor that doesn't match any name
+            // Root nodes are allowed - their supervisor field is informational (e.g., "Board of Directors")
             const rootNodes = (parsed as any[]).filter((item: any) => {
               const supervisor = getSupervisor(item);
               return !supervisor || !names.has(supervisor);
@@ -1952,38 +1953,10 @@ class YChartEditor {
               }
             }
             
-            // Check for invalid supervisor references
-            for (const item of parsed as any[]) {
-              const supervisor = getSupervisor(item);
-              if (supervisor && !names.has(supervisor)) {
-                // Find the line with this item's supervisor field
-                let match: RegExpMatchArray | null = null;
-                for (const field of this.supervisorFields) {
-                  if (item[field]) {
-                    const pattern = new RegExp(`${field}:\\s*${this.escapeRegex(supervisor)}`, 'm');
-                    match = content.match(pattern);
-                    if (match) break;
-                  }
-                }
-                
-                let errorPos = 0;
-                let errorEnd = content.length;
-                
-                if (match && match.index !== undefined) {
-                  errorPos = match.index;
-                  errorEnd = errorPos + match[0].length;
-                }
-                
-                const lineNumber = content.substring(0, errorPos).split('\n').length;
-                
-                diagnostics.push({
-                  from: errorPos,
-                  to: errorEnd,
-                  severity: 'error',
-                  message: `Line ${lineNumber}: Invalid supervisor "${supervisor}" - no person with this name exists`
-                });
-              }
-            }
+            // Note: We don't flag "invalid supervisor" errors for name-based format
+            // because a supervisor that doesn't match any name is treated as a root node
+            // (e.g., "Board of Directors" is a valid supervisor for the CEO even though
+            // there's no person with that name in the org)
           } else {
             // Validate id/parentId format (or mixed format with both id and supervisor)
             // Build set of valid IDs: explicit IDs + emails (as potential auto-generated IDs)
@@ -2466,43 +2439,70 @@ class YChartEditor {
 
   /**
    * Parse a schema field definition string.
-   * Format: "type | required | missing | alias1 | alias2"
-   * Or for field aliases: "[ field1 | field2 | field3 ]"
+   * 
+   * Supported formats:
+   *   1. Basic: "string | required"
+   *   2. Bracket aliases: "[ supervisor | leader | manager ] string | optional"
+   *   3. Alias keyword: "string | optional | alias: leader, manager, reports_to"
+   *   4. Aliases array: "string | optional | aliases[leader, manager]"
+   * 
    * Examples:
    *   - "string | required" -> type: string, required: true
    *   - "string | optional" -> type: string, required: false
    *   - "[ supervisor | leader | manager ]" -> aliases: ['leader', 'manager']
+   *   - "string | optional | alias: leader, manager" -> aliases: ['leader', 'manager']
+   *   - "string | optional | aliases[leader, manager]" -> aliases: ['leader', 'manager']
    */
   private parseSchemaField(fieldDefinition: string, _fieldName?: string): FieldSchema {
-    // Check for alias syntax: [ field1 | field2 | field3 ]
-    const aliasMatch = fieldDefinition.match(/^\s*\[\s*(.+?)\s*\]\s*(.*)$/);
+    let aliases: string[] | undefined;
+    let workingDef = fieldDefinition;
     
-    if (aliasMatch) {
-      const aliasesStr = aliasMatch[1];
-      const restStr = aliasMatch[2];
+    // Check for bracket alias syntax: [ field1 | field2 | field3 ]
+    const bracketMatch = workingDef.match(/^\s*\[\s*(.+?)\s*\]\s*(.*)$/);
+    if (bracketMatch) {
+      const aliasesStr = bracketMatch[1];
+      workingDef = bracketMatch[2];
       
       // Parse aliases (split by |)
       const aliasParts = aliasesStr.split('|').map(p => p.trim()).filter(p => p);
-      const aliases = aliasParts.slice(1);
-      
-      // Parse the rest of the definition for type, required, etc.
-      const restParts = restStr ? restStr.split('|').map(p => p.trim()).filter(p => p) : [];
-      const type = restParts.find(p => !['required', 'optional', 'missing'].includes(p)) || 'string';
-      
-      return {
-        type,
-        required: restParts.includes('required'),
-        missing: restParts.includes('missing'),
-        aliases: aliases.length > 0 ? aliases : undefined
-      };
+      aliases = aliasParts.slice(1); // First one is the primary field name
     }
     
-    // Standard format: type | required | missing
-    const parts = fieldDefinition.split('|').map(p => p.trim());
+    // Check for "alias:" or "aliases:" keyword syntax
+    // e.g., "string | optional | alias: leader, manager, reports_to"
+    const aliasKeywordMatch = workingDef.match(/\|\s*alias(?:es)?:\s*([^|]+)/i);
+    if (aliasKeywordMatch) {
+      const aliasStr = aliasKeywordMatch[1];
+      const parsedAliases = aliasStr.split(',').map(a => a.trim()).filter(a => a);
+      aliases = aliases ? [...aliases, ...parsedAliases] : parsedAliases;
+      // Remove the alias part from working definition
+      workingDef = workingDef.replace(/\|\s*alias(?:es)?:\s*[^|]+/i, '');
+    }
+    
+    // Check for "aliases[...]" syntax
+    // e.g., "string | optional | aliases[leader, manager]"
+    const aliasArrayMatch = workingDef.match(/\|\s*aliases?\s*\[\s*([^\]]+)\s*\]/i);
+    if (aliasArrayMatch) {
+      const aliasStr = aliasArrayMatch[1];
+      // Handle both quoted and unquoted values
+      const parsedAliases = aliasStr
+        .split(',')
+        .map(a => a.trim().replace(/^["']|["']$/g, '')) // Remove quotes
+        .filter(a => a);
+      aliases = aliases ? [...aliases, ...parsedAliases] : parsedAliases;
+      // Remove the alias part from working definition
+      workingDef = workingDef.replace(/\|\s*aliases?\s*\[[^\]]+\]/i, '');
+    }
+    
+    // Parse remaining parts for type, required, etc.
+    const parts = workingDef.split('|').map(p => p.trim()).filter(p => p);
+    const type = parts.find(p => !['required', 'optional', 'missing'].includes(p.toLowerCase())) || 'string';
+    
     return {
-      type: parts[0] || 'string',
-      required: parts.includes('required'),
-      missing: parts.includes('missing')
+      type,
+      required: parts.some(p => p.toLowerCase() === 'required'),
+      missing: parts.some(p => p.toLowerCase() === 'missing'),
+      aliases: aliases && aliases.length > 0 ? aliases : undefined
     };
   }
 

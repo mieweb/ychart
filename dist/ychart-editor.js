@@ -35052,32 +35052,6 @@ ${formattedData.trim()}
                   });
                 }
               }
-              for (const item of parsed) {
-                const supervisor = getSupervisor(item);
-                if (supervisor && !names.has(supervisor)) {
-                  let match = null;
-                  for (const field of this.supervisorFields) {
-                    if (item[field]) {
-                      const pattern = new RegExp(`${field}:\\s*${this.escapeRegex(supervisor)}`, "m");
-                      match = content2.match(pattern);
-                      if (match) break;
-                    }
-                  }
-                  let errorPos = 0;
-                  let errorEnd = content2.length;
-                  if (match && match.index !== void 0) {
-                    errorPos = match.index;
-                    errorEnd = errorPos + match[0].length;
-                  }
-                  const lineNumber = content2.substring(0, errorPos).split("\n").length;
-                  diagnostics.push({
-                    from: errorPos,
-                    to: errorEnd,
-                    severity: "error",
-                    message: `Line ${lineNumber}: Invalid supervisor "${supervisor}" - no person with this name exists`
-                  });
-                }
-              }
             } else {
               const nodeIds = /* @__PURE__ */ new Set();
               for (const item of parsed) {
@@ -35445,34 +35419,51 @@ ${formattedData.trim()}
     }
     /**
      * Parse a schema field definition string.
-     * Format: "type | required | missing | alias1 | alias2"
-     * Or for field aliases: "[ field1 | field2 | field3 ]"
+     * 
+     * Supported formats:
+     *   1. Basic: "string | required"
+     *   2. Bracket aliases: "[ supervisor | leader | manager ] string | optional"
+     *   3. Alias keyword: "string | optional | alias: leader, manager, reports_to"
+     *   4. Aliases array: "string | optional | aliases[leader, manager]"
+     * 
      * Examples:
      *   - "string | required" -> type: string, required: true
      *   - "string | optional" -> type: string, required: false
      *   - "[ supervisor | leader | manager ]" -> aliases: ['leader', 'manager']
+     *   - "string | optional | alias: leader, manager" -> aliases: ['leader', 'manager']
+     *   - "string | optional | aliases[leader, manager]" -> aliases: ['leader', 'manager']
      */
     parseSchemaField(fieldDefinition, _fieldName) {
-      const aliasMatch = fieldDefinition.match(/^\s*\[\s*(.+?)\s*\]\s*(.*)$/);
-      if (aliasMatch) {
-        const aliasesStr = aliasMatch[1];
-        const restStr = aliasMatch[2];
+      let aliases;
+      let workingDef = fieldDefinition;
+      const bracketMatch = workingDef.match(/^\s*\[\s*(.+?)\s*\]\s*(.*)$/);
+      if (bracketMatch) {
+        const aliasesStr = bracketMatch[1];
+        workingDef = bracketMatch[2];
         const aliasParts = aliasesStr.split("|").map((p) => p.trim()).filter((p) => p);
-        const aliases = aliasParts.slice(1);
-        const restParts = restStr ? restStr.split("|").map((p) => p.trim()).filter((p) => p) : [];
-        const type2 = restParts.find((p) => !["required", "optional", "missing"].includes(p)) || "string";
-        return {
-          type: type2,
-          required: restParts.includes("required"),
-          missing: restParts.includes("missing"),
-          aliases: aliases.length > 0 ? aliases : void 0
-        };
+        aliases = aliasParts.slice(1);
       }
-      const parts = fieldDefinition.split("|").map((p) => p.trim());
+      const aliasKeywordMatch = workingDef.match(/\|\s*alias(?:es)?:\s*([^|]+)/i);
+      if (aliasKeywordMatch) {
+        const aliasStr = aliasKeywordMatch[1];
+        const parsedAliases = aliasStr.split(",").map((a2) => a2.trim()).filter((a2) => a2);
+        aliases = aliases ? [...aliases, ...parsedAliases] : parsedAliases;
+        workingDef = workingDef.replace(/\|\s*alias(?:es)?:\s*[^|]+/i, "");
+      }
+      const aliasArrayMatch = workingDef.match(/\|\s*aliases?\s*\[\s*([^\]]+)\s*\]/i);
+      if (aliasArrayMatch) {
+        const aliasStr = aliasArrayMatch[1];
+        const parsedAliases = aliasStr.split(",").map((a2) => a2.trim().replace(/^["']|["']$/g, "")).filter((a2) => a2);
+        aliases = aliases ? [...aliases, ...parsedAliases] : parsedAliases;
+        workingDef = workingDef.replace(/\|\s*aliases?\s*\[[^\]]+\]/i, "");
+      }
+      const parts = workingDef.split("|").map((p) => p.trim()).filter((p) => p);
+      const type2 = parts.find((p) => !["required", "optional", "missing"].includes(p.toLowerCase())) || "string";
       return {
-        type: parts[0] || "string",
-        required: parts.includes("required"),
-        missing: parts.includes("missing")
+        type: type2,
+        required: parts.some((p) => p.toLowerCase() === "required"),
+        missing: parts.some((p) => p.toLowerCase() === "missing"),
+        aliases: aliases && aliases.length > 0 ? aliases : void 0
       };
     }
     /**
