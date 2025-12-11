@@ -142,3 +142,4 @@ console.log('YChart Editor initialized!');
 
 // Expose editor to window for debugging
 (window as any).ychartEditor = ychartEditor;
+// Test deployment
