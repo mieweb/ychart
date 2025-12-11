@@ -1,0 +1,48 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy.yml'
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: docs/pnpm-lock.yaml
+          
+      - name: Install dependencies
+        working-directory: docs
+        run: pnpm install --frozen-lockfile
+        
+      - name: Build documentation
+        working-directory: docs
+        run: pnpm run build
+        
+      - name: Deploy to web server
+        working-directory: docs
+        run: |
+          sudo mkdir -p /var/www/html/docs
+          sudo cp -r build/* /var/www/html/docs/
+          sudo chown -R www-data:www-data /var/www/html/docs
+          sudo chmod -R 755 /var/www/html/docs
+          
+      - name: Reload Nginx
+        run: sudo systemctl reload nginx

@@ -1,0 +1,19 @@
+name: Sync Repository
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: self-hosted
+    
+    steps:
+      - name: Pull latest changes
+        run: |
+          cd /home/pralambomanarivo/orgchart
+          git fetch origin
+          git reset --hard origin/main
+          echo "Repository synced at $(date)"
