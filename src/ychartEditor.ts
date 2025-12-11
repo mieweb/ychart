@@ -1096,7 +1096,7 @@ class YChartEditor {
     return ['name', 'title', 'email', 'department', 'location'];
   }
 
-  private performFuzzySearch(query: string, field: string): void {
+  private performFuzzySearch(_query: string, _field: string): void {
     const suggestionsContainer = this.searchPopup?.querySelector('[data-id="search-suggestions"]') as HTMLElement;
     if (!suggestionsContainer || !this.orgChart) return;
 
