@@ -13,7 +13,7 @@
     "dev:https": "vite --mode https",
     "build": "tsc && vite build",
     "build:lib": "tsc && vite build --mode production",
-    "build:prod": "pnpm build && sudo mkdir -p /var/www/html/dist && sudo cp -r dist/* /var/www/html/dist/ && COMMIT_HASH=$(git rev-parse --short HEAD) && COMMIT_FULL=$(git rev-parse HEAD) && sed -e \"s/>loading\\.\\.\\.</>$COMMIT_HASH</g\" -e \"s|href=\\\"#\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View this commit on GitHub\\\"|href=\\\"https://github.com/mieweb/ychart/commit/$COMMIT_FULL\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View commit $COMMIT_HASH on GitHub\\\"|g\" production.html | sudo tee /var/www/html/index.html > /dev/null",
+    "build:prod": "pnpm build && mkdir -p /var/www/html/dist && cp -r dist/* /var/www/html/dist/ && COMMIT_HASH=$(git rev-parse --short HEAD) && COMMIT_FULL=$(git rev-parse HEAD) && sed -e \"s/>loading\\.\\.\\.</>$COMMIT_HASH</g\" -e \"s|href=\\\"#\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View this commit on GitHub\\\"|href=\\\"https://github.com/mieweb/ychart/commit/$COMMIT_FULL\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View commit $COMMIT_HASH on GitHub\\\"|g\" production.html > /var/www/html/index.html",
     "preview": "vite preview",
     "serve:dist": "vite preview --outDir dist"
   },

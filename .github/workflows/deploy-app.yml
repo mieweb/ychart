@@ -36,13 +36,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install
         
-      - name: Build application
-        run: pnpm run build
-        
-      - name: Deploy to web server
-        run: |
-          mkdir -p /var/www/html/dist
-          cp -r dist/* /var/www/html/dist/
-          cp production.html /var/www/html/index.html
-          echo "Application deployed at $(date)"
-          echo "Commit: ${{ github.sha }}"
+      - name: Build and deploy
+        run: pnpm run build:prod
