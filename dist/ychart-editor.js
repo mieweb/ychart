@@ -21516,6 +21516,11 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   function maybeEnableLint(state, effects) {
     return state.field(lintState, false) ? effects : effects.concat(StateEffect.appendConfig.of(lintExtensions));
   }
+  function setDiagnostics(state, diagnostics) {
+    return {
+      effects: maybeEnableLint(state, [setDiagnosticsEffect.of(diagnostics)])
+    };
+  }
   const setDiagnosticsEffect = /* @__PURE__ */ StateEffect.define();
   const togglePanel = /* @__PURE__ */ StateEffect.define();
   const movePanelSelection = /* @__PURE__ */ StateEffect.define();
@@ -21613,6 +21618,65 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     { key: "Mod-Shift-m", run: openLintPanel, preventDefault: true },
     { key: "F8", run: nextDiagnostic }
   ];
+  const lintPlugin = /* @__PURE__ */ ViewPlugin.fromClass(class {
+    constructor(view) {
+      this.view = view;
+      this.timeout = -1;
+      this.set = true;
+      let { delay } = view.state.facet(lintConfig);
+      this.lintTime = Date.now() + delay;
+      this.run = this.run.bind(this);
+      this.timeout = setTimeout(this.run, delay);
+    }
+    run() {
+      clearTimeout(this.timeout);
+      let now2 = Date.now();
+      if (now2 < this.lintTime - 10) {
+        this.timeout = setTimeout(this.run, this.lintTime - now2);
+      } else {
+        this.set = false;
+        let { state } = this.view, { sources } = state.facet(lintConfig);
+        if (sources.length)
+          batchResults(sources.map((s) => Promise.resolve(s(this.view))), (annotations) => {
+            if (this.view.state.doc == state.doc)
+              this.view.dispatch(setDiagnostics(this.view.state, annotations.reduce((a2, b) => a2.concat(b))));
+          }, (error) => {
+            logException(this.view.state, error);
+          });
+      }
+    }
+    update(update) {
+      let config2 = update.state.facet(lintConfig);
+      if (update.docChanged || config2 != update.startState.facet(lintConfig) || config2.needsRefresh && config2.needsRefresh(update)) {
+        this.lintTime = Date.now() + config2.delay;
+        if (!this.set) {
+          this.set = true;
+          this.timeout = setTimeout(this.run, config2.delay);
+        }
+      }
+    }
+    force() {
+      if (this.set) {
+        this.lintTime = Date.now();
+        this.run();
+      }
+    }
+    destroy() {
+      clearTimeout(this.timeout);
+    }
+  });
+  function batchResults(promises, sink, error) {
+    let collected = [], timeout2 = -1;
+    for (let p of promises)
+      p.then((value) => {
+        collected.push(value);
+        clearTimeout(timeout2);
+        if (collected.length == promises.length)
+          sink(collected);
+        else
+          timeout2 = setTimeout(() => sink(collected), 200);
+      }, error);
+  }
   const lintConfig = /* @__PURE__ */ Facet.define({
     combine(input) {
       return __spreadValues({
@@ -21635,6 +21699,13 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   });
   function combineFilter(a2, b) {
     return !a2 ? b : !b ? a2 : (d, s) => b(a2(d, s), s);
+  }
+  function linter(source, config2 = {}) {
+    return [
+      lintConfig.of({ source, config: config2 }),
+      lintPlugin,
+      lintExtensions
+    ];
   }
   function assignKeys(actions) {
     let assigned = [];
@@ -21978,6 +22049,145 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     }
     return sev;
   }
+  class LintGutterMarker extends GutterMarker {
+    constructor(diagnostics) {
+      super();
+      this.diagnostics = diagnostics;
+      this.severity = maxSeverity(diagnostics);
+    }
+    toDOM(view) {
+      let elt = document.createElement("div");
+      elt.className = "cm-lint-marker cm-lint-marker-" + this.severity;
+      let diagnostics = this.diagnostics;
+      let diagnosticsFilter = view.state.facet(lintGutterConfig).tooltipFilter;
+      if (diagnosticsFilter)
+        diagnostics = diagnosticsFilter(diagnostics, view.state);
+      if (diagnostics.length)
+        elt.onmouseover = () => gutterMarkerMouseOver(view, elt, diagnostics);
+      return elt;
+    }
+  }
+  function trackHoverOn(view, marker) {
+    let mousemove = (event) => {
+      let rect = marker.getBoundingClientRect();
+      if (event.clientX > rect.left - 10 && event.clientX < rect.right + 10 && event.clientY > rect.top - 10 && event.clientY < rect.bottom + 10)
+        return;
+      for (let target = event.target; target; target = target.parentNode) {
+        if (target.nodeType == 1 && target.classList.contains("cm-tooltip-lint"))
+          return;
+      }
+      window.removeEventListener("mousemove", mousemove);
+      if (view.state.field(lintGutterTooltip))
+        view.dispatch({ effects: setLintGutterTooltip.of(null) });
+    };
+    window.addEventListener("mousemove", mousemove);
+  }
+  function gutterMarkerMouseOver(view, marker, diagnostics) {
+    function hovered() {
+      let line = view.elementAtHeight(marker.getBoundingClientRect().top + 5 - view.documentTop);
+      const linePos = view.coordsAtPos(line.from);
+      if (linePos) {
+        view.dispatch({ effects: setLintGutterTooltip.of({
+          pos: line.from,
+          above: false,
+          clip: false,
+          create() {
+            return {
+              dom: diagnosticsTooltip(view, diagnostics),
+              getCoords: () => marker.getBoundingClientRect()
+            };
+          }
+        }) });
+      }
+      marker.onmouseout = marker.onmousemove = null;
+      trackHoverOn(view, marker);
+    }
+    let { hoverTime } = view.state.facet(lintGutterConfig);
+    let hoverTimeout = setTimeout(hovered, hoverTime);
+    marker.onmouseout = () => {
+      clearTimeout(hoverTimeout);
+      marker.onmouseout = marker.onmousemove = null;
+    };
+    marker.onmousemove = () => {
+      clearTimeout(hoverTimeout);
+      hoverTimeout = setTimeout(hovered, hoverTime);
+    };
+  }
+  function markersForDiagnostics(doc2, diagnostics) {
+    let byLine = /* @__PURE__ */ Object.create(null);
+    for (let diagnostic of diagnostics) {
+      let line = doc2.lineAt(diagnostic.from);
+      (byLine[line.from] || (byLine[line.from] = [])).push(diagnostic);
+    }
+    let markers = [];
+    for (let line in byLine) {
+      markers.push(new LintGutterMarker(byLine[line]).range(+line));
+    }
+    return RangeSet.of(markers, true);
+  }
+  const lintGutterExtension = /* @__PURE__ */ gutter({
+    class: "cm-gutter-lint",
+    markers: (view) => view.state.field(lintGutterMarkers),
+    widgetMarker: (view, widget, block) => {
+      let diagnostics = [];
+      view.state.field(lintGutterMarkers).between(block.from, block.to, (from, to, value) => {
+        if (from > block.from && from < block.to)
+          diagnostics.push(...value.diagnostics);
+      });
+      return diagnostics.length ? new LintGutterMarker(diagnostics) : null;
+    }
+  });
+  const lintGutterMarkers = /* @__PURE__ */ StateField.define({
+    create() {
+      return RangeSet.empty;
+    },
+    update(markers, tr) {
+      markers = markers.map(tr.changes);
+      let diagnosticFilter = tr.state.facet(lintGutterConfig).markerFilter;
+      for (let effect of tr.effects) {
+        if (effect.is(setDiagnosticsEffect)) {
+          let diagnostics = effect.value;
+          if (diagnosticFilter)
+            diagnostics = diagnosticFilter(diagnostics || [], tr.state);
+          markers = markersForDiagnostics(tr.state.doc, diagnostics.slice(0));
+        }
+      }
+      return markers;
+    }
+  });
+  const setLintGutterTooltip = /* @__PURE__ */ StateEffect.define();
+  const lintGutterTooltip = /* @__PURE__ */ StateField.define({
+    create() {
+      return null;
+    },
+    update(tooltip, tr) {
+      if (tooltip && tr.docChanged)
+        tooltip = hideTooltip(tr, tooltip) ? null : __spreadProps(__spreadValues({}, tooltip), { pos: tr.changes.mapPos(tooltip.pos) });
+      return tr.effects.reduce((t2, e) => e.is(setLintGutterTooltip) ? e.value : t2, tooltip);
+    },
+    provide: (field) => showTooltip.from(field)
+  });
+  const lintGutterTheme = /* @__PURE__ */ EditorView.baseTheme({
+    ".cm-gutter-lint": {
+      width: "1.4em",
+      "& .cm-gutterElement": {
+        padding: ".2em"
+      }
+    },
+    ".cm-lint-marker": {
+      width: "1em",
+      height: "1em"
+    },
+    ".cm-lint-marker-info": {
+      content: /* @__PURE__ */ svg(`<path fill="#aaf" stroke="#77e" stroke-width="6" stroke-linejoin="round" d="M5 5L35 5L35 35L5 35Z"/>`)
+    },
+    ".cm-lint-marker-warning": {
+      content: /* @__PURE__ */ svg(`<path fill="#fe8" stroke="#fd7" stroke-width="6" stroke-linejoin="round" d="M20 6L37 35L3 35Z"/>`)
+    },
+    ".cm-lint-marker-error": {
+      content: /* @__PURE__ */ svg(`<circle cx="20" cy="20" r="15" fill="#f87" stroke="#f43" stroke-width="6"/>`)
+    }
+  });
   const lintExtensions = [
     lintState,
     /* @__PURE__ */ EditorView.decorations.compute([lintState], (state) => {
@@ -21989,6 +22199,18 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
     /* @__PURE__ */ hoverTooltip(lintTooltip, { hideOn: hideTooltip }),
     baseTheme
   ];
+  const lintGutterConfig = /* @__PURE__ */ Facet.define({
+    combine(configs) {
+      return combineConfig(configs, {
+        hoverTime: 300,
+        markerFilter: null,
+        tooltipFilter: null
+      });
+    }
+  });
+  function lintGutter(config2 = {}) {
+    return [lintGutterConfig.of(config2), lintGutterMarkers, lintGutterExtension, lintGutterTheme, lintGutterTooltip];
+  }
   const basicSetup = /* @__PURE__ */ (() => [
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -26800,6 +27022,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
   };
   var load = loader.load;
   var dump = dumper.dump;
+  var YAMLException = exception;
   var xhtml = "http://www.w3.org/1999/xhtml";
   const namespaces = {
     svg: "http://www.w3.org/2000/svg",
@@ -33330,6 +33553,7 @@ ${d.email || ""}`);
       __publicField(this, "instanceId");
       __publicField(this, "searchPopup", null);
       __publicField(this, "searchHistoryPopup", null);
+      __publicField(this, "errorBanner", null);
       this.instanceId = generateUUID();
       this.defaultOptions = __spreadValues({
         nodeWidth: 220,
@@ -33358,6 +33582,7 @@ ${d.email || ""}`);
       this.initialData = yamlData;
       this.createLayout();
       this.initializeEditor();
+      this.setupKeyboardShortcuts();
       this.renderChart();
       this.toggleEditor();
       return this;
@@ -33405,7 +33630,23 @@ ${d.email || ""}`);
       position: relative;
       transition: width 0.3s ease, border-left-width 0s 0.3s;
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
     `;
+      this.errorBanner = document.createElement("div");
+      this.errorBanner.id = `ychart-error-banner-${this.instanceId}`;
+      this.errorBanner.className = "ychart-error-banner";
+      this.errorBanner.style.cssText = `
+      display: none;
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+      border-bottom: 2px solid #ef4444;
+      padding: 8px 12px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+    `;
+      editorSidebar.appendChild(this.errorBanner);
       const editorHeader = document.createElement("div");
       editorHeader.style.cssText = `
       display: flex;
@@ -33451,7 +33692,7 @@ ${d.email || ""}`);
       this.editorContainer = document.createElement("div");
       this.editorContainer.id = `ychart-editor-${this.instanceId}`;
       this.editorContainer.setAttribute("data-id", `ychart-editor-${this.instanceId}`);
-      this.editorContainer.style.cssText = "width:100%;height:calc(100% - 41px);";
+      this.editorContainer.style.cssText = "width:100%;height:100%;flex:1;overflow:hidden;";
       editorSidebar.appendChild(this.editorContainer);
       if (this.defaultOptions.collapsible) {
         const collapseBtn = document.createElement("button");
@@ -34757,9 +34998,119 @@ ${formattedData.trim()}
     }
     initializeEditor() {
       if (!this.editorContainer) return;
+      const yamlLinter = linter((view) => {
+        const diagnostics = [];
+        const content2 = view.state.doc.toString();
+        try {
+          const { data: yamlData } = this.parseFrontMatter(content2);
+          const parsed = load(yamlData);
+          if (parsed !== null && parsed !== void 0 && !Array.isArray(parsed)) {
+            const dataStart = content2.lastIndexOf("---");
+            const pos = dataStart !== -1 ? dataStart + 3 : 0;
+            diagnostics.push({
+              from: pos,
+              to: Math.min(pos + 50, content2.length),
+              severity: "error",
+              message: 'YAML data must be an array of objects (start each item with "- ")'
+            });
+          } else if (Array.isArray(parsed)) {
+            const nodeIds = new Set(parsed.map((item) => String(item.id)));
+            const rootNodes = parsed.filter(
+              (item) => item.parentId === null || item.parentId === void 0
+            );
+            if (rootNodes.length > 1) {
+              for (let i2 = 1; i2 < rootNodes.length; i2++) {
+                const item = rootNodes[i2];
+                const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, "m");
+                const parentIdPattern = new RegExp(`parentId:\\s*null`, "m");
+                const itemMatch = content2.match(itemIdPattern);
+                let errorPos = 0;
+                let errorEnd = content2.length;
+                if (itemMatch && itemMatch.index !== void 0) {
+                  const afterId = content2.substring(itemMatch.index);
+                  const parentIdMatch = afterId.match(parentIdPattern);
+                  if (parentIdMatch && parentIdMatch.index !== void 0) {
+                    errorPos = itemMatch.index + parentIdMatch.index;
+                    errorEnd = errorPos + parentIdMatch[0].length;
+                  } else {
+                    errorPos = itemMatch.index;
+                    errorEnd = itemMatch.index + itemMatch[0].length;
+                  }
+                }
+                const lineNumber = content2.substring(0, errorPos).split("\n").length;
+                diagnostics.push({
+                  from: errorPos,
+                  to: errorEnd,
+                  severity: "error",
+                  message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have parentId: null (node id: ${item.id})`
+                });
+              }
+            }
+            for (const item of parsed) {
+              const parentId = item.parentId;
+              if (parentId !== null && parentId !== void 0 && !nodeIds.has(String(parentId))) {
+                const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, "m");
+                const parentIdPattern = new RegExp(`parentId:\\s*${parentId}`, "m");
+                const itemMatch = content2.match(itemIdPattern);
+                let errorPos = 0;
+                let errorEnd = content2.length;
+                if (itemMatch && itemMatch.index !== void 0) {
+                  const afterId = content2.substring(itemMatch.index);
+                  const parentIdMatch = afterId.match(parentIdPattern);
+                  if (parentIdMatch && parentIdMatch.index !== void 0) {
+                    errorPos = itemMatch.index + parentIdMatch.index;
+                    errorEnd = errorPos + parentIdMatch[0].length;
+                  }
+                }
+                const lineNumber = content2.substring(0, errorPos).split("\n").length;
+                diagnostics.push({
+                  from: errorPos,
+                  to: errorEnd,
+                  severity: "error",
+                  message: `Line ${lineNumber}: Invalid parentId "${parentId}" - no node with this id exists`
+                });
+              }
+            }
+          }
+        } catch (e) {
+          if (e instanceof YAMLException) {
+            const mark = e.mark;
+            if (mark) {
+              const line = Math.min(mark.line + 1, view.state.doc.lines);
+              const lineInfo = view.state.doc.line(line);
+              const from = lineInfo.from + Math.min(mark.column, lineInfo.length);
+              const to = lineInfo.to;
+              diagnostics.push({
+                from,
+                to,
+                severity: "error",
+                message: `Line ${line}: ${e.reason || e.message}`
+              });
+            } else {
+              diagnostics.push({
+                from: 0,
+                to: Math.min(50, content2.length),
+                severity: "error",
+                message: e.message
+              });
+            }
+          } else if (e instanceof Error) {
+            diagnostics.push({
+              from: 0,
+              to: Math.min(50, content2.length),
+              severity: "error",
+              message: e.message
+            });
+          }
+        }
+        this.updateErrorBanner(diagnostics, view);
+        return diagnostics;
+      }, { delay: 300 });
       const extensions = [
         basicSetup,
         yaml(),
+        lintGutter(),
+        yamlLinter,
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !this.isUpdatingProgrammatically) {
             this.renderChart();
@@ -34820,6 +35171,164 @@ ${formattedData.trim()}
         }
       }, 250);
     }
+    /**
+     * Update the error banner with current diagnostics
+     */
+    updateErrorBanner(diagnostics, view) {
+      if (!this.errorBanner) return;
+      const errors = diagnostics.filter((d) => d.severity === "error");
+      const warnings = diagnostics.filter((d) => d.severity === "warning");
+      const banner = this.errorBanner;
+      if (errors.length === 0 && warnings.length === 0) {
+        banner.style.display = "none";
+        return;
+      }
+      banner.style.display = "block";
+      banner.innerHTML = "";
+      const header = document.createElement("div");
+      header.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #b91c1c;
+    `;
+      header.innerHTML = `
+      <span style="font-size: 16px;">⚠️</span>
+      <span>${errors.length} error${errors.length !== 1 ? "s" : ""}${warnings.length > 0 ? `, ${warnings.length} warning${warnings.length !== 1 ? "s" : ""}` : ""}</span>
+    `;
+      banner.appendChild(header);
+      const allDiagnostics = [...errors, ...warnings];
+      allDiagnostics.forEach((diagnostic, index2) => {
+        const errorItem = document.createElement("div");
+        errorItem.style.cssText = `
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 4px 0;
+        ${index2 < allDiagnostics.length - 1 ? "border-bottom: 1px solid rgba(239, 68, 68, 0.2);" : ""}
+      `;
+        const lineMatch = diagnostic.message.match(/^Line (\d+):/);
+        let lineNumber;
+        let displayMessage;
+        if (lineMatch) {
+          lineNumber = parseInt(lineMatch[1], 10);
+          displayMessage = diagnostic.message.replace(/^Line \d+:\s*/, "");
+        } else {
+          const doc2 = view.state.doc;
+          lineNumber = doc2.lineAt(diagnostic.from).number;
+          displayMessage = diagnostic.message;
+        }
+        const jumpBtn = document.createElement("button");
+        jumpBtn.textContent = `L${lineNumber}`;
+        jumpBtn.title = `Jump to line ${lineNumber}`;
+        jumpBtn.style.cssText = `
+        background: ${diagnostic.severity === "error" ? "#dc2626" : "#d97706"};
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        flex-shrink: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      `;
+        jumpBtn.onmouseover = () => {
+          jumpBtn.style.background = diagnostic.severity === "error" ? "#b91c1c" : "#b45309";
+        };
+        jumpBtn.onmouseleave = () => {
+          jumpBtn.style.background = diagnostic.severity === "error" ? "#dc2626" : "#d97706";
+        };
+        jumpBtn.onclick = () => {
+          this.jumpToLine(lineNumber);
+        };
+        const messageSpan = document.createElement("span");
+        messageSpan.textContent = displayMessage;
+        messageSpan.style.cssText = `
+        color: #7f1d1d;
+        flex: 1;
+        word-break: break-word;
+      `;
+        errorItem.appendChild(jumpBtn);
+        errorItem.appendChild(messageSpan);
+        banner.appendChild(errorItem);
+      });
+    }
+    /**
+     * Jump to a specific line in the editor
+     */
+    jumpToLine(lineNumber) {
+      if (!this.editor) return;
+      const doc2 = this.editor.state.doc;
+      const line = doc2.line(Math.min(lineNumber, doc2.lines));
+      this.editor.dispatch({
+        selection: { anchor: line.from },
+        scrollIntoView: true,
+        effects: EditorView.scrollIntoView(line.from, { y: "center" })
+      });
+      this.editor.focus();
+    }
+    /**
+     * Set up keyboard shortcuts for the editor
+     */
+    setupKeyboardShortcuts() {
+      document.addEventListener("keydown", (event) => {
+        if (event.ctrlKey && event.key === "`") {
+          event.preventDefault();
+          this.toggleEditorAndFindSelectedNode();
+        }
+      });
+    }
+    /**
+     * Toggle the editor panel and scroll to the currently selected node
+     */
+    toggleEditorAndFindSelectedNode() {
+      const sidebar = document.getElementById(`ychart-editor-sidebar-${this.instanceId}`);
+      if (!sidebar) return;
+      const isCollapsed = sidebar.style.width === "0px";
+      this.toggleEditor();
+      if (isCollapsed) {
+        setTimeout(() => {
+          this.scrollToSelectedNode();
+        }, 400);
+      }
+    }
+    /**
+     * Find the currently selected node in the YAML and scroll to it in the editor
+     */
+    scrollToSelectedNode() {
+      if (!this.editor || !this.orgChart) return;
+      const chartState = this.orgChart.getChartState();
+      const selectedNodeId = chartState == null ? void 0 : chartState.selectedNodeId;
+      if (!selectedNodeId) {
+        console.log("No node selected");
+        return;
+      }
+      console.log("Finding node with ID:", selectedNodeId);
+      const content2 = this.editor.state.doc.toString();
+      const idPattern = new RegExp(`^-?\\s*id:\\s*${selectedNodeId}\\s*$`, "m");
+      const match = content2.match(idPattern);
+      if (match && match.index !== void 0) {
+        let blockStart = match.index;
+        const beforeMatch = content2.substring(0, match.index);
+        const lastDash = beforeMatch.lastIndexOf("\n- ");
+        if (lastDash !== -1) {
+          blockStart = lastDash + 1;
+        }
+        const lineNumber = content2.substring(0, blockStart).split("\n").length;
+        const line = this.editor.state.doc.line(lineNumber);
+        this.editor.dispatch({
+          selection: { anchor: line.from, head: line.to },
+          scrollIntoView: true
+        });
+        this.editor.focus();
+        console.log(`Scrolled to node ${selectedNodeId} at line ${lineNumber}`);
+      } else {
+        console.log(`Node with ID ${selectedNodeId} not found in YAML`);
+      }
+    }
     parseFrontMatter(content2) {
       if (content2.startsWith("---")) {
         const parts = content2.split("---");
@@ -34840,7 +35349,6 @@ ${formattedData.trim()}
             }
             return { options, schema: schemaDef, card: cardDef, data: yamlData };
           } catch (error) {
-            console.error("Error parsing front matter:", error);
             return { options: {}, schema: {}, card: void 0, data: content2 };
           }
         }
@@ -34931,7 +35439,6 @@ ${formattedData.trim()}
         }
         this.currentView = "hierarchy";
       } catch (error) {
-        console.error("Error rendering chart:", error);
       }
     }
     getNodeContent(d) {
@@ -35114,7 +35621,6 @@ ${formattedData.trim()}
         this.forceGraph.render(parsedData);
         this.currentView = "force";
       } catch (error) {
-        console.error("Error rendering force graph:", error);
       }
     }
     /**

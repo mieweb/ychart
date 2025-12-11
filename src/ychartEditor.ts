@@ -1,6 +1,7 @@
 import { EditorView, basicSetup } from 'codemirror';
 import { yaml } from '@codemirror/lang-yaml';
 import { oneDark } from '@codemirror/theme-one-dark';
+import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import * as jsyaml from 'js-yaml';
 import { OrgChart } from './d3-org-chart.js';
 import { ForceGraph } from './forceGraph.js';
@@ -85,6 +86,7 @@ class YChartEditor {
   private instanceId: string;
   private searchPopup: HTMLElement | null = null;
   private searchHistoryPopup: HTMLElement | null = null;
+  private errorBanner: HTMLElement | null = null;
   
   constructor(options?: YChartOptions) {
     this.instanceId = generateUUID();
@@ -128,6 +130,9 @@ class YChartEditor {
     
     // Initialize the editor
     this.initializeEditor();
+    
+    // Set up keyboard shortcuts
+    this.setupKeyboardShortcuts();
     
     // Render initial chart
     this.renderChart();
@@ -194,7 +199,25 @@ class YChartEditor {
       position: relative;
       transition: width 0.3s ease, border-left-width 0s 0.3s;
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
     `;
+
+    // Create error banner container (above editor)
+    this.errorBanner = document.createElement('div');
+    this.errorBanner.id = `ychart-error-banner-${this.instanceId}`;
+    this.errorBanner.className = 'ychart-error-banner';
+    this.errorBanner.style.cssText = `
+      display: none;
+      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+      border-bottom: 2px solid #ef4444;
+      padding: 8px 12px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+    `;
+    editorSidebar.appendChild(this.errorBanner);
 
     // Create editor header with format button
     const editorHeader = document.createElement('div');
@@ -247,7 +270,7 @@ class YChartEditor {
     this.editorContainer = document.createElement('div');
     this.editorContainer.id = `ychart-editor-${this.instanceId}`;
     this.editorContainer.setAttribute('data-id', `ychart-editor-${this.instanceId}`);
-    this.editorContainer.style.cssText = 'width:100%;height:calc(100% - 41px);';
+    this.editorContainer.style.cssText = 'width:100%;height:100%;flex:1;overflow:hidden;';
     editorSidebar.appendChild(this.editorContainer);
 
     // Create collapse button (positioned outside sidebar, on the left side of editor)
@@ -1852,9 +1875,155 @@ class YChartEditor {
   private initializeEditor(): void {
     if (!this.editorContainer) return;
 
+    // Create YAML linter that validates syntax and structure
+    const yamlLinter = linter((view) => {
+      const diagnostics: Diagnostic[] = [];
+      const content = view.state.doc.toString();
+      
+      try {
+        // Parse the full content (front matter + data)
+        const { data: yamlData } = this.parseFrontMatter(content);
+        const parsed = jsyaml.load(yamlData);
+        
+        // Validate that the data is an array
+        if (parsed !== null && parsed !== undefined && !Array.isArray(parsed)) {
+          // Find the start of the data section (after front matter)
+          const dataStart = content.lastIndexOf('---');
+          const pos = dataStart !== -1 ? dataStart + 3 : 0;
+          
+          diagnostics.push({
+            from: pos,
+            to: Math.min(pos + 50, content.length),
+            severity: 'error',
+            message: 'YAML data must be an array of objects (start each item with "- ")'
+          });
+        } else if (Array.isArray(parsed)) {
+          // Validate parent-child relationships
+          const nodeIds = new Set(parsed.map((item: any) => String(item.id)));
+          
+          // Check for multiple roots (multiple nodes with parentId: null or undefined)
+          const rootNodes = (parsed as any[]).filter((item: any) => 
+            item.parentId === null || item.parentId === undefined
+          );
+          
+          if (rootNodes.length > 1) {
+            // Mark all root nodes after the first as errors
+            for (let i = 1; i < rootNodes.length; i++) {
+              const item = rootNodes[i];
+              const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
+              const parentIdPattern = new RegExp(`parentId:\\s*null`, 'm');
+              
+              const itemMatch = content.match(itemIdPattern);
+              let errorPos = 0;
+              let errorEnd = content.length;
+              
+              if (itemMatch && itemMatch.index !== undefined) {
+                const afterId = content.substring(itemMatch.index);
+                const parentIdMatch = afterId.match(parentIdPattern);
+                if (parentIdMatch && parentIdMatch.index !== undefined) {
+                  errorPos = itemMatch.index + parentIdMatch.index;
+                  errorEnd = errorPos + parentIdMatch[0].length;
+                } else {
+                  // If no explicit parentId: null, mark the id line
+                  errorPos = itemMatch.index;
+                  errorEnd = itemMatch.index + itemMatch[0].length;
+                }
+              }
+              
+              const lineNumber = content.substring(0, errorPos).split('\n').length;
+              
+              diagnostics.push({
+                from: errorPos,
+                to: errorEnd,
+                severity: 'error',
+                message: `Line ${lineNumber}: Multiple root nodes detected - only one node can have parentId: null (node id: ${item.id})`
+              });
+            }
+          }
+          
+          // Check for missing/invalid parentId references
+          for (const item of parsed as any[]) {
+            const parentId = item.parentId;
+            // parentId should be null for root, or reference an existing node
+            if (parentId !== null && parentId !== undefined && !nodeIds.has(String(parentId))) {
+              // Find the line with this item's parentId
+              const itemIdPattern = new RegExp(`^-\\s*id:\\s*${item.id}\\s*$`, 'm');
+              const parentIdPattern = new RegExp(`parentId:\\s*${parentId}`, 'm');
+              
+              // Find the parentId line for this item
+              const itemMatch = content.match(itemIdPattern);
+              let errorPos = 0;
+              let errorEnd = content.length;
+              
+              if (itemMatch && itemMatch.index !== undefined) {
+                // Look for parentId after this item's id
+                const afterId = content.substring(itemMatch.index);
+                const parentIdMatch = afterId.match(parentIdPattern);
+                if (parentIdMatch && parentIdMatch.index !== undefined) {
+                  errorPos = itemMatch.index + parentIdMatch.index;
+                  errorEnd = errorPos + parentIdMatch[0].length;
+                }
+              }
+              
+              // Calculate line number for the error message
+              const lineNumber = content.substring(0, errorPos).split('\n').length;
+              
+              diagnostics.push({
+                from: errorPos,
+                to: errorEnd,
+                severity: 'error',
+                message: `Line ${lineNumber}: Invalid parentId "${parentId}" - no node with this id exists`
+              });
+            }
+          }
+        }
+      } catch (e: unknown) {
+        if (e instanceof jsyaml.YAMLException) {
+          // js-yaml provides mark with line and column info
+          const mark = e.mark;
+          if (mark) {
+            // Convert line/column to document position
+            const line = Math.min(mark.line + 1, view.state.doc.lines);
+            const lineInfo = view.state.doc.line(line);
+            const from = lineInfo.from + Math.min(mark.column, lineInfo.length);
+            const to = lineInfo.to;
+            
+            diagnostics.push({
+              from,
+              to,
+              severity: 'error',
+              message: `Line ${line}: ${e.reason || e.message}`
+            });
+          } else {
+            // Fallback if no mark is available
+            diagnostics.push({
+              from: 0,
+              to: Math.min(50, content.length),
+              severity: 'error',
+              message: e.message
+            });
+          }
+        } else if (e instanceof Error) {
+          diagnostics.push({
+            from: 0,
+            to: Math.min(50, content.length),
+            severity: 'error',
+            message: e.message
+          });
+        }
+      }
+      
+      // Update the error banner with all diagnostics
+      this.updateErrorBanner(diagnostics, view);
+      
+      return diagnostics;
+    }, { delay: 300 });
+
     const extensions = [
       basicSetup,
       yaml(),
+      lintGutter(),
+      yamlLinter,
       EditorView.updateListener.of((update) => {
         if (update.docChanged && !this.isUpdatingProgrammatically) {
           this.renderChart();
@@ -1933,6 +2102,217 @@ class YChartEditor {
     }, 250);
   }
 
+  /**
+   * Update the error banner with current diagnostics
+   */
+  private updateErrorBanner(diagnostics: Diagnostic[], view: EditorView): void {
+    if (!this.errorBanner) return;
+
+    const errors = diagnostics.filter(d => d.severity === 'error');
+    const warnings = diagnostics.filter(d => d.severity === 'warning');
+    const banner = this.errorBanner; // Capture for TypeScript
+
+    if (errors.length === 0 && warnings.length === 0) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    banner.style.display = 'block';
+    banner.innerHTML = '';
+
+    // Create header
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #b91c1c;
+    `;
+    header.innerHTML = `
+      <span style="font-size: 16px;">⚠️</span>
+      <span>${errors.length} error${errors.length !== 1 ? 's' : ''}${warnings.length > 0 ? `, ${warnings.length} warning${warnings.length !== 1 ? 's' : ''}` : ''}</span>
+    `;
+    banner.appendChild(header);
+
+    // Create error list
+    const allDiagnostics = [...errors, ...warnings];
+    allDiagnostics.forEach((diagnostic, index) => {
+      const errorItem = document.createElement('div');
+      errorItem.style.cssText = `
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 4px 0;
+        ${index < allDiagnostics.length - 1 ? 'border-bottom: 1px solid rgba(239, 68, 68, 0.2);' : ''}
+      `;
+
+      // Extract line number from message or calculate it
+      const lineMatch = diagnostic.message.match(/^Line (\d+):/);
+      let lineNumber: number;
+      let displayMessage: string;
+      
+      if (lineMatch) {
+        lineNumber = parseInt(lineMatch[1], 10);
+        displayMessage = diagnostic.message.replace(/^Line \d+:\s*/, '');
+      } else {
+        // Calculate line from position
+        const doc = view.state.doc;
+        lineNumber = doc.lineAt(diagnostic.from).number;
+        displayMessage = diagnostic.message;
+      }
+
+      // Create jump button
+      const jumpBtn = document.createElement('button');
+      jumpBtn.textContent = `L${lineNumber}`;
+      jumpBtn.title = `Jump to line ${lineNumber}`;
+      jumpBtn.style.cssText = `
+        background: ${diagnostic.severity === 'error' ? '#dc2626' : '#d97706'};
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 8px;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        flex-shrink: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      `;
+      jumpBtn.onmouseover = () => {
+        jumpBtn.style.background = diagnostic.severity === 'error' ? '#b91c1c' : '#b45309';
+      };
+      jumpBtn.onmouseleave = () => {
+        jumpBtn.style.background = diagnostic.severity === 'error' ? '#dc2626' : '#d97706';
+      };
+      jumpBtn.onclick = () => {
+        this.jumpToLine(lineNumber);
+      };
+
+      // Create message text
+      const messageSpan = document.createElement('span');
+      messageSpan.textContent = displayMessage;
+      messageSpan.style.cssText = `
+        color: #7f1d1d;
+        flex: 1;
+        word-break: break-word;
+      `;
+
+      errorItem.appendChild(jumpBtn);
+      errorItem.appendChild(messageSpan);
+      banner.appendChild(errorItem);
+    });
+  }
+
+  /**
+   * Jump to a specific line in the editor
+   */
+  private jumpToLine(lineNumber: number): void {
+    if (!this.editor) return;
+
+    const doc = this.editor.state.doc;
+    const line = doc.line(Math.min(lineNumber, doc.lines));
+    
+    // Set cursor to the start of the line and scroll it into view
+    this.editor.dispatch({
+      selection: { anchor: line.from },
+      scrollIntoView: true,
+      effects: EditorView.scrollIntoView(line.from, { y: 'center' })
+    });
+
+    // Focus the editor
+    this.editor.focus();
+  }
+
+  /**
+   * Set up keyboard shortcuts for the editor
+   */
+  private setupKeyboardShortcuts(): void {
+    document.addEventListener('keydown', (event) => {
+      // Ctrl + ` (backtick) to toggle editor and find selected node
+      if (event.ctrlKey && event.key === '`') {
+        event.preventDefault();
+        this.toggleEditorAndFindSelectedNode();
+      }
+    });
+  }
+
+  /**
+   * Toggle the editor panel and scroll to the currently selected node
+   */
+  private toggleEditorAndFindSelectedNode(): void {
+    const sidebar = document.getElementById(`ychart-editor-sidebar-${this.instanceId}`);
+    if (!sidebar) return;
+
+    const isCollapsed = sidebar.style.width === '0px';
+    
+    // Toggle the editor
+    this.toggleEditor();
+    
+    // If we're opening the editor, find and scroll to the selected node
+    if (isCollapsed) {
+      // Wait for the editor to expand before scrolling
+      setTimeout(() => {
+        this.scrollToSelectedNode();
+      }, 400);
+    }
+  }
+
+  /**
+   * Find the currently selected node in the YAML and scroll to it in the editor
+   */
+  private scrollToSelectedNode(): void {
+    if (!this.editor || !this.orgChart) return;
+
+    // Get the selected node ID from the org chart
+    const chartState = this.orgChart.getChartState();
+    const selectedNodeId = chartState?.selectedNodeId;
+    
+    if (!selectedNodeId) {
+      console.log('No node selected');
+      return;
+    }
+
+    console.log('Finding node with ID:', selectedNodeId);
+
+    const content = this.editor.state.doc.toString();
+    
+    // Find the position of the node entry in YAML
+    // Look for patterns like "- id: 5" or "  id: 5" at the start of a line
+    const idPattern = new RegExp(`^-?\\s*id:\\s*${selectedNodeId}\\s*$`, 'm');
+    const match = content.match(idPattern);
+    
+    if (match && match.index !== undefined) {
+      // Find the start of the YAML block (look backwards for "- id:" pattern)
+      let blockStart = match.index;
+      
+      // Look backwards to find the start of the list item (the "- " before id)
+      const beforeMatch = content.substring(0, match.index);
+      const lastDash = beforeMatch.lastIndexOf('\n- ');
+      if (lastDash !== -1) {
+        blockStart = lastDash + 1; // +1 to skip the newline
+      }
+
+      // Calculate the line number
+      const lineNumber = content.substring(0, blockStart).split('\n').length;
+      
+      // Scroll to the line and highlight it
+      const line = this.editor.state.doc.line(lineNumber);
+      
+      this.editor.dispatch({
+        selection: { anchor: line.from, head: line.to },
+        scrollIntoView: true
+      });
+      
+      // Focus the editor
+      this.editor.focus();
+      
+      console.log(`Scrolled to node ${selectedNodeId} at line ${lineNumber}`);
+    } else {
+      console.log(`Node with ID ${selectedNodeId} not found in YAML`);
+    }
+  }
+
   private parseFrontMatter(content: string): FrontMatter {
     if (content.startsWith('---')) {
       const parts = content.split('---');
@@ -1956,7 +2336,7 @@ class YChartEditor {
           
           return { options, schema: schemaDef, card: cardDef, data: yamlData };
         } catch (error) {
-          console.error('Error parsing front matter:', error);
+          // Silently handle - linter will display errors in the editor
           return { options: {}, schema: {}, card: undefined, data: content };
         }
       }
@@ -2095,7 +2475,7 @@ class YChartEditor {
       
       this.currentView = 'hierarchy';
     } catch (error) {
-      console.error('Error rendering chart:', error);
+      // Silently handle - linter will display errors in the editor
     }
   }
 
@@ -2342,7 +2722,7 @@ class YChartEditor {
       
       this.currentView = 'force';
     } catch (error) {
-      console.error('Error rendering force graph:', error);
+      // Silently handle - linter will display errors in the editor
     }
   }
 
