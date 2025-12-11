@@ -83,6 +83,8 @@ class YChartEditor {
   private columnAdjustButtons: HTMLElement | null = null;
   private experimental = false;
   private instanceId: string;
+  private searchPopup: HTMLElement | null = null;
+  private searchHistoryPopup: HTMLElement | null = null;
   
   constructor(options?: YChartOptions) {
     this.instanceId = generateUUID();
@@ -355,12 +357,14 @@ class YChartEditor {
       expandAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
       collapseAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
       columnAdjust: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/><line x1="6.5" y1="8" x2="6.5" y2="16"/><line x1="17.5" y1="8" x2="17.5" y2="16"/></svg>`,
+      search: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
     };
 
     // Button configurations
     const buttons = [
       { id: 'fit', icon: icons.fit, tooltip: 'Fit to Screen', action: () => this.handleFit() },
       { id: 'reset', icon: icons.reset, tooltip: 'Reset Position', action: () => this.handleReset() },
+      { id: 'search', icon: icons.search, tooltip: 'Search/Filter Nodes', action: () => this.handleSearch() },
       { id: 'expandAll', icon: icons.expandAll, tooltip: 'Expand All', action: () => this.handleExpandAll() },
       { id: 'collapseAll', icon: icons.collapseAll, tooltip: 'Collapse All', action: () => this.handleCollapseAll() },
       { id: 'columnAdjust', icon: icons.columnAdjust, tooltip: 'Adjust Child Columns', action: () => this.handleColumnAdjustToggle() },
@@ -663,6 +667,955 @@ class YChartEditor {
           this.orgChart.fit();
         }
       }, 200);
+    }
+  }
+
+  private handleSearch(): void {
+    if (!this.searchPopup) {
+      this.createSearchPopup();
+    }
+    
+    if (this.searchPopup) {
+      this.searchPopup.style.display = 'flex';
+      const searchInput = this.searchPopup.querySelector('input') as HTMLInputElement;
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
+  }
+
+  private createSearchPopup(): void {
+    if (!this.chartContainer) return;
+
+    const popup = document.createElement('div');
+    popup.setAttribute('data-id', `ychart-search-popup-${this.instanceId}`);
+    popup.style.cssText = `
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 1000;
+    `;
+
+    const searchBox = document.createElement('div');
+    searchBox.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      width: 500px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    `;
+
+    const header = document.createElement('div');
+    header.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    `;
+
+    const title = document.createElement('h3');
+    title.textContent = 'Search Nodes';
+    title.style.cssText = `
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a202c;
+    `;
+
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.cssText = `
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    `;
+
+    // Search history burger button
+    const historyButton = document.createElement('button');
+    historyButton.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    `;
+    historyButton.style.cssText = `
+      position: relative;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      padding: 0;
+    `;
+
+    const historyTooltip = document.createElement('span');
+    historyTooltip.textContent = 'Search History';
+    historyTooltip.style.cssText = `
+      position: absolute;
+      bottom: 100%;
+      right: 0;
+      margin-bottom: 8px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: all 0.2s;
+      z-index: 1000;
+    `;
+
+    historyButton.appendChild(historyTooltip);
+
+    historyButton.addEventListener('mouseenter', () => {
+      historyButton.style.background = '#edf2f7';
+      historyButton.style.borderColor = '#667eea';
+      historyTooltip.style.opacity = '1';
+      historyTooltip.style.transform = 'scale(1)';
+    });
+
+    historyButton.addEventListener('mouseleave', () => {
+      historyButton.style.background = '#f7fafc';
+      historyButton.style.borderColor = '#e2e8f0';
+      historyTooltip.style.opacity = '0';
+      historyTooltip.style.transform = 'scale(0.8)';
+    });
+
+    historyButton.addEventListener('click', () => {
+      this.toggleSearchHistory();
+    });
+
+    const closeButton = document.createElement('button');
+    closeButton.innerHTML = '×';
+    closeButton.style.cssText = `
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: #a0aec0;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s;
+    `;
+    closeButton.addEventListener('mouseenter', () => {
+      closeButton.style.background = '#f7fafc';
+      closeButton.style.color = '#4a5568';
+    });
+    closeButton.addEventListener('mouseleave', () => {
+      closeButton.style.background = 'none';
+      closeButton.style.color = '#a0aec0';
+    });
+    closeButton.addEventListener('click', () => this.closeSearchPopup());
+
+    buttonsContainer.appendChild(historyButton);
+    buttonsContainer.appendChild(closeButton);
+
+    header.appendChild(title);
+    header.appendChild(buttonsContainer);
+
+    // Filters container
+    const filtersContainer = document.createElement('div');
+    filtersContainer.setAttribute('data-id', 'search-filters');
+    filtersContainer.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    `;
+
+    // Add initial filter row
+    const initialFilter = this.createFilterRow(filtersContainer);
+    filtersContainer.appendChild(initialFilter);
+
+    // Add filter button
+    const addFilterBtn = document.createElement('button');
+    addFilterBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Add Filter
+    `;
+    addFilterBtn.style.cssText = `
+      padding: 6px 10px;
+      background: #f7fafc;
+      color: #667eea;
+      border: 1px dashed #cbd5e0;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+    `;
+    addFilterBtn.addEventListener('mouseenter', () => {
+      addFilterBtn.style.background = '#edf2f7';
+      addFilterBtn.style.borderColor = '#667eea';
+    });
+    addFilterBtn.addEventListener('mouseleave', () => {
+      addFilterBtn.style.background = '#f7fafc';
+      addFilterBtn.style.borderColor = '#cbd5e0';
+    });
+    addFilterBtn.addEventListener('click', () => {
+      const newFilter = this.createFilterRow(filtersContainer);
+      filtersContainer.insertBefore(newFilter, addFilterBtn);
+    });
+
+    filtersContainer.appendChild(addFilterBtn);
+
+    // Suggestions container
+    const suggestionsContainer = document.createElement('div');
+    suggestionsContainer.setAttribute('data-id', 'search-suggestions');
+    suggestionsContainer.style.cssText = `
+      display: none;
+      flex-direction: column;
+      max-height: 150px;
+      overflow-y: auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    `;
+
+    searchBox.appendChild(header);
+    searchBox.appendChild(filtersContainer);
+    searchBox.appendChild(suggestionsContainer);
+
+    popup.appendChild(searchBox);
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.searchPopup && this.searchPopup.style.display !== 'none') {
+        this.closeSearchPopup();
+      }
+    });
+
+    this.chartContainer.appendChild(popup);
+    this.searchPopup = popup;
+  }
+
+  private createFilterRow(container: HTMLElement): HTMLElement {
+    const filterRow = document.createElement('div');
+    filterRow.style.cssText = `
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    `;
+
+    // Field selector dropdown
+    const fieldSelect = document.createElement('select');
+    fieldSelect.style.cssText = `
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+      background: white;
+      min-width: 120px;
+      transition: border-color 0.2s;
+    `;
+
+    // Get available fields from schema or from data
+    const fields = this.getAvailableFields();
+    fields.forEach(field => {
+      const option = document.createElement('option');
+      option.value = field;
+      option.textContent = field.charAt(0).toUpperCase() + field.slice(1);
+      fieldSelect.appendChild(option);
+    });
+
+    fieldSelect.addEventListener('focus', () => {
+      fieldSelect.style.borderColor = '#667eea';
+    });
+
+    fieldSelect.addEventListener('blur', () => {
+      fieldSelect.style.borderColor = '#e2e8f0';
+    });
+
+    // Search input container with suggestions
+    const inputWrapper = document.createElement('div');
+    inputWrapper.style.cssText = `
+      position: relative;
+      flex: 1;
+    `;
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Type to search...';
+    searchInput.style.cssText = `
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s;
+    `;
+
+    searchInput.addEventListener('focus', () => {
+      searchInput.style.borderColor = '#667eea';
+    });
+
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        searchInput.style.borderColor = '#e2e8f0';
+      }, 200);
+    });
+
+    // Real-time search as user types
+    searchInput.addEventListener('input', () => {
+      this.performFuzzySearch(searchInput.value, fieldSelect.value);
+    });
+
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeSearchPopup();
+      }
+    });
+
+    inputWrapper.appendChild(searchInput);
+
+    // Remove button
+    const removeBtn = document.createElement('button');
+    removeBtn.innerHTML = '×';
+    removeBtn.style.cssText = `
+      padding: 0;
+      width: 28px;
+      height: 28px;
+      background: #fee;
+      color: #c53030;
+      border: 1px solid #fc8181;
+      border-radius: 6px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    `;
+
+    removeBtn.addEventListener('mouseenter', () => {
+      removeBtn.style.background = '#feb2b2';
+    });
+
+    removeBtn.addEventListener('mouseleave', () => {
+      removeBtn.style.background = '#fee';
+    });
+
+    removeBtn.addEventListener('click', () => {
+      // Don't remove if it's the last filter
+      const filters = container.querySelectorAll('[data-id="filter-row"]');
+      if (filters.length > 1) {
+        filterRow.remove();
+        // Trigger search update
+        this.performFuzzySearch('', '');
+      }
+    });
+
+    filterRow.setAttribute('data-id', 'filter-row');
+    filterRow.appendChild(fieldSelect);
+    filterRow.appendChild(inputWrapper);
+    filterRow.appendChild(removeBtn);
+
+    return filterRow;
+  }
+
+  private getAvailableFields(): string[] {
+    // Get fields from schema if available
+    if (this.currentSchema && Object.keys(this.currentSchema).length > 0) {
+      return Object.keys(this.currentSchema).filter(key => !key.startsWith('_'));
+    }
+
+    // Otherwise, get fields from data
+    if (this.orgChart) {
+      const attrs = this.orgChart.getChartState();
+      const allNodes = attrs.allNodes || [];
+      if (allNodes.length > 0) {
+        const fields = new Set<string>();
+        allNodes.forEach((node: any) => {
+          Object.keys(node.data).forEach(key => {
+            if (!key.startsWith('_')) {
+              fields.add(key);
+            }
+          });
+        });
+        return Array.from(fields).sort();
+      }
+    }
+
+    // Default fields
+    return ['name', 'title', 'email', 'department', 'location'];
+  }
+
+  private performFuzzySearch(query: string, field: string): void {
+    const suggestionsContainer = this.searchPopup?.querySelector('[data-id="search-suggestions"]') as HTMLElement;
+    if (!suggestionsContainer || !this.orgChart) return;
+
+    // Get all filter inputs
+    const filterRows = this.searchPopup?.querySelectorAll('[data-id="filter-row"]');
+    if (!filterRows) return;
+
+    const filters: { field: string; query: string }[] = [];
+    filterRows.forEach(row => {
+      const select = row.querySelector('select') as HTMLSelectElement;
+      const input = row.querySelector('input') as HTMLInputElement;
+      if (select && input && input.value.trim()) {
+        filters.push({ field: select.value, query: input.value.trim().toLowerCase() });
+      }
+    });
+
+    // If no filters have values, hide suggestions
+    if (filters.length === 0) {
+      suggestionsContainer.style.display = 'none';
+      return;
+    }
+
+    // Save to search history (but only when there are actual results)
+    // We'll save after we find matches
+
+    const attrs = this.orgChart.getChartState();
+    const allNodes = attrs.allNodes || [];
+
+    // Perform fuzzy matching
+    const matches: { node: any; score: number }[] = [];
+    
+    allNodes.forEach((node: any) => {
+      let totalScore = 0;
+      let matchCount = 0;
+
+      filters.forEach(filter => {
+        const fieldValue = node.data[filter.field];
+        if (fieldValue) {
+          const score = this.fuzzyMatch(filter.query, String(fieldValue).toLowerCase());
+          if (score > 0) {
+            totalScore += score;
+            matchCount++;
+          }
+        }
+      });
+
+      // Only include if all filters match
+      if (matchCount === filters.length) {
+        matches.push({ node, score: totalScore / matchCount });
+      }
+    });
+
+    // Sort by score (highest first)
+    matches.sort((a, b) => b.score - a.score);
+
+    // Display suggestions
+    suggestionsContainer.innerHTML = '';
+
+    if (matches.length === 0) {
+      suggestionsContainer.style.display = 'none';
+      return;
+    }
+
+    suggestionsContainer.style.display = 'flex';
+
+    matches.forEach(({ node, score }) => {
+      const suggestionItem = document.createElement('div');
+      suggestionItem.style.cssText = `
+        padding: 6px 10px;
+        border-bottom: 1px solid #f7fafc;
+        cursor: pointer;
+        transition: background 0.2s;
+      `;
+
+      const nodeData = node.data;
+      const displayName = nodeData.name || attrs.nodeId(nodeData);
+      const displayTitle = nodeData.title || '';
+      const displayDept = nodeData.department || '';
+
+      suggestionItem.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 600; color: #2d3748; font-size: 12px; line-height: 1.3; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
+            ${displayTitle ? `<div style="font-size: 10px; line-height: 1.3; color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>` : ''}
+            ${displayDept ? `<div style="font-size: 9px; line-height: 1.3; color: #a0aec0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayDept}</div>` : ''}
+          </div>
+          <div style="font-size: 9px; color: #667eea; font-weight: 600; flex-shrink: 0;">${Math.round(score * 100)}%</div>
+        </div>
+      `;
+
+      suggestionItem.addEventListener('mouseenter', () => {
+        suggestionItem.style.background = '#f7fafc';
+      });
+
+      suggestionItem.addEventListener('mouseleave', () => {
+        suggestionItem.style.background = 'white';
+      });
+
+      suggestionItem.addEventListener('click', () => {
+        this.selectAndHighlightNode(node);
+        // Don't close popup, just clear inputs and suggestions
+        const inputs = this.searchPopup?.querySelectorAll('input[type="text"]');
+        inputs?.forEach((input: any) => {
+          input.value = '';
+        });
+        suggestionsContainer.innerHTML = '';
+        suggestionsContainer.style.display = 'none';
+      });
+
+      suggestionsContainer.appendChild(suggestionItem);
+    });
+  }
+
+  private fuzzyMatch(pattern: string, text: string): number {
+    // Simple fuzzy matching algorithm
+    // Returns a score between 0 and 1
+    if (!pattern || !text) return 0;
+    if (text.includes(pattern)) return 1; // Exact substring match gets highest score
+
+    let score = 0;
+    let patternIdx = 0;
+    let textIdx = 0;
+    let consecutiveMatches = 0;
+
+    while (patternIdx < pattern.length && textIdx < text.length) {
+      if (pattern[patternIdx] === text[textIdx]) {
+        score += 1 + consecutiveMatches;
+        consecutiveMatches++;
+        patternIdx++;
+      } else {
+        consecutiveMatches = 0;
+      }
+      textIdx++;
+    }
+
+    if (patternIdx !== pattern.length) return 0; // Pattern not fully matched
+
+    // Normalize score
+    const maxScore = pattern.length * (pattern.length + 1) / 2;
+    return score / maxScore;
+  }
+
+  private closeSearchPopup(): void {
+    if (this.searchPopup) {
+      this.searchPopup.style.display = 'none';
+      const suggestionsContainer = this.searchPopup.querySelector('[data-id="search-suggestions"]') as HTMLElement;
+      if (suggestionsContainer) {
+        suggestionsContainer.innerHTML = '';
+        suggestionsContainer.style.display = 'none';
+      }
+      const inputs = this.searchPopup.querySelectorAll('input[type="text"]');
+      inputs.forEach((input: any) => {
+        input.value = '';
+      });
+    }
+    // Also close history popup
+    if (this.searchHistoryPopup) {
+      this.searchHistoryPopup.style.display = 'none';
+    }
+  }
+
+  private toggleSearchHistory(): void {
+    if (!this.searchHistoryPopup) {
+      this.createSearchHistoryPopup();
+    }
+    
+    if (this.searchHistoryPopup) {
+      const isVisible = this.searchHistoryPopup.style.display !== 'none';
+      if (isVisible) {
+        this.searchHistoryPopup.style.display = 'none';
+      } else {
+        this.updateSearchHistoryDisplay();
+        this.searchHistoryPopup.style.display = 'block';
+      }
+    }
+  }
+
+  private createSearchHistoryPopup(): void {
+    if (!this.chartContainer || !this.searchPopup) return;
+
+    const historyPopup = document.createElement('div');
+    historyPopup.setAttribute('data-id', `ychart-search-history-${this.instanceId}`);
+    historyPopup.style.cssText = `
+      position: absolute;
+      top: calc(100% + 5px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      z-index: 999;
+    `;
+
+    const historyBox = document.createElement('div');
+    historyBox.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      padding: 10px 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      width: 500px;
+      max-height: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    `;
+
+    const historyHeader = document.createElement('div');
+    historyHeader.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    `;
+
+    const historyTitle = document.createElement('h4');
+    historyTitle.textContent = 'Search History';
+    historyTitle.style.cssText = `
+      margin: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a202c;
+    `;
+
+    const clearAllButton = document.createElement('button');
+    clearAllButton.textContent = 'Clear All';
+    clearAllButton.style.cssText = `
+      background: #fee;
+      color: #c53030;
+      border: 1px solid #fc8181;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    `;
+
+    clearAllButton.addEventListener('mouseenter', () => {
+      clearAllButton.style.background = '#feb2b2';
+    });
+
+    clearAllButton.addEventListener('mouseleave', () => {
+      clearAllButton.style.background = '#fee';
+    });
+
+    clearAllButton.addEventListener('click', () => {
+      this.clearSearchHistory();
+    });
+
+    historyHeader.appendChild(historyTitle);
+    historyHeader.appendChild(clearAllButton);
+
+    const historyList = document.createElement('div');
+    historyList.setAttribute('data-id', 'history-list');
+    historyList.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 250px;
+      overflow-y: auto;
+    `;
+
+    historyBox.appendChild(historyHeader);
+    historyBox.appendChild(historyList);
+    historyPopup.appendChild(historyBox);
+
+    this.searchPopup.appendChild(historyPopup);
+    this.searchHistoryPopup = historyPopup;
+  }
+
+  private updateSearchHistoryDisplay(): void {
+    if (!this.searchHistoryPopup) return;
+
+    const historyList = this.searchHistoryPopup.querySelector('[data-id="history-list"]') as HTMLElement;
+    if (!historyList) return;
+
+    historyList.innerHTML = '';
+
+    const history = this.loadSearchHistory();
+
+    if (history.length === 0) {
+      const emptyMessage = document.createElement('div');
+      emptyMessage.textContent = 'No search history';
+      emptyMessage.style.cssText = `
+        padding: 20px;
+        text-align: center;
+        color: #a0aec0;
+        font-size: 12px;
+      `;
+      historyList.appendChild(emptyMessage);
+      return;
+    }
+
+    history.forEach((item, index) => {
+      const historyItem = document.createElement('div');
+      historyItem.style.cssText = `
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        background: #f7fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        transition: all 0.2s;
+        cursor: pointer;
+      `;
+
+      const historyContent = document.createElement('div');
+      historyContent.style.cssText = `
+        flex: 1;
+        min-width: 0;
+      `;
+
+      const searchText = `${item.field}: "${item.query}"`;
+      const nodeInfo = item.nodeName ? ` → ${item.nodeName}` : '';
+      const timestamp = new Date(item.timestamp).toLocaleString();
+
+      historyContent.innerHTML = `
+        <div style="font-size: 12px; color: #2d3748; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${searchText}${nodeInfo}</div>
+        <div style="font-size: 10px; color: #a0aec0;">${timestamp}</div>
+      `;
+
+      const removeButton = document.createElement('button');
+      removeButton.innerHTML = '×';
+      removeButton.style.cssText = `
+        background: #fee;
+        color: #c53030;
+        border: 1px solid #fc8181;
+        border-radius: 4px;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 16px;
+        flex-shrink: 0;
+      `;
+
+      removeButton.addEventListener('mouseenter', () => {
+        removeButton.style.background = '#feb2b2';
+      });
+
+      removeButton.addEventListener('mouseleave', () => {
+        removeButton.style.background = '#fee';
+      });
+
+      removeButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.removeHistoryItem(index);
+      });
+
+      historyItem.addEventListener('mouseenter', () => {
+        historyItem.style.background = '#edf2f7';
+        historyItem.style.borderColor = '#cbd5e0';
+      });
+
+      historyItem.addEventListener('mouseleave', () => {
+        historyItem.style.background = '#f7fafc';
+        historyItem.style.borderColor = '#e2e8f0';
+      });
+
+      historyItem.addEventListener('click', () => {
+        this.applyHistorySearch(item);
+      });
+
+      historyItem.appendChild(historyContent);
+      historyItem.appendChild(removeButton);
+      historyList.appendChild(historyItem);
+    });
+  }
+
+  private getSearchHistoryKey(): string {
+    return `ychart-search-history-${this.instanceId}`;
+  }
+
+  private loadSearchHistory(): Array<{ field: string; query: string; nodeId?: string; nodeName?: string; timestamp: number }> {
+    try {
+      const stored = localStorage.getItem(this.getSearchHistoryKey());
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('Failed to load search history:', error);
+    }
+    return [];
+  }
+
+  private clearSearchHistory(): void {
+    try {
+      localStorage.removeItem(this.getSearchHistoryKey());
+      this.updateSearchHistoryDisplay();
+    } catch (error) {
+      console.warn('Failed to clear search history:', error);
+    }
+  }
+
+  private removeHistoryItem(index: number): void {
+    try {
+      const history = this.loadSearchHistory();
+      history.splice(index, 1);
+      localStorage.setItem(this.getSearchHistoryKey(), JSON.stringify(history));
+      this.updateSearchHistoryDisplay();
+    } catch (error) {
+      console.warn('Failed to remove history item:', error);
+    }
+  }
+
+  private applyHistorySearch(historyItem: { field: string; query: string; nodeId?: string; nodeName?: string; timestamp: number }): void {
+    if (!this.searchPopup) return;
+
+    const filtersContainer = this.searchPopup.querySelector('[data-id="search-filters"]') as HTMLElement;
+    if (!filtersContainer) return;
+
+    // Remove all existing filter rows except the add button
+    const existingFilters = filtersContainer.querySelectorAll('[data-id="filter-row"]');
+    existingFilters.forEach(filter => filter.remove());
+
+    const addButton = filtersContainer.querySelector('button');
+
+    // Add single filter row based on history
+    const filterRow = this.createFilterRow(filtersContainer);
+    const select = filterRow.querySelector('select') as HTMLSelectElement;
+    const input = filterRow.querySelector('input') as HTMLInputElement;
+
+    if (select && input) {
+      select.value = historyItem.field;
+      input.value = historyItem.query;
+    }
+
+    if (addButton) {
+      filtersContainer.insertBefore(filterRow, addButton);
+    } else {
+      filtersContainer.appendChild(filterRow);
+    }
+
+    // Trigger search
+    this.performFuzzySearch(historyItem.query, historyItem.field);
+
+    // Close history popup
+    if (this.searchHistoryPopup) {
+      this.searchHistoryPopup.style.display = 'none';
+    }
+  }
+
+
+
+  private selectAndHighlightNode(node: any): void {
+    if (!this.orgChart) return;
+
+    const attrs = this.orgChart.getChartState();
+    const nodeId = attrs.nodeId(node.data);
+
+    // Save to search history
+    this.saveSearchToHistory(node);
+
+    // Use setCentered to properly expand ancestors and center the node
+    if (typeof this.orgChart.setCentered === 'function') {
+      this.orgChart.setCentered(nodeId);
+    }
+
+    // Set as selected node
+    attrs.selectedNodeId = nodeId;
+
+    // Re-render the chart with the centered and expanded node
+    this.orgChart.render();
+
+    // Focus the SVG to enable keyboard navigation
+    setTimeout(() => {
+      const svg = attrs.svg?.node();
+      if (svg) {
+        svg.focus();
+      }
+    }, 100);
+
+    // Call onNodeSelect callback if available
+    if (attrs.onNodeSelect) {
+      attrs.onNodeSelect(nodeId);
+    }
+
+    // Fit the view to center on the selected node after rendering completes
+    setTimeout(() => {
+      if (this.orgChart && typeof this.orgChart.fit === 'function') {
+        // Get the updated node from the tree after rendering
+        const updatedAttrs = this.orgChart.getChartState();
+        const updatedRoot = updatedAttrs.root;
+        const descendants = updatedRoot.descendants();
+        const updatedNode = descendants.find((d: any) => attrs.nodeId(d.data) === nodeId);
+        
+        if (updatedNode) {
+          this.orgChart.fit({ nodes: [updatedNode], animate: true });
+        }
+      }
+    }, 400);
+  }
+
+  private saveSearchToHistory(node: any): void {
+    if (!this.searchPopup) return;
+
+    // Get current filter values (just use the first one that has a value)
+    const filterRows = this.searchPopup.querySelectorAll('[data-id="filter-row"]');
+    let field = '';
+    let query = '';
+
+    for (const row of Array.from(filterRows)) {
+      const select = row.querySelector('select') as HTMLSelectElement;
+      const input = row.querySelector('input') as HTMLInputElement;
+      if (select && input && input.value.trim()) {
+        field = select.value;
+        query = input.value.trim();
+        break; // Only take the first active filter
+      }
+    }
+
+    if (!field || !query) return;
+
+    try {
+      const history = this.loadSearchHistory();
+      const nodeData = node.data;
+      const nodeName = nodeData.name || '';
+      const attrs = this.orgChart?.getChartState();
+      const nodeId = attrs ? attrs.nodeId(nodeData) : '';
+      
+      // Check if this exact search already exists
+      const isDuplicate = history.some(item => 
+        item.field === field && item.query === query && item.nodeId === nodeId
+      );
+
+      if (!isDuplicate) {
+        // Add new search to beginning of array
+        history.unshift({
+          field,
+          query,
+          nodeId,
+          nodeName,
+          timestamp: Date.now()
+        });
+
+        // Keep only last 20 searches
+        const trimmedHistory = history.slice(0, 20);
+        
+        localStorage.setItem(this.getSearchHistoryKey(), JSON.stringify(trimmedHistory));
+      }
+    } catch (error) {
+      console.warn('Failed to save search history:', error);
     }
   }
 
