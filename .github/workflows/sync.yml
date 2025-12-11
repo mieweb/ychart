@@ -18,5 +18,23 @@ jobs:
         run: |
           cd /home/pralambomanarivo/orgchart
           git fetch origin
-          git reset --hard origin/main
+          
+          # Check if there are local changes to stash
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            echo "Stashing local changes..."
+            git stash push -m "Auto-stash before sync $(date)"
+            STASHED=true
+          else
+            STASHED=false
+          fi
+          
+          # Pull latest changes
+          git pull origin main
+          
+          # Restore stashed changes if any
+          if [ "$STASHED" = true ]; then
+            echo "Restoring stashed changes..."
+            git stash pop || echo "Warning: Could not auto-restore stash. Run 'git stash pop' manually."
+          fi
+          
           echo "Repository synced at $(date)"
