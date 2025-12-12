@@ -63807,8 +63807,6 @@ ${d.email || ""}`);
         source: String(d.parentId),
         target: String(d.id)
       })).filter((edge) => validNodeIds.has(edge.source) && validNodeIds.has(edge.target));
-      console.log("ReactFlowView - Total nodes:", nodes.length);
-      console.log("ReactFlowView - Total edges:", edges.length);
       this.cy = cytoscape({
         container: this.container,
         elements: {

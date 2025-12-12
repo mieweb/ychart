@@ -1,4 +1,4 @@
-import cytoscape, { type Core, type NodeSingular } from 'cytoscape';
+import cytoscape, { type Core, type NodeSingular, type StylesheetStyle } from 'cytoscape';
 
 export interface ReactFlowNode {
   id: string;
@@ -51,9 +51,6 @@ export class ReactFlowView {
       }))
       .filter(edge => validNodeIds.has(edge.source) && validNodeIds.has(edge.target));
 
-    console.log('ReactFlowView - Total nodes:', nodes.length);
-    console.log('ReactFlowView - Total edges:', edges.length);
-
     // Initialize Cytoscape
     this.cy = cytoscape({
       container: this.container,
@@ -93,7 +90,7 @@ export class ReactFlowView {
             'border-color': '#fff',
             'overlay-padding': 6,
             'z-index': 10
-          } as any
+          }
         },
         {
           selector: 'node:selected',
@@ -101,7 +98,7 @@ export class ReactFlowView {
             'background-color': '#f59e0b',
             'border-color': '#667eea',
             'border-width': 4
-          } as any
+          }
         },
         {
           selector: 'edge',
@@ -112,9 +109,9 @@ export class ReactFlowView {
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'arrow-scale': 1.5
-          } as any
+          }
         }
-      ],
+      ] as StylesheetStyle[],
 
       layout: {
         name: 'breadthfirst',
@@ -123,7 +120,7 @@ export class ReactFlowView {
         spacingFactor: 1.5,
         avoidOverlap: true,
         nodeDimensionsIncludeLabels: true
-      } as any,
+      },
 
       wheelSensitivity: 0.2,
       minZoom: 0.1,
