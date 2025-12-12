@@ -17,33 +17,33 @@ schema:
   supervisor: string | optional
 card:
   - div:
-      style: font-size:16px;font-weight:700;color:#1a202c;margin-bottom:6px;letter-spacing:-0.5px;
+      style: font-size:var(--yc-font-size-xl);font-weight:var(--yc-font-weight-bold);color:var(--yc-color-gray-900);margin-bottom:var(--yc-spacing-sm);letter-spacing:-0.5px;
       content: $name$
   - div:
-      style: font-size:11px;color:#667eea;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;
+      style: font-size:var(--yc-font-size-xs);color:var(--yc-color-primary);font-weight:var(--yc-font-weight-semibold);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--yc-spacing-md);
       content: $title$
   - div:
-      style: font-size:12px;color:#4a5568;margin-bottom:4px;
+      style: font-size:var(--yc-font-size-sm);color:var(--yc-color-icon);margin-bottom:var(--yc-spacing-xs);
       children:
         - span:
-            style: font-weight:600;color:#2d3748;
+            style: font-weight:var(--yc-font-weight-semibold);color:var(--yc-color-text-heading);
             content: "📧 "
         - span:
-            style: color:#667eea;
+            style: color:var(--yc-color-primary);
             content: $email$
   - div:
-      style: font-size:11px;color:#718096;margin-bottom:3px;
+      style: font-size:var(--yc-font-size-xs);color:var(--yc-color-text-muted);margin-bottom:var(--yc-spacing-xxs);
       children:
         - span:
-            style: font-weight:600;
+            style: font-weight:var(--yc-font-weight-semibold);
             content: "📍 "
         - span:
             content: $location$
   - div:
-      style: font-size:10px;color:#a0aec0;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;
+      style: font-size:var(--yc-font-size-xxs);color:var(--yc-color-text-light);margin-top:var(--yc-spacing-sm);padding-top:var(--yc-spacing-sm);border-top:var(--yc-border-width-thin) solid var(--yc-color-button-border);
       children:
         - span:
-            style: font-weight:600;
+            style: font-weight:var(--yc-font-weight-semibold);
             content: "Reports to: "
         - span:
             content: $supervisor$

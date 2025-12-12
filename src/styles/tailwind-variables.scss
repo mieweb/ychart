@@ -1,0 +1,98 @@
+// YChart CSS Custom Property Overrides for Tailwind
+// This overrides YChart's --yc-* variables to use Tailwind's default color palette
+// Tailwind is the master theme, YChart components follow Tailwind colors
+// Place this AFTER Tailwind imports in your stylesheet
+
+:root {
+  // Map YChart colors to Tailwind default colors
+  --yc-color-primary: #3b82f6;        // blue-500
+  --yc-color-primary-dark: #2563eb;   // blue-600
+  --yc-color-primary-light: #60a5fa;  // blue-400
+  
+  --yc-color-secondary: #4b5563;      // gray-600
+  --yc-color-secondary-hover: #374151; // gray-700
+  
+  --yc-color-success: #10b981;        // green-500
+  --yc-color-error: #ef4444;          // red-500
+  --yc-color-error-red: #dc2626;      // red-600
+  --yc-color-warning: #eab308;        // yellow-500
+  --yc-color-warning-amber: #f59e0b;  // amber-500
+  
+  // Map YChart grays to Tailwind grays
+  --yc-color-gray-50: #f9fafb;        // gray-50
+  --yc-color-gray-100: #f3f4f6;       // gray-100
+  --yc-color-gray-200: #e5e7eb;       // gray-200
+  --yc-color-gray-300: #d1d5db;       // gray-300
+  --yc-color-gray-400: #9ca3af;       // gray-400
+  --yc-color-gray-500: #6b7280;       // gray-500
+  --yc-color-gray-600: #4b5563;       // gray-600
+  --yc-color-gray-700: #374151;       // gray-700
+  --yc-color-gray-800: #1f2937;       // gray-800
+  --yc-color-gray-900: #111827;       // gray-900
+  
+  // Map YChart text colors to Tailwind
+  --yc-color-text-primary: #111827;   // gray-900
+  --yc-color-text-secondary: #4b5563; // gray-600
+  --yc-color-text-tertiary: #6b7280;  // gray-500
+  --yc-color-text-muted: #6b7280;     // gray-500
+  --yc-color-text-heading: #111827;   // gray-900
+  --yc-color-text-inverse: #ffffff;   // white
+  
+  // Map YChart backgrounds to Tailwind
+  --yc-color-bg-primary: #ffffff;     // white
+  --yc-color-bg-secondary: #f9fafb;   // gray-50
+  --yc-color-bg-tertiary: #f3f4f6;    // gray-100
+  --yc-color-bg-card: #ffffff;        // white
+  
+  // Map YChart borders to Tailwind
+  --yc-border-width-thin: 1px;
+  --yc-color-button-border: #d1d5db;  // gray-300
+  --yc-border-radius-sm: 0.125rem;    // rounded-sm
+  --yc-border-radius-md: 0.375rem;    // rounded-md
+  --yc-border-radius-lg: 0.5rem;      // rounded-lg
+  --yc-border-radius-xl: 0.75rem;     // rounded-xl
+  --yc-border-radius-pill: 9999px;    // rounded-full
+  
+  // Map YChart shadows to Tailwind
+  --yc-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --yc-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --yc-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --yc-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --yc-shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  
+  // Map YChart typography to Tailwind
+  --yc-font-family-base: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --yc-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --yc-font-size-xs: 0.75rem;         // text-xs
+  --yc-font-size-sm: 0.875rem;        // text-sm
+  --yc-font-size-base: 1rem;          // text-base
+  --yc-font-size-lg: 1.125rem;        // text-lg
+  --yc-font-size-xl: 1.25rem;         // text-xl
+  --yc-font-size-2xl: 1.5rem;         // text-2xl
+  --yc-font-weight-normal: 400;       // font-normal
+  --yc-font-weight-medium: 500;       // font-medium
+  --yc-font-weight-semibold: 600;     // font-semibold
+  --yc-font-weight-bold: 700;         // font-bold
+  
+  // Map YChart accent colors to Tailwind
+  --yc-color-accent-purple: #9333ea;  // purple-600
+  --yc-color-accent-red: #dc2626;     // red-600
+  
+  // Map YChart rainbow/spectrum colors to Tailwind
+  --yc-color-red: #ef4444;            // red-500
+  --yc-color-orange: #f97316;         // orange-500
+  --yc-color-yellow: #eab308;         // yellow-500
+  --yc-color-green: #10b981;          // green-500
+  --yc-color-blue: #3b82f6;           // blue-500
+  --yc-color-indigo: #4f46e5;         // indigo-600
+  --yc-color-violet: #9333ea;         // purple-600
+  
+  // Map YChart additional spectrum colors to Tailwind
+  --yc-color-white: #ffffff;          // white
+  --yc-color-black: #000000;          // black
+  --yc-color-cyan: #06b6d4;           // cyan-500
+  --yc-color-mint: #d1fae5;           // emerald-100
+  --yc-color-navy: #0f172a;           // slate-900
+  --yc-color-navy-medium: #1e293b;    // slate-800
+  --yc-color-navy-light: #334155;     // slate-700
+}
