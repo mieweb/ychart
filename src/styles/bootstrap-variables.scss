@@ -1,0 +1,87 @@
+// YChart CSS Custom Property Overrides
+// This overrides YChart's --yc-* variables to use Bootstrap's --bs-* variables
+// Bootstrap is the master theme, YChart components follow Bootstrap colors
+// Place this AFTER Bootstrap imports in style.scss
+
+:root {
+  // Map YChart colors to Bootstrap colors
+  --yc-color-primary: var(--bs-primary);
+  --yc-color-primary-dark: var(--bs-primary);  // Bootstrap will handle hover states
+  --yc-color-primary-light: var(--bs-primary);
+  
+  --yc-color-secondary: var(--bs-secondary);
+  --yc-color-secondary-hover: var(--bs-secondary);
+  
+  --yc-color-success: var(--bs-success);
+  --yc-color-error: var(--bs-danger);
+  --yc-color-error-red: var(--bs-danger);
+  --yc-color-warning: var(--bs-warning);
+  --yc-color-warning-amber: var(--bs-warning);
+  
+  // Map YChart grays to Bootstrap grays
+  --yc-color-gray-100: var(--bs-gray-100);
+  --yc-color-gray-200: var(--bs-gray-200);
+  --yc-color-gray-300: var(--bs-gray-300);
+  --yc-color-gray-400: var(--bs-gray-400);
+  --yc-color-gray-500: var(--bs-gray-500);
+  --yc-color-gray-600: var(--bs-gray-600);
+  --yc-color-gray-700: var(--bs-gray-700);
+  --yc-color-gray-800: var(--bs-gray-800);
+  --yc-color-gray-900: var(--bs-gray-900);
+  
+  // Map YChart text colors to Bootstrap
+  --yc-color-text-primary: var(--bs-body-color);
+  --yc-color-text-secondary: var(--bs-secondary-color);
+  --yc-color-text-tertiary: var(--bs-tertiary-color);
+  --yc-color-text-muted: var(--bs-secondary-color);
+  --yc-color-text-heading: var(--bs-emphasis-color);
+  --yc-color-text-inverse: var(--bs-white);
+  
+  // Map YChart backgrounds to Bootstrap
+  --yc-color-bg-primary: var(--bs-body-bg);
+  --yc-color-bg-secondary: var(--bs-secondary-bg);
+  --yc-color-bg-tertiary: var(--bs-tertiary-bg);
+  --yc-color-bg-card: var(--bs-body-bg);
+  
+  // Map YChart borders to Bootstrap
+  --yc-border-width-thin: var(--bs-border-width);
+  --yc-color-button-border: var(--bs-border-color);
+  --yc-border-radius-sm: var(--bs-border-radius-sm);
+  --yc-border-radius-md: var(--bs-border-radius);
+  --yc-border-radius-lg: var(--bs-border-radius-lg);
+  --yc-border-radius-xl: var(--bs-border-radius-xl);
+  --yc-border-radius-pill: var(--bs-border-radius-pill);
+  
+  // Map YChart shadows to Bootstrap
+  --yc-shadow-sm: var(--bs-box-shadow-sm);
+  --yc-shadow-md: var(--bs-box-shadow);
+  --yc-shadow-lg: var(--bs-box-shadow-lg);
+  
+  // Map YChart typography to Bootstrap
+  --yc-font-family-base: var(--bs-body-font-family);
+  --yc-font-family-mono: var(--bs-font-monospace);
+  --yc-font-size-xl: var(--bs-body-font-size);
+  --yc-font-weight-normal: var(--bs-body-font-weight);
+  --yc-line-height-normal: var(--bs-body-line-height);
+  
+  // Map YChart accent colors to Bootstrap
+  --yc-color-accent-purple: var(--bs-purple);
+  --yc-color-accent-red: var(--bs-red);
+  
+  // Map YChart rainbow/spectrum colors to Bootstrap
+  --yc-color-red: var(--bs-red);
+  --yc-color-orange: var(--bs-orange);
+  --yc-color-yellow: var(--bs-yellow);
+  --yc-color-green: var(--bs-green);
+  --yc-color-blue: var(--bs-blue);
+  --yc-color-indigo: var(--bs-indigo);
+  --yc-color-violet: var(--bs-purple);
+  
+  // Map YChart additional spectrum colors to Bootstrap
+  --yc-color-white: var(--bs-white);
+  --yc-color-black: var(--bs-black);
+  --yc-color-cyan: var(--bs-cyan);
+  --yc-color-navy: var(--bs-dark);
+  --yc-color-navy-medium: var(--bs-gray-900);
+  --yc-color-navy-light: var(--bs-gray-800);
+}

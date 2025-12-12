@@ -1,0 +1,312 @@
+// YChart Design System Variables
+// Prefix: --yc- (YChart)
+// These variables can be mapped to Bootstrap or Tailwind for framework integration
+
+:root {
+  // ============================================
+  // COLOR PALETTE
+  // ============================================
+  
+  // Primary Brand Colors
+  --yc-color-primary: #667eea;
+  --yc-color-primary-dark: #5568d3;
+  --yc-color-primary-light: #764ba2;
+  
+  // Secondary Colors
+  --yc-color-secondary: #4A90E2;
+  --yc-color-secondary-hover: #5a7fc4;
+  
+  // Neutral Grays
+  --yc-color-gray-50: #fafbfc;
+  --yc-color-gray-100: #f7fafc;
+  --yc-color-gray-200: #f5f7fa;
+  --yc-color-gray-300: #f1f1f1;
+  --yc-color-gray-400: #e0e0e0;
+  --yc-color-gray-500: #ccc;
+  --yc-color-gray-600: #999;
+  --yc-color-gray-700: #666;
+  --yc-color-gray-800: #333;
+  --yc-color-gray-900: #1a202c;
+  
+  // Text Colors
+  --yc-color-text-primary: var(--yc-color-gray-800);
+  --yc-color-text-secondary: var(--yc-color-gray-700);
+  --yc-color-text-tertiary: var(--yc-color-gray-600);
+  --yc-color-text-muted: #718096;
+  --yc-color-text-light: #a0aec0;
+  --yc-color-text-heading: #2d3748;
+  --yc-color-text-inverse: #ffffff;
+  
+  // Background Colors
+  --yc-color-bg-primary: #ffffff;
+  --yc-color-bg-secondary: var(--yc-color-gray-200);
+  --yc-color-bg-tertiary: var(--yc-color-gray-50);
+  --yc-color-bg-card: #ffffff;
+  
+  // Editor Colors
+  --yc-color-editor-bg: #282c34;
+  --yc-color-editor-border: #3e4451;
+  --yc-color-editor-text: #abb2bf;
+  
+  // State Colors
+  --yc-color-error: #c33;
+  --yc-color-error-light: #fee;
+  --yc-color-error-bg: #fee2e2;
+  --yc-color-error-bg-gradient: #fecaca;
+  --yc-color-error-border: #ef4444;
+  --yc-color-error-red: #ff4444;
+  --yc-color-error-red-bg: rgba(255, 68, 68, 0.1);
+  --yc-color-error-red-light: #dc2626;
+  --yc-color-error-red-dark: #b91c1c;
+  --yc-color-error-red-text: #7f1d1d;
+  --yc-color-error-red-accent: #c53030;
+  --yc-color-error-red-hover: #feb2b2;
+  --yc-color-error-red-border: #fc8181;
+  
+  --yc-color-warning: #ffaa00;
+  --yc-color-warning-bg: rgba(255, 170, 0, 0.1);
+  --yc-color-warning-amber: #f59e0b;
+  --yc-color-warning-amber-dark: #d97706;
+  --yc-color-warning-amber-darker: #b45309;
+  
+  --yc-color-success: #2196F3;
+  --yc-color-success-shadow: rgba(33, 150, 243, 0.6);
+  
+  // Accent Colors
+  --yc-color-accent-purple: #9b59b6;
+  --yc-color-accent-purple-dark: #8e44ad;
+  --yc-color-accent-red: #e74c3c;
+  
+  // Rainbow/Spectrum Colors (for gradients and decorative use)
+  --yc-color-red: #ff0000;
+  --yc-color-orange: #ff7f00;
+  --yc-color-yellow: #ffff00;
+  --yc-color-green: #00ff00;
+  --yc-color-blue: #0000ff;
+  --yc-color-indigo: #4b0082;
+  --yc-color-violet: #9400d3;
+  
+  // Additional spectrum shades
+  --yc-color-white: #ffffff;
+  --yc-color-black: #000000;
+  --yc-color-cyan: #a8dadc;
+  --yc-color-mint: #f1faee;
+  --yc-color-navy: #1a1a2e;
+  --yc-color-navy-medium: #16213e;
+  --yc-color-navy-light: #0f3460;
+  
+  // Interactive Colors
+  --yc-color-button-text: var(--yc-color-primary);
+  --yc-color-button-bg: var(--yc-color-gray-100);
+  --yc-color-button-bg-hover: #edf2f7;
+  --yc-color-button-border: #e2e8f0;
+  --yc-color-button-border-hover: #cbd5e0;
+  --yc-color-icon: #4a5568;
+  
+  // Additional UI Colors (for column controls, close buttons, etc.)
+  --yc-color-ui-slate: #2c3e50;
+  --yc-color-ui-slate-light: #7f8c8d;
+  --yc-color-ui-slate-lighter: #95a5a6;
+  --yc-color-ui-gray-light: #ecf0f1;
+  
+  // Production demo colors
+  --yc-color-header-subtext: #b0c4de;
+  
+  // Overlay & Shadow Colors
+  --yc-color-overlay-bg: rgba(255, 255, 255, 0.95);
+  --yc-color-overlay-dark: rgba(0, 0, 0, 0.9);
+  --yc-color-overlay-white-15: rgba(255, 255, 255, 0.15);
+  --yc-color-overlay-white-90: rgba(255, 255, 255, 0.9);
+  --yc-color-shadow-light: rgba(0, 0, 0, 0.1);
+  --yc-color-shadow-medium: rgba(0, 0, 0, 0.15);
+  --yc-color-shadow-dark: rgba(0, 0, 0, 0.2);
+  --yc-color-shadow-3xl: rgba(0, 0, 0, 0.3);
+  
+  // Pattern Colors
+  --yc-color-pattern: #cccccc;
+  
+  // ============================================
+  // TYPOGRAPHY
+  // ============================================
+  
+  // Font Families
+  --yc-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --yc-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  
+  // Font Sizes
+  --yc-font-size-xs: 0.6875rem;    // 11px
+  --yc-font-size-sm: 0.75rem;      // 12px
+  --yc-font-size-base: 0.8125rem;  // 13px
+  --yc-font-size-md: 0.875rem;     // 14px
+  --yc-font-size-lg: 0.9375rem;    // 15px
+  --yc-font-size-xl: 1rem;         // 16px
+  --yc-font-size-2xl: 1.125rem;    // 18px
+  --yc-font-size-3xl: 1.3rem;      // ~21px
+  --yc-font-size-4xl: 1.8rem;      // ~29px
+  
+  // Line Heights
+  --yc-line-height-tight: 1.3;
+  --yc-line-height-normal: 1.5;
+  --yc-line-height-relaxed: 1.75;
+  
+  // Font Weights
+  --yc-font-weight-normal: 400;
+  --yc-font-weight-medium: 500;
+  --yc-font-weight-semibold: 600;
+  --yc-font-weight-bold: 700;
+  
+  // ============================================
+  // SPACING
+  // ============================================
+  
+  // Base spacing unit (8px system)
+  --yc-spacing-unit: 0.5rem;  // 8px
+  
+  // Spacing Scale
+  --yc-spacing-xxs: 0.125rem;  // 2px
+  --yc-spacing-xs: 0.25rem;    // 4px
+  --yc-spacing-sm: 0.375rem;   // 6px
+  --yc-spacing-md: 0.5rem;     // 8px
+  --yc-spacing-lg: 0.625rem;   // 10px
+  --yc-spacing-xl: 0.75rem;    // 12px
+  --yc-spacing-2xl: 0.875rem;  // 14px
+  --yc-spacing-3xl: 1rem;      // 16px
+  --yc-spacing-4xl: 1.25rem;   // 20px
+  --yc-spacing-5xl: 1.5rem;    // 24px
+  --yc-spacing-6xl: 2rem;      // 32px
+  
+  // Component-specific spacing
+  --yc-spacing-toolbar-gap: 0.5rem;       // 8px
+  --yc-spacing-toolbar-padding: 0.5rem;   // 8px
+  --yc-spacing-button-padding-sm: 0.25rem 0.5rem;  // 4px 8px
+  --yc-spacing-button-padding-md: 0.5rem 0.75rem;  // 8px 12px
+  --yc-spacing-button-padding-lg: 0.75rem 1.5rem;  // 12px 24px
+  
+  // ============================================
+  // BORDERS
+  // ============================================
+  
+  // Border Widths
+  --yc-border-width-thin: 1px;
+  --yc-border-width-medium: 2px;
+  --yc-border-width-thick: 3px;
+  --yc-border-width-heavy: 4px;
+  
+  // Border Radius
+  --yc-border-radius-sm: 0.25rem;   // 4px
+  --yc-border-radius-md: 0.375rem;  // 6px
+  --yc-border-radius-lg: 0.5rem;    // 8px
+  --yc-border-radius-xl: 0.75rem;   // 12px
+  --yc-border-radius-full: 50%;
+  --yc-border-radius-pill: 1.25rem; // 20px
+  
+  // Border Radius Complex (specific components)
+  --yc-border-radius-left: 0.25rem 0 0 0.25rem;
+  
+  // ============================================
+  // SHADOWS
+  // ============================================
+  
+  --yc-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --yc-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --yc-shadow-md: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --yc-shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --yc-shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.15);
+  --yc-shadow-2xl: 0 4px 12px rgba(0, 0, 0, 0.15);
+  --yc-shadow-3xl: 0 4px 15px rgba(0, 0, 0, 0.1);
+  --yc-shadow-4xl: 0 8px 24px rgba(0, 0, 0, 0.2);
+  
+  // Component-specific shadows
+  --yc-shadow-button: 0 2px 8px rgba(102, 126, 234, 0.3);
+  --yc-shadow-node-selected: 0 0 8px rgba(33, 150, 243, 0.6);
+  --yc-shadow-header: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --yc-shadow-wrapper: 0 8px 32px rgba(0, 0, 0, 0.2);
+  
+  // ============================================
+  // SIZING
+  // ============================================
+  
+  // Common widths
+  --yc-width-sidebar: 400px;
+  --yc-width-sidebar-collapsed: 0px;
+  --yc-width-detail-panel: 400px;
+  --yc-width-detail-panel-max: 350px;
+  --yc-width-search-popup: 500px;
+  --yc-width-toolbar-button: 36px;
+  
+  // Common heights
+  --yc-height-toolbar-button: 36px;
+  --yc-height-badge: 16px;
+  --yc-height-icon-sm: 20px;
+  --yc-height-icon-md: 24px;
+  --yc-height-button-sm: 24px;
+  --yc-height-button-md: 28px;
+  --yc-height-error-banner-max: 120px;
+  
+  // ============================================
+  // Z-INDEX SCALE
+  // ============================================
+  
+  --yc-z-index-base: 1;
+  --yc-z-index-overlay-button: 5;
+  --yc-z-index-overlay: 10;
+  --yc-z-index-toolbar: 50;
+  --yc-z-index-detail-panel: 100;
+  --yc-z-index-search-popup: 1000;
+  --yc-z-index-search-history: 999;
+  --yc-z-index-collapse-button: 1001;
+  
+  // ============================================
+  // TRANSITIONS
+  // ============================================
+  
+  --yc-transition-fast: 0.2s ease;
+  --yc-transition-normal: 0.3s ease;
+  --yc-transition-slow: 0.4s ease;
+  --yc-transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  // ============================================
+  // OPACITY
+  // ============================================
+  
+  --yc-opacity-disabled: 0.5;
+  --yc-opacity-hover: 0.8;
+  --yc-opacity-dragging: 0.7;
+  --yc-opacity-node-hover: 0.9;
+  --yc-opacity-transparent: 0;
+  --yc-opacity-full: 1;
+  
+  // ============================================
+  // BLUR
+  // ============================================
+  
+  --yc-blur-sm: 5px;
+  --yc-blur-md: 10px;
+  
+  // ============================================
+  // TRANSFORMS
+  // ============================================
+  
+  --yc-transform-button-hover: translateY(-2px);
+  --yc-transform-button-active: translateY(0);
+  --yc-transform-button-lift-sm: translateY(-1px);
+  
+  // ============================================
+  // GRADIENTS
+  // ============================================
+  
+  --yc-gradient-primary: linear-gradient(135deg, var(--yc-color-primary) 0%, var(--yc-color-primary-light) 100%);
+  --yc-gradient-error: linear-gradient(135deg, var(--yc-color-error-bg) 0%, var(--yc-color-error-bg-gradient) 100%);
+  --yc-gradient-background: linear-gradient(to bottom, var(--yc-color-gray-50) 0%, var(--yc-color-gray-200) 100%);
+  
+  // Production demo gradients
+  --yc-gradient-header-dark: linear-gradient(135deg, var(--yc-color-navy) 0%, var(--yc-color-navy-medium) 50%, var(--yc-color-navy-light) 100%);
+  --yc-gradient-rainbow: linear-gradient(90deg, var(--yc-color-red), var(--yc-color-orange), var(--yc-color-yellow), var(--yc-color-green), var(--yc-color-blue), var(--yc-color-indigo), var(--yc-color-violet), var(--yc-color-red));
+  --yc-gradient-title-light: linear-gradient(135deg, var(--yc-color-white) 0%, var(--yc-color-cyan) 50%, var(--yc-color-mint) 100%);
+  
+  // ============================================
+  // BACKDROP FILTER
+  // ============================================
+  
+  --yc-backdrop-blur: blur(10px);
+}

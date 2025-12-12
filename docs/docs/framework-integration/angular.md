@@ -543,7 +543,7 @@ If styles aren't loading, add to `angular.json`:
         "build": {
           "options": {
             "styles": [
-              "src/styles.css",
+              "src/styles/styles.scss",
               "node_modules/ychart-editor/dist/style.css"
             ]
           }

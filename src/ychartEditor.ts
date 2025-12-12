@@ -5,7 +5,7 @@ import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import * as jsyaml from 'js-yaml';
 import { OrgChart } from './d3-org-chart.js';
 import { ForceGraph } from './forceGraph.js';
-import './style.css';
+import './styles/styles.scss';
 
 interface YChartOptions {
   nodeWidth?: number;
@@ -173,17 +173,17 @@ class YChartEditor {
     this.detailsPanel.style.cssText = `
       display: none;
       position: absolute;
-      right: 20px;
-      top: 20px;
-      background: white;
-      border: 2px solid #667eea;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      max-width: 400px;
+      right: var(--yc-spacing-4xl);
+      top: var(--yc-spacing-4xl);
+      background: var(--yc-color-bg-card);
+      border: var(--yc-border-width-medium) solid var(--yc-color-primary);
+      border-radius: var(--yc-border-radius-lg);
+      padding: var(--yc-spacing-5xl);
+      box-shadow: var(--yc-shadow-lg);
+      max-width: var(--yc-width-detail-panel);
       max-height: 80%;
       overflow-y: auto;
-      z-index: 100;
+      z-index: var(--yc-z-index-detail-panel);
     `;
     chartWrapper.appendChild(this.detailsPanel);
 
@@ -196,12 +196,12 @@ class YChartEditor {
     editorSidebar.id = `ychart-editor-sidebar-${this.instanceId}`;
     editorSidebar.setAttribute('data-id', `ychart-editor-sidebar-${this.instanceId}`);
     editorSidebar.style.cssText = `
-      width: 400px;
+      width: var(--yc-width-sidebar);
       height: 100%;
-      border-left: 1px solid #ccc;
+      border-left: var(--yc-border-width-thin) solid var(--yc-color-gray-500);
       overflow: hidden;
       position: relative;
-      transition: width 0.3s ease, border-left-width 0s 0.3s;
+      transition: width var(--yc-transition-normal), border-left-width 0s 0.3s;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -213,13 +213,13 @@ class YChartEditor {
     this.errorBanner.className = 'ychart-error-banner';
     this.errorBanner.style.cssText = `
       display: none;
-      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-      border-bottom: 2px solid #ef4444;
-      padding: 8px 12px;
-      max-height: 120px;
+      background: var(--yc-gradient-error);
+      border-bottom: var(--yc-border-width-medium) solid var(--yc-color-error-border);
+      padding: var(--yc-spacing-md) var(--yc-spacing-xl);
+      max-height: var(--yc-height-error-banner-max);
       overflow-y: auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
+      font-family: var(--yc-font-family-base);
+      font-size: var(--yc-font-size-base);
     `;
     editorSidebar.appendChild(this.errorBanner);
 
@@ -229,14 +229,14 @@ class YChartEditor {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
-      background: #282c34;
-      border-bottom: 1px solid #3e4451;
+      padding: var(--yc-spacing-md) var(--yc-spacing-xl);
+      background: var(--yc-color-editor-bg);
+      border-bottom: var(--yc-border-width-thin) solid var(--yc-color-editor-border);
     `;
 
     const editorTitle = document.createElement('div');
     editorTitle.textContent = 'YAML Editor';
-    editorTitle.style.cssText = 'color: #abb2bf; font-size: 12px; font-weight: 600;';
+    editorTitle.style.cssText = 'color: var(--yc-color-editor-text); font-size: var(--yc-font-size-sm); font-weight: var(--yc-font-weight-semibold);';
     editorHeader.appendChild(editorTitle);
 
     const formatBtn = document.createElement('button');
@@ -245,25 +245,25 @@ class YChartEditor {
         <polyline points="16 18 22 12 16 6"/>
         <polyline points="8 6 2 12 8 18"/>
       </svg>
-      <span style="margin-left: 4px;">Format</span>
+      <span style="margin-left: var(--yc-spacing-xs);">Format</span>
     `;
     formatBtn.style.cssText = `
       display: flex;
       align-items: center;
-      background: #667eea;
+      background: var(--yc-color-primary);
       color: white;
       border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: var(--yc-spacing-xs) var(--yc-spacing-md);
+      border-radius: var(--yc-border-radius-sm);
       cursor: pointer;
-      font-size: 11px;
-      transition: background 0.2s ease;
+      font-size: var(--yc-font-size-xs);
+      transition: background var(--yc-transition-fast);
     `;
     formatBtn.onmouseenter = () => {
-      formatBtn.style.background = '#5568d3';
+      formatBtn.style.background = 'var(--yc-color-primary-dark)';
     };
     formatBtn.onmouseleave = () => {
-      formatBtn.style.background = '#667eea';
+      formatBtn.style.background = 'var(--yc-color-primary)';
     };
     formatBtn.onclick = () => this.handleFormatYAML();
     editorHeader.appendChild(formatBtn);
@@ -285,17 +285,17 @@ class YChartEditor {
       collapseBtn.style.cssText = `
         position: absolute;
         right: 399px;
-        top: 10px;
-        z-index: 1001;
-        background: #667eea;
+        top: var(--yc-spacing-lg);
+        z-index: var(--yc-z-index-collapse-button);
+        background: var(--yc-color-primary);
         color: white;
         border: none;
-        padding: 8px 6px;
+        padding: var(--yc-spacing-md) var(--yc-spacing-sm);
         cursor: pointer;
-        border-radius: 4px 0 0 4px;
-        font-size: 12px;
-        transition: right 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        border-radius: var(--yc-border-radius-left);
+        font-size: var(--yc-font-size-sm);
+        transition: right var(--yc-transition-normal);
+        box-shadow: var(--yc-shadow-sm);
       `;
       collapseBtn.onclick = () => this.toggleEditor();
       this.viewContainer.appendChild(collapseBtn);
@@ -307,7 +307,7 @@ class YChartEditor {
   }
 
   private getToolbarPositionStyles(): string {
-    const margin = '20px';
+    const margin = 'var(--yc-spacing-4xl)';
     
     switch (this.toolbarPosition) {
       case 'topleft':
@@ -334,20 +334,20 @@ class YChartEditor {
     if (isVertical) {
       // If toolbar is on the left side, show tooltip to the right
       if (this.toolbarPosition.includes('left')) {
-        return `left: calc(100% + 8px); top: 50%; transform: translateY(-50%) scale(0.8);`;
+        return `left: calc(100% + var(--yc-spacing-md)); top: 50%; transform: translateY(-50%) scale(0.8);`;
       }
       // If toolbar is on the right side, show tooltip to the left
-      return `right: calc(100% + 8px); top: 50%; transform: translateY(-50%) scale(0.8);`;
+      return `right: calc(100% + var(--yc-spacing-md)); top: 50%; transform: translateY(-50%) scale(0.8);`;
     }
     
     // For horizontal toolbars, show tooltip above or below
     // If toolbar is at the top, show tooltip below
     if (this.toolbarPosition.includes('top')) {
-      return `top: calc(100% + 8px); left: 50%; transform: translateX(-50%) scale(0.8);`;
+      return `top: calc(100% + var(--yc-spacing-md)); left: 50%; transform: translateX(-50%) scale(0.8);`;
     }
     
     // If toolbar is at the bottom, show tooltip above
-    return `bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) scale(0.8);`;
+    return `bottom: calc(100% + var(--yc-spacing-md)); left: 50%; transform: translateX(-50%) scale(0.8);`;
   }
 
   private createToolbar(): HTMLElement {
@@ -363,14 +363,14 @@ class YChartEditor {
       ${positionStyles}
       display: flex;
       flex-direction: ${orientation};
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 50;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      gap: var(--yc-spacing-md);
+      background: var(--yc-color-overlay-bg);
+      backdrop-filter: var(--yc-backdrop-blur);
+      border-radius: var(--yc-border-radius-xl);
+      padding: var(--yc-spacing-md);
+      box-shadow: var(--yc-shadow-2xl);
+      z-index: var(--yc-z-index-toolbar);
+      border: var(--yc-border-width-thin) solid var(--yc-color-shadow-light);
     `;
 
     // Icon definitions
@@ -419,14 +419,14 @@ class YChartEditor {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: var(--yc-width-toolbar-button);
+        height: var(--yc-height-toolbar-button);
         border: none;
         background: transparent;
-        color: #4a5568;
+        color: var(--yc-color-icon);
         cursor: pointer;
-        border-radius: 8px;
-        transition: all 0.2s ease;
+        border-radius: var(--yc-border-radius-lg);
+        transition: all var(--yc-transition-fast);
         padding: 0;
       `;
 
@@ -441,18 +441,18 @@ class YChartEditor {
       tooltip.style.cssText = `
         position: absolute;
         ${tooltipPosition}
-        background: rgba(0, 0, 0, 0.9);
+        background: var(--yc-color-overlay-dark);
         color: white;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
+        padding: var(--yc-spacing-sm) var(--yc-spacing-xl);
+        border-radius: var(--yc-border-radius-md);
+        font-size: var(--yc-font-size-sm);
         white-space: nowrap;
         pointer-events: none;
         opacity: 0;
         transform: scale(0.8);
-        transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        z-index: 1000;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transition: all var(--yc-transition-fast) var(--yc-transition-bounce);
+        z-index: var(--yc-z-index-search-popup);
+        box-shadow: var(--yc-shadow-md);
       `;
       
       button.appendChild(tooltip);
@@ -465,25 +465,25 @@ class YChartEditor {
           position: absolute;
           top: -4px;
           right: -4px;
-          background: #f59e0b;
+          background: var(--yc-color-warning-amber);
           color: white;
-          border-radius: 50%;
-          width: 16px;
-          height: 16px;
+          border-radius: var(--yc-border-radius-full);
+          width: var(--yc-height-badge);
+          height: var(--yc-height-badge);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
-          font-weight: bold;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          font-size: var(--yc-font-size-sm);
+          font-weight: var(--yc-font-weight-bold);
+          box-shadow: var(--yc-shadow-sm);
         `;
         button.appendChild(badge);
       }
 
       button.onmouseenter = () => {
-        button.style.background = '#667eea';
+        button.style.background = 'var(--yc-color-primary)';
         button.style.color = 'white';
-        button.style.transform = 'translateY(-2px)';
+        button.style.transform = 'var(--yc-transform-button-hover)';
         
         // Show tooltip with animation - adjust transform based on position
         tooltip.style.opacity = '1';
@@ -501,16 +501,16 @@ class YChartEditor {
 
       button.onmouseleave = () => {
         if (btn.id === 'swap' && this.swapModeEnabled) {
-          button.style.background = '#e74c3c';
+          button.style.background = 'var(--yc-color-accent-red)';
           button.style.color = 'white';
         } else if (btn.id === 'columnAdjust' && this.columnAdjustMode) {
-          button.style.background = '#9b59b6';
+          button.style.background = 'var(--yc-color-accent-purple)';
           button.style.color = 'white';
         } else {
           button.style.background = 'transparent';
-          button.style.color = '#4a5568';
+          button.style.color = 'var(--yc-color-icon)';
         }
-        button.style.transform = 'translateY(0)';
+        button.style.transform = 'var(--yc-transform-button-active)';
         
         // Hide tooltip with animation - restore initial transform
         tooltip.style.opacity = '0';
@@ -562,11 +562,11 @@ class YChartEditor {
     const swapBtn = document.querySelector(`[data-id="ychart-btn-swap-${this.instanceId}"]`) as HTMLElement;
     if (swapBtn) {
       if (this.swapModeEnabled) {
-        swapBtn.style.background = '#e74c3c';
+        swapBtn.style.background = 'var(--yc-color-accent-red)';
         swapBtn.style.color = 'white';
       } else {
         swapBtn.style.background = 'transparent';
-        swapBtn.style.color = '#4a5568';
+        swapBtn.style.color = 'var(--yc-color-icon)';
       }
     }
   }
@@ -753,14 +753,14 @@ class YChartEditor {
 
     const searchBox = document.createElement('div');
     searchBox.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 10px 14px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      width: 500px;
+      background: var(--yc-color-bg-card);
+      border-radius: var(--yc-border-radius-lg);
+      padding: var(--yc-spacing-lg) var(--yc-spacing-2xl);
+      box-shadow: var(--yc-shadow-4xl);
+      width: var(--yc-width-search-popup);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--yc-spacing-md);
       position: relative;
     `;
 
@@ -776,9 +776,9 @@ class YChartEditor {
     title.textContent = 'Search Nodes';
     title.style.cssText = `
       margin: 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #1a202c;
+      font-size: var(--yc-font-size-md);
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-gray-900);
     `;
 
     const buttonsContainer = document.createElement('div');
@@ -799,9 +799,9 @@ class YChartEditor {
     `;
     historyButton.style.cssText = `
       position: relative;
-      background: #f7fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
+      background: var(--yc-color-button-bg);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
       width: 28px;
       height: 28px;
       display: flex;
@@ -819,11 +819,11 @@ class YChartEditor {
       bottom: 100%;
       right: 0;
       margin-bottom: 8px;
-      background: rgba(0, 0, 0, 0.9);
+      background: var(--yc-color-overlay-dark);
       color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
+      padding: var(--yc-spacing-button-padding-sm);
+      border-radius: var(--yc-border-radius-sm);
+      font-size: var(--yc-font-size-xs);
       white-space: nowrap;
       pointer-events: none;
       opacity: 0;
@@ -835,15 +835,15 @@ class YChartEditor {
     historyButton.appendChild(historyTooltip);
 
     historyButton.addEventListener('mouseenter', () => {
-      historyButton.style.background = '#edf2f7';
-      historyButton.style.borderColor = '#667eea';
+      historyButton.style.background = 'var(--yc-color-button-bg-hover)';
+      historyButton.style.borderColor = 'var(--yc-color-primary)';
       historyTooltip.style.opacity = '1';
       historyTooltip.style.transform = 'scale(1)';
     });
 
     historyButton.addEventListener('mouseleave', () => {
-      historyButton.style.background = '#f7fafc';
-      historyButton.style.borderColor = '#e2e8f0';
+      historyButton.style.background = 'var(--yc-color-button-bg)';
+      historyButton.style.borderColor = 'var(--yc-color-button-border)';
       historyTooltip.style.opacity = '0';
       historyTooltip.style.transform = 'scale(0.8)';
     });
@@ -857,8 +857,8 @@ class YChartEditor {
     closeButton.style.cssText = `
       background: none;
       border: none;
-      font-size: 22px;
-      color: #a0aec0;
+      font-size: var(--yc-font-size-3xl);
+      color: var(--yc-color-text-light);
       cursor: pointer;
       padding: 0;
       width: 24px;
@@ -866,16 +866,16 @@ class YChartEditor {
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 4px;
+      border-radius: var(--yc-border-radius-sm);
       transition: all 0.2s;
     `;
     closeButton.addEventListener('mouseenter', () => {
-      closeButton.style.background = '#f7fafc';
-      closeButton.style.color = '#4a5568';
+      closeButton.style.background = 'var(--yc-color-button-bg)';
+      closeButton.style.color = 'var(--yc-color-icon)';
     });
     closeButton.addEventListener('mouseleave', () => {
       closeButton.style.background = 'none';
-      closeButton.style.color = '#a0aec0';
+      closeButton.style.color = 'var(--yc-color-text-light)';
     });
     closeButton.addEventListener('click', () => this.closeSearchPopup());
 
@@ -901,20 +901,20 @@ class YChartEditor {
     // Add filter button
     const addFilterBtn = document.createElement('button');
     addFilterBtn.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: var(--yc-spacing-xs);">
         <line x1="12" y1="5" x2="12" y2="19"/>
         <line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
       Add Filter
     `;
     addFilterBtn.style.cssText = `
-      padding: 6px 10px;
-      background: #f7fafc;
-      color: #667eea;
-      border: 1px dashed #cbd5e0;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
+      padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+      background: var(--yc-color-button-bg);
+      color: var(--yc-color-primary);
+      border: 1px dashed var(--yc-color-button-border-hover);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-sm);
+      font-weight: var(--yc-font-weight-semibold);
       cursor: pointer;
       transition: all 0.2s;
       display: flex;
@@ -923,12 +923,12 @@ class YChartEditor {
       width: fit-content;
     `;
     addFilterBtn.addEventListener('mouseenter', () => {
-      addFilterBtn.style.background = '#edf2f7';
-      addFilterBtn.style.borderColor = '#667eea';
+      addFilterBtn.style.background = 'var(--yc-color-button-bg-hover)';
+      addFilterBtn.style.borderColor = 'var(--yc-color-primary)';
     });
     addFilterBtn.addEventListener('mouseleave', () => {
-      addFilterBtn.style.background = '#f7fafc';
-      addFilterBtn.style.borderColor = '#cbd5e0';
+      addFilterBtn.style.background = 'var(--yc-color-button-bg)';
+      addFilterBtn.style.borderColor = 'var(--yc-color-button-border-hover)';
     });
     addFilterBtn.addEventListener('click', () => {
       const newFilter = this.createFilterRow(filtersContainer);
@@ -945,10 +945,10 @@ class YChartEditor {
       flex-direction: column;
       max-height: 150px;
       overflow-y: auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      background: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
+      background: var(--yc-color-bg-card);
+      box-shadow: 0 2px 8px var(--yc-color-shadow-light);
     `;
 
     searchBox.appendChild(header);
@@ -979,13 +979,13 @@ class YChartEditor {
     // Field selector dropdown
     const fieldSelect = document.createElement('select');
     fieldSelect.style.cssText = `
-      padding: 7px 10px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 13px;
+      padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-base);
       outline: none;
       cursor: pointer;
-      background: white;
+      background: var(--yc-color-bg-card);
       min-width: 120px;
       transition: border-color 0.2s;
     `;
@@ -1000,11 +1000,11 @@ class YChartEditor {
     });
 
     fieldSelect.addEventListener('focus', () => {
-      fieldSelect.style.borderColor = '#667eea';
+      fieldSelect.style.borderColor = 'var(--yc-color-primary)';
     });
 
     fieldSelect.addEventListener('blur', () => {
-      fieldSelect.style.borderColor = '#e2e8f0';
+      fieldSelect.style.borderColor = 'var(--yc-color-button-border)';
     });
 
     // Search input container with suggestions
@@ -1019,21 +1019,21 @@ class YChartEditor {
     searchInput.placeholder = 'Type to search...';
     searchInput.style.cssText = `
       width: 100%;
-      padding: 7px 10px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 13px;
+      padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-base);
       outline: none;
       transition: border-color 0.2s;
     `;
 
     searchInput.addEventListener('focus', () => {
-      searchInput.style.borderColor = '#667eea';
+      searchInput.style.borderColor = 'var(--yc-color-primary)';
     });
 
     searchInput.addEventListener('blur', () => {
       setTimeout(() => {
-        searchInput.style.borderColor = '#e2e8f0';
+        searchInput.style.borderColor = 'var(--yc-color-button-border)';
       }, 200);
     });
 
@@ -1057,11 +1057,11 @@ class YChartEditor {
       padding: 0;
       width: 28px;
       height: 28px;
-      background: #fee;
-      color: #c53030;
-      border: 1px solid #fc8181;
-      border-radius: 6px;
-      font-size: 18px;
+      background: var(--yc-color-error-light);
+      color: var(--yc-color-error-red-accent);
+      border: 1px solid var(--yc-color-error-red-border);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-2xl);
       cursor: pointer;
       transition: all 0.2s;
       display: flex;
@@ -1071,11 +1071,11 @@ class YChartEditor {
     `;
 
     removeBtn.addEventListener('mouseenter', () => {
-      removeBtn.style.background = '#feb2b2';
+      removeBtn.style.background = 'var(--yc-color-error-red-hover)';
     });
 
     removeBtn.addEventListener('mouseleave', () => {
-      removeBtn.style.background = '#fee';
+      removeBtn.style.background = 'var(--yc-color-error-light)';
     });
 
     removeBtn.addEventListener('click', () => {
@@ -1192,8 +1192,8 @@ class YChartEditor {
     matches.forEach(({ node, score }) => {
       const suggestionItem = document.createElement('div');
       suggestionItem.style.cssText = `
-        padding: 6px 10px;
-        border-bottom: 1px solid #f7fafc;
+        padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+        border-bottom: 1px solid var(--yc-color-button-bg);
         cursor: pointer;
         transition: background 0.2s;
       `;
@@ -1204,18 +1204,18 @@ class YChartEditor {
       const displayDept = nodeData.department || '';
 
       suggestionItem.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: start; gap: var(--yc-spacing-md);">
           <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 600; color: #2d3748; font-size: 12px; line-height: 1.3; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
-            ${displayTitle ? `<div style="font-size: 10px; line-height: 1.3; color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>` : ''}
-            ${displayDept ? `<div style="font-size: 9px; line-height: 1.3; color: #a0aec0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayDept}</div>` : ''}
+            <div style="font-weight: var(--yc-font-weight-semibold); color: var(--yc-color-text-heading); font-size: var(--yc-font-size-sm); line-height: var(--yc-line-height-tight); margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
+            ${displayTitle ? `<div style="font-size: var(--yc-font-size-xs); line-height: var(--yc-line-height-tight); color: var(--yc-color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>` : ''}
+            ${displayDept ? `<div style="font-size: var(--yc-font-size-xs); line-height: var(--yc-line-height-tight); color: var(--yc-color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayDept}</div>` : ''}
           </div>
-          <div style="font-size: 9px; color: #667eea; font-weight: 600; flex-shrink: 0;">${Math.round(score * 100)}%</div>
+          <div style="font-size: var(--yc-font-size-xs); color: var(--yc-color-primary); font-weight: var(--yc-font-weight-semibold); flex-shrink: 0;">${Math.round(score * 100)}%</div>
         </div>
       `;
 
       suggestionItem.addEventListener('mouseenter', () => {
-        suggestionItem.style.background = '#f7fafc';
+        suggestionItem.style.background = 'var(--yc-color-button-bg)';
       });
 
       suggestionItem.addEventListener('mouseleave', () => {
@@ -1317,15 +1317,15 @@ class YChartEditor {
 
     const historyBox = document.createElement('div');
     historyBox.style.cssText = `
-      background: white;
-      border-radius: 8px;
+      background: var(--yc-color-bg-card);
+      border-radius: var(--yc-border-radius-lg);
       padding: 10px 14px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 16px var(--yc-color-shadow-dark);
       width: 500px;
       max-height: 300px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--yc-spacing-md);
     `;
 
     const historyHeader = document.createElement('div');
@@ -1340,31 +1340,31 @@ class YChartEditor {
     historyTitle.textContent = 'Search History';
     historyTitle.style.cssText = `
       margin: 0;
-      font-size: 13px;
-      font-weight: 600;
-      color: #1a202c;
+      font-size: var(--yc-font-size-base);
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-gray-900);
     `;
 
     const clearAllButton = document.createElement('button');
     clearAllButton.textContent = 'Clear All';
     clearAllButton.style.cssText = `
-      background: #fee;
-      color: #c53030;
-      border: 1px solid #fc8181;
-      border-radius: 6px;
+      background: var(--yc-color-error-light);
+      color: var(--yc-color-error-red-accent);
+      border: 1px solid var(--yc-color-error-red-border);
+      border-radius: var(--yc-border-radius-md);
       padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 600;
+      font-size: var(--yc-font-size-xs);
+      font-weight: var(--yc-font-weight-semibold);
       cursor: pointer;
       transition: all 0.2s;
     `;
 
     clearAllButton.addEventListener('mouseenter', () => {
-      clearAllButton.style.background = '#feb2b2';
+      clearAllButton.style.background = 'var(--yc-color-error-red-hover)';
     });
 
     clearAllButton.addEventListener('mouseleave', () => {
-      clearAllButton.style.background = '#fee';
+      clearAllButton.style.background = 'var(--yc-color-error-light)';
     });
 
     clearAllButton.addEventListener('click', () => {
@@ -1408,8 +1408,8 @@ class YChartEditor {
       emptyMessage.style.cssText = `
         padding: 20px;
         text-align: center;
-        color: #a0aec0;
-        font-size: 12px;
+        color: var(--yc-color-text-light);
+        font-size: var(--yc-font-size-sm);
       `;
       historyList.appendChild(emptyMessage);
       return;
@@ -1420,11 +1420,11 @@ class YChartEditor {
       historyItem.style.cssText = `
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--yc-spacing-md);
         padding: 8px 10px;
-        background: #f7fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
+        background: var(--yc-color-button-bg);
+        border: 1px solid var(--yc-color-button-border);
+        border-radius: var(--yc-border-radius-md);
         transition: all 0.2s;
         cursor: pointer;
       `;
@@ -1440,17 +1440,17 @@ class YChartEditor {
       const timestamp = new Date(item.timestamp).toLocaleString();
 
       historyContent.innerHTML = `
-        <div style="font-size: 12px; color: #2d3748; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${searchText}${nodeInfo}</div>
-        <div style="font-size: 10px; color: #a0aec0;">${timestamp}</div>
+        <div style="font-size: var(--yc-font-size-sm); color: var(--yc-color-text-heading); font-weight: var(--yc-font-weight-medium); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${searchText}${nodeInfo}</div>
+        <div style="font-size: var(--yc-font-size-xs); color: var(--yc-color-text-light);">${timestamp}</div>
       `;
 
       const removeButton = document.createElement('button');
       removeButton.innerHTML = '×';
       removeButton.style.cssText = `
-        background: #fee;
-        color: #c53030;
-        border: 1px solid #fc8181;
-        border-radius: 4px;
+        background: var(--yc-color-error-light);
+        color: var(--yc-color-error-red-accent);
+        border: 1px solid var(--yc-color-error-red-border);
+        border-radius: var(--yc-border-radius-sm);
         width: 24px;
         height: 24px;
         display: flex;
@@ -1458,16 +1458,16 @@ class YChartEditor {
         justify-content: center;
         cursor: pointer;
         transition: all 0.2s;
-        font-size: 16px;
+        font-size: var(--yc-font-size-xl);
         flex-shrink: 0;
       `;
 
       removeButton.addEventListener('mouseenter', () => {
-        removeButton.style.background = '#feb2b2';
+        removeButton.style.background = 'var(--yc-color-error-red-hover)';
       });
 
       removeButton.addEventListener('mouseleave', () => {
-        removeButton.style.background = '#fee';
+        removeButton.style.background = 'var(--yc-color-error-light)';
       });
 
       removeButton.addEventListener('click', (e) => {
@@ -1476,13 +1476,13 @@ class YChartEditor {
       });
 
       historyItem.addEventListener('mouseenter', () => {
-        historyItem.style.background = '#edf2f7';
-        historyItem.style.borderColor = '#cbd5e0';
+        historyItem.style.background = 'var(--yc-color-button-bg-hover)';
+        historyItem.style.borderColor = 'var(--yc-color-button-border-hover)';
       });
 
       historyItem.addEventListener('mouseleave', () => {
-        historyItem.style.background = '#f7fafc';
-        historyItem.style.borderColor = '#e2e8f0';
+        historyItem.style.background = 'var(--yc-color-button-bg)';
+        historyItem.style.borderColor = 'var(--yc-color-button-border)';
       });
 
       historyItem.addEventListener('click', () => {
@@ -1682,12 +1682,12 @@ class YChartEditor {
     const columnAdjustBtn = document.querySelector(`[data-id="ychart-btn-columnAdjust-${this.instanceId}"]`) as HTMLElement;
     if (columnAdjustBtn) {
       if (this.columnAdjustMode) {
-        columnAdjustBtn.style.background = '#9b59b6';
+        columnAdjustBtn.style.background = 'var(--yc-color-accent-purple)';
         columnAdjustBtn.style.color = 'white';
         console.log('Column adjust mode enabled. Click a parent node to adjust its children column layout.');
       } else {
         columnAdjustBtn.style.background = 'transparent';
-        columnAdjustBtn.style.color = '#4a5568';
+        columnAdjustBtn.style.color = 'var(--yc-color-icon)';
         this.hideColumnAdjustButtons();
         console.log('Column adjust mode disabled.');
       }
@@ -1725,23 +1725,23 @@ class YChartEditor {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(255, 255, 255, 0.98);
+      background: var(--yc-color-overlay-bg);
       backdrop-filter: blur(10px);
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 24px var(--yc-color-shadow-dark);
       z-index: 100;
-      border: 2px solid #9b59b6;
+      border: 2px solid var(--yc-color-accent-purple);
       min-width: 300px;
     `;
 
     const title = document.createElement('div');
     title.textContent = `Adjust Children Columns`;
     title.style.cssText = `
-      font-size: 16px;
-      font-weight: 600;
+      font-size: var(--yc-font-size-xl);
+      font-weight: var(--yc-font-weight-semibold);
       margin-bottom: 15px;
-      color: #2c3e50;
+      color: var(--yc-color-ui-slate);
       text-align: center;
     `;
     this.columnAdjustButtons.appendChild(title);
@@ -1749,8 +1749,8 @@ class YChartEditor {
     const info = document.createElement('div');
     info.textContent = `Node: ${nodeData.data.name || nodeData.data.id} (${childrenCount} children)`;
     info.style.cssText = `
-      font-size: 13px;
-      color: #7f8c8d;
+      font-size: var(--yc-font-size-base);
+      color: var(--yc-color-ui-slate-light);
       margin-bottom: 15px;
       text-align: center;
     `;
@@ -1773,9 +1773,9 @@ class YChartEditor {
       width: 40px;
       height: 40px;
       border: none;
-      background: ${currentColumns <= 2 ? '#ecf0f1' : '#9b59b6'};
+      background: ${currentColumns <= 2 ? 'var(--yc-color-ui-gray-light)' : 'var(--yc-color-accent-purple)'};
       color: white;
-      border-radius: 8px;
+      border-radius: var(--yc-border-radius-lg);
       cursor: ${currentColumns <= 2 ? 'not-allowed' : 'pointer'};
       display: flex;
       align-items: center;
@@ -1783,17 +1783,17 @@ class YChartEditor {
       transition: all 0.2s ease;
     `;
     if (currentColumns > 2) {
-      decreaseBtn.onmouseover = () => decreaseBtn.style.background = '#8e44ad';
-      decreaseBtn.onmouseleave = () => decreaseBtn.style.background = '#9b59b6';
+      decreaseBtn.onmouseover = () => decreaseBtn.style.background = 'var(--yc-color-accent-purple-dark)';
+      decreaseBtn.onmouseleave = () => decreaseBtn.style.background = 'var(--yc-color-accent-purple)';
       decreaseBtn.onclick = () => this.adjustNodeColumns(nodeData, currentColumns - 1);
     }
 
     const columnDisplay = document.createElement('div');
     columnDisplay.textContent = `${currentColumns} Columns`;
     columnDisplay.style.cssText = `
-      font-size: 18px;
-      font-weight: 600;
-      color: #2c3e50;
+      font-size: var(--yc-font-size-2xl);
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-ui-slate);
       min-width: 100px;
       text-align: center;
     `;
@@ -1805,9 +1805,9 @@ class YChartEditor {
       width: 40px;
       height: 40px;
       border: none;
-      background: ${currentColumns >= childrenCount ? '#ecf0f1' : '#9b59b6'};
+      background: ${currentColumns >= childrenCount ? 'var(--yc-color-ui-gray-light)' : 'var(--yc-color-accent-purple)'};
       color: white;
-      border-radius: 8px;
+      border-radius: var(--yc-border-radius-lg);
       cursor: ${currentColumns >= childrenCount ? 'not-allowed' : 'pointer'};
       display: flex;
       align-items: center;
@@ -1815,8 +1815,8 @@ class YChartEditor {
       transition: all 0.2s ease;
     `;
     if (currentColumns < childrenCount) {
-      increaseBtn.onmouseover = () => increaseBtn.style.background = '#8e44ad';
-      increaseBtn.onmouseleave = () => increaseBtn.style.background = '#9b59b6';
+      increaseBtn.onmouseover = () => increaseBtn.style.background = 'var(--yc-color-accent-purple-dark)';
+      increaseBtn.onmouseleave = () => increaseBtn.style.background = 'var(--yc-color-accent-purple)';
       increaseBtn.onclick = () => this.adjustNodeColumns(nodeData, currentColumns + 1);
     }
 
@@ -1832,16 +1832,16 @@ class YChartEditor {
       width: 100%;
       padding: 10px;
       border: none;
-      background: #95a5a6;
+      background: var(--yc-color-ui-slate-lighter);
       color: white;
-      border-radius: 8px;
+      border-radius: var(--yc-border-radius-lg);
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
+      font-size: var(--yc-font-size-md);
+      font-weight: var(--yc-font-weight-medium);
       transition: all 0.2s ease;
     `;
-    closeBtn.onmouseover = () => closeBtn.style.background = '#7f8c8d';
-    closeBtn.onmouseleave = () => closeBtn.style.background = '#95a5a6';
+    closeBtn.onmouseover = () => closeBtn.style.background = 'var(--yc-color-ui-slate-light)';
+    closeBtn.onmouseleave = () => closeBtn.style.background = 'var(--yc-color-ui-slate-lighter)';
     closeBtn.onclick = () => this.hideColumnAdjustButtons();
     this.columnAdjustButtons.appendChild(closeBtn);
 
@@ -2205,13 +2205,13 @@ class YChartEditor {
     header.style.cssText = `
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--yc-spacing-md);
       margin-bottom: 6px;
-      font-weight: 600;
-      color: #b91c1c;
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-error-red-dark);
     `;
     header.innerHTML = `
-      <span style="font-size: 16px;">⚠️</span>
+      <span style="font-size: var(--yc-font-size-xl);">⚠️</span>
       <span>${errors.length} error${errors.length !== 1 ? 's' : ''}${warnings.length > 0 ? `, ${warnings.length} warning${warnings.length !== 1 ? 's' : ''}` : ''}</span>
     `;
     banner.appendChild(header);
@@ -2223,7 +2223,7 @@ class YChartEditor {
       errorItem.style.cssText = `
         display: flex;
         align-items: flex-start;
-        gap: 8px;
+        gap: var(--yc-spacing-md);
         padding: 4px 0;
         ${index < allDiagnostics.length - 1 ? 'border-bottom: 1px solid rgba(239, 68, 68, 0.2);' : ''}
       `;
@@ -2248,22 +2248,22 @@ class YChartEditor {
       jumpBtn.textContent = `L${lineNumber}`;
       jumpBtn.title = `Jump to line ${lineNumber}`;
       jumpBtn.style.cssText = `
-        background: ${diagnostic.severity === 'error' ? '#dc2626' : '#d97706'};
+        background: ${diagnostic.severity === 'error' ? 'var(--yc-color-error-red-light)' : 'var(--yc-color-warning-amber-dark)'};
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: var(--yc-border-radius-sm);
         padding: 2px 8px;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: var(--yc-font-size-xs);
+        font-weight: var(--yc-font-weight-semibold);
         cursor: pointer;
         flex-shrink: 0;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
       `;
       jumpBtn.onmouseover = () => {
-        jumpBtn.style.background = diagnostic.severity === 'error' ? '#b91c1c' : '#b45309';
+        jumpBtn.style.background = diagnostic.severity === 'error' ? 'var(--yc-color-error-red-dark)' : 'var(--yc-color-warning-amber-darker)';
       };
       jumpBtn.onmouseleave = () => {
-        jumpBtn.style.background = diagnostic.severity === 'error' ? '#dc2626' : '#d97706';
+        jumpBtn.style.background = diagnostic.severity === 'error' ? 'var(--yc-color-error-red-light)' : 'var(--yc-color-warning-amber-dark)';
       };
       jumpBtn.onclick = () => {
         this.jumpToLine(lineNumber);
@@ -2273,7 +2273,7 @@ class YChartEditor {
       const messageSpan = document.createElement('span');
       messageSpan.textContent = displayMessage;
       messageSpan.style.cssText = `
-        color: #7f1d1d;
+        color: var(--yc-color-error-red-text);
         flex: 1;
         word-break: break-word;
       `;
@@ -2778,8 +2778,8 @@ class YChartEditor {
         .join('');
       
       return `
-        <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;position:relative">
-          <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+        <div style="width:${d.width}px;height:${d.height}px;padding:var(--yc-spacing-xl);background:var(--yc-color-text-inverse);border:var(--yc-border-width-medium) solid var(--yc-color-secondary);border-radius:var(--yc-border-radius-lg);box-sizing:border-box;position:relative">
+          <div class="details-btn" style="position:absolute;top:var(--yc-spacing-xs);right:var(--yc-spacing-xs);width:var(--yc-height-icon-sm);height:var(--yc-height-icon-sm);background:var(--yc-color-gray-300);border-radius:var(--yc-border-radius-full);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--yc-font-size-sm);color:var(--yc-color-text-secondary);z-index:var(--yc-z-index-overlay);border:var(--yc-border-width-thin) solid var(--yc-color-gray-500);" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
           ${cardHtml}
         </div>
       `;
@@ -2787,12 +2787,12 @@ class YChartEditor {
     
     // Priority 3: Default template
     return `
-      <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px;position:relative">
-        <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+      <div style="width:${d.width}px;height:${d.height}px;padding:var(--yc-spacing-xl);background:var(--yc-color-text-inverse);border:var(--yc-border-width-medium) solid var(--yc-color-secondary);border-radius:var(--yc-border-radius-lg);box-sizing:border-box;display:flex;align-items:center;gap:var(--yc-spacing-xl);position:relative">
+        <div class="details-btn" style="position:absolute;top:var(--yc-spacing-xs);right:var(--yc-spacing-xs);width:var(--yc-height-icon-sm);height:var(--yc-height-icon-sm);background:var(--yc-color-gray-300);border-radius:var(--yc-border-radius-full);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--yc-font-size-sm);color:var(--yc-color-text-secondary);z-index:var(--yc-z-index-overlay);border:var(--yc-border-width-thin) solid var(--yc-color-gray-500);" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ''}</div>
-          <div style="font-size:12px;color:#666;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ''}</div>
-          <div style="font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ''}</div>
+          <div style="font-size:var(--yc-font-size-md);font-weight:var(--yc-font-weight-bold);color:var(--yc-color-text-primary);margin-bottom:var(--yc-spacing-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ''}</div>
+          <div style="font-size:var(--yc-font-size-sm);color:var(--yc-color-text-secondary);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ''}</div>
+          <div style="font-size:var(--yc-font-size-xs);color:var(--yc-color-gray-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ''}</div>
         </div>
       </div>
     `;
@@ -2801,24 +2801,24 @@ class YChartEditor {
   private showNodeDetails(data: any): void {
     if (!this.detailsPanel) return;
 
-    let html = '<div class="node-details-content" style="font-family:sans-serif;">';
-    html += `<h3 style="margin:0 0 1rem 0;color:#333;">${data.name || 'Unknown'}</h3>`;
-    html += '<div style="display:grid;gap:0.5rem;">';
+    let html = '<div class="node-details-content" style="font-family:var(--yc-font-family-base);">';
+    html += `<h3 style="margin:0 0 var(--yc-spacing-3xl) 0;color:var(--yc-color-text-primary);">${data.name || 'Unknown'}</h3>`;
+    html += '<div style="display:grid;gap:var(--yc-spacing-md);">';
     
     for (const [key, value] of Object.entries(data)) {
       if (key.startsWith('_') || key === 'picture') continue;
       
       const label = key.charAt(0).toUpperCase() + key.slice(1);
       html += `
-        <div style="display:grid;grid-template-columns:120px 1fr;gap:0.5rem;">
-          <span style="font-weight:600;color:#666;">${label}:</span>
-          <span style="color:#333;">${value || 'N/A'}</span>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:var(--yc-spacing-md);">
+          <span style="font-weight:var(--yc-font-weight-semibold);color:var(--yc-color-text-secondary);">${label}:</span>
+          <span style="color:var(--yc-color-text-primary);">${value || 'N/A'}</span>
         </div>
       `;
     }
     
     html += '</div>';
-    html += `<button onclick="document.getElementById('ychart-node-details-${this.instanceId}').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
+    html += `<button onclick="document.getElementById('ychart-node-details-${this.instanceId}').style.display='none'" style="margin-top:var(--yc-spacing-3xl);padding:var(--yc-spacing-md) var(--yc-spacing-3xl);background:var(--yc-color-primary);color:white;border:none;border-radius:var(--yc-border-radius-sm);cursor:pointer;width:100%;">Close</button>`;
     html += '</div>';
     
     this.detailsPanel.innerHTML = html;
@@ -2844,7 +2844,7 @@ class YChartEditor {
     dot.setAttribute("cx", "2");
     dot.setAttribute("cy", "2");
     dot.setAttribute("r", "0.5");
-    dot.setAttribute("fill", this.defaultOptions.patternColor || "#cccccc");
+    dot.setAttribute("fill", this.defaultOptions.patternColor || "var(--yc-color-pattern)");
 
     pattern.appendChild(dot);
     defs.appendChild(pattern);
@@ -2873,7 +2873,7 @@ class YChartEditor {
     hLine.setAttribute("y1", "0");
     hLine.setAttribute("x2", "20");
     hLine.setAttribute("y2", "0");
-    hLine.setAttribute("stroke", this.defaultOptions.patternColor || "#cccccc");
+    hLine.setAttribute("stroke", this.defaultOptions.patternColor || "var(--yc-color-pattern)");
     hLine.setAttribute("stroke-width", "0.5");
     hLine.setAttribute("stroke-dasharray", "3, 3");
 
@@ -2886,7 +2886,7 @@ class YChartEditor {
     vLine.setAttribute("y1", "0");
     vLine.setAttribute("x2", "0");
     vLine.setAttribute("y2", "20");
-    vLine.setAttribute("stroke", this.defaultOptions.patternColor || "#cccccc");
+    vLine.setAttribute("stroke", this.defaultOptions.patternColor || "var(--yc-color-pattern)");
     vLine.setAttribute("stroke-width", "0.5");
     vLine.setAttribute("stroke-dasharray", "3, 3");
 

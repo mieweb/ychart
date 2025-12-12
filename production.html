@@ -20,7 +20,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             height: 100vh;
             overflow: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--yc-gradient-primary);
         }
 
         .app-container {
@@ -30,10 +30,10 @@
         }
 
         header {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            backdrop-filter: blur(10px);
+            background: var(--yc-gradient-header-dark);
+            backdrop-filter: var(--yc-backdrop-blur);
             padding: 1.5rem 2rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: var(--yc-shadow-header);
             z-index: 10;
             flex-shrink: 0;
             position: relative;
@@ -46,17 +46,7 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(
-                90deg,
-                #ff0000,
-                #ff7f00,
-                #ffff00,
-                #00ff00,
-                #0000ff,
-                #4b0082,
-                #9400d3,
-                #ff0000
-            );
+            background: var(--yc-gradient-rainbow);
             background-size: 200% 100%;
             animation: rainbow 3s linear infinite;
         }
@@ -73,7 +63,7 @@
         header h1 {
             font-size: 2rem;
             font-weight: 800;
-            background: linear-gradient(135deg, #ffffff 0%, #a8dadc 50%, #f1faee 100%);
+            background: var(--yc-gradient-title-light);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -81,7 +71,7 @@
         }
 
         header p {
-            color: #b0c4de;
+            color: var(--yc-color-header-subtext);
             font-size: 1rem;
         }
 
@@ -106,7 +96,7 @@
         }
 
         .git-info a {
-            color: rgba(255,255,255,0.9);
+            color: var(--yc-color-overlay-white-90);
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -115,7 +105,7 @@
         }
 
         .git-info a:hover {
-            color: white;
+            color: var(--yc-color-text-inverse);
             text-decoration: underline;
         }
 
@@ -127,17 +117,17 @@
 
         .commit-hash {
             font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, monospace;
-            background: rgba(255,255,255,0.15);
+            background: var(--yc-color-overlay-white-15);
             padding: 0.2rem 0.5rem;
             border-radius: 4px;
         }
 
         .ychart-wrapper {
             flex: 1;
-            background: white;
+            background: var(--yc-color-bg-card);
             margin: 1rem;
             border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            box-shadow: var(--yc-shadow-wrapper);
             overflow: hidden;
             display: flex;
             flex-direction: column;
@@ -168,13 +158,13 @@
         .footer {
             text-align: center;
             padding: 1rem;
-            color: white;
+            color: var(--yc-color-text-inverse);
             font-size: 0.9rem;
             opacity: 0.9;
         }
 
         .footer a {
-            color: white;
+            color: var(--yc-color-text-inverse);
             text-decoration: none;
             font-weight: 600;
         }
@@ -271,33 +261,33 @@ schema:
   supervisor: string | optional
 card:
   - div:
-      style: font-size:16px;font-weight:700;color:#1a202c;margin-bottom:6px;letter-spacing:-0.5px;
+      style: font-size:var(--yc-font-size-xl);font-weight:var(--yc-font-weight-bold);color:var(--yc-color-gray-900);margin-bottom:var(--yc-spacing-sm);letter-spacing:-0.5px;
       content: $name$
   - div:
-      style: font-size:11px;color:#667eea;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;
+      style: font-size:var(--yc-font-size-xs);color:var(--yc-color-primary);font-weight:var(--yc-font-weight-semibold);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:var(--yc-spacing-md);
       content: $title$
   - div:
-      style: font-size:12px;color:#4a5568;margin-bottom:4px;
+      style: font-size:var(--yc-font-size-sm);color:var(--yc-color-icon);margin-bottom:var(--yc-spacing-xs);
       children:
         - span:
-            style: font-weight:600;color:#2d3748;
+            style: font-weight:var(--yc-font-weight-semibold);color:var(--yc-color-text-heading);
             content: "📧 "
         - span:
-            style: color:#667eea;
+            style: color:var(--yc-color-primary);
             content: $email$
   - div:
-      style: font-size:11px;color:#718096;margin-bottom:3px;
+      style: font-size:var(--yc-font-size-xs);color:var(--yc-color-text-muted);margin-bottom:var(--yc-spacing-xxs);
       children:
         - span:
-            style: font-weight:600;
+            style: font-weight:var(--yc-font-weight-semibold);
             content: "📍 "
         - span:
             content: $location$
   - div:
-      style: font-size:10px;color:#a0aec0;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;
+      style: font-size:var(--yc-font-size-xxs);color:var(--yc-color-text-light);margin-top:var(--yc-spacing-sm);padding-top:var(--yc-spacing-sm);border-top:var(--yc-border-width-thin) solid var(--yc-color-button-border);
       children:
         - span:
-            style: font-weight:600;
+            style: font-weight:var(--yc-font-weight-semibold);
             content: "Reports to: "
         - span:
             content: $supervisor$

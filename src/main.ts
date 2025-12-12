@@ -1,4 +1,4 @@
-import './style.css';
+import './styles/styles.scss';
 import YChartEditor from './ychartEditor';
 import orgChartDataRaw from './orgchart.yaml?raw';
 import { commitHash, commitHashFull, repoUrl } from 'virtual:git-info';
@@ -55,20 +55,20 @@ schema:
 card:
   - div:
       class: card-wrapper
-      style: padding:8px;
+      style: padding:var(--yc-spacing-md);
       children:
         - h1:
             class: card-title
             content: $name$
         - div:
-            style: font-weight:bold;
+            style: font-weight:var(--yc-font-weight-bold);
             content: $title$
         - div:
             class: info-section
             children:
               - span: "Email: "
               - span:
-                  style: color:#667eea;
+                  style: color:var(--yc-color-primary);
                   content: $email$
 ---
 

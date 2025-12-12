@@ -69,7 +69,7 @@ export class ForceGraph {
       .append('svg')
       .attr('width', width)
       .attr('height', height)
-      .style('background', 'linear-gradient(to bottom, #fafbfc 0%, #f5f7fa 100%)');
+      .style('background', 'linear-gradient(to bottom, var(--yc-color-gray-50) 0%, var(--yc-color-gray-200) 100%)');
 
     // Add zoom behavior
     const g = svg.append('g');
@@ -96,7 +96,7 @@ export class ForceGraph {
       .selectAll('line')
       .data(links)
       .join('line')
-      .attr('stroke', '#999')
+      .attr('stroke', 'var(--yc-color-gray-600)')
       .attr('stroke-opacity', 0.6)
       .attr('stroke-width', 2);
 
@@ -113,8 +113,8 @@ export class ForceGraph {
     // Add circles to nodes
     node.append('circle')
       .attr('r', 40)
-      .attr('fill', '#4A90E2')
-      .attr('stroke', '#fff')
+      .attr('fill', 'var(--yc-color-secondary)')
+      .attr('stroke', 'var(--yc-color-text-inverse)')
       .attr('stroke-width', 3);
 
     // Add text labels
@@ -124,7 +124,7 @@ export class ForceGraph {
       .attr('dy', 60)
       .attr('font-size', '12px')
       .attr('font-weight', 'bold')
-      .attr('fill', '#333')
+      .attr('fill', 'var(--yc-color-text-primary)')
       .style('pointer-events', 'none');
 
     // Add title (tooltip)

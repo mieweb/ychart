@@ -2,7 +2,7 @@
 (function() {
   if (typeof document !== 'undefined') {
     var style = document.createElement('style');
-    style.textContent = "* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  background: #f5f7fa;\n  overflow: hidden;\n}\n\n#app {\n  display: flex;\n  flex-direction: column;\n  height: 100vh;\n}\n\nheader {\n  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  color: white;\n  padding: 1.5rem 2rem;\n  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n}\n\nheader h1 {\n  font-size: 1.8rem;\n  font-weight: 700;\n}\n\n.controls {\n  display: flex;\n  gap: 1rem;\n}\n\n.btn {\n  background: white;\n  color: #667eea;\n  border: none;\n  padding: 0.75rem 1.5rem;\n  border-radius: 6px;\n  font-size: 0.95rem;\n  font-weight: 600;\n  cursor: pointer;\n  transition: all 0.3s ease;\n  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);\n}\n\n.btn:hover {\n  transform: translateY(-2px);\n  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);\n}\n\n.btn:active {\n  transform: translateY(0);\n}\n\n#error {\n  background: #fee;\n  color: #c33;\n  padding: 1rem 2rem;\n  border-left: 4px solid #c33;\n  margin: 0;\n  font-weight: 500;\n}\n\n.container {\n  display: flex;\n  flex: 1;\n  overflow: hidden;\n}\n\n.panel {\n  display: flex;\n  flex-direction: column;\n  background: white;\n  overflow: hidden;\n}\n\n.editor-panel {\n  width: 40%;\n  border-right: 1px solid #e0e0e0;\n}\n\n.chart-panel {\n  flex: 1;\n  position: relative;\n}\n\n.panel-header {\n  padding: 1.5rem 2rem;\n  background: #fafbfc;\n  border-bottom: 1px solid #e0e0e0;\n}\n\n.panel-header h2 {\n  font-size: 1.2rem;\n  color: #333;\n  margin-bottom: 0.5rem;\n}\n\n.panel-header .hint {\n  font-size: 0.85rem;\n  color: #666;\n}\n\n#editor {\n  flex: 1;\n  overflow: auto;\n}\n\n#editor .cm-editor {\n  height: 100%;\n  font-size: 14px;\n}\n\n/* CodeMirror lint error styling */\n.cm-editor .cm-lintRange-error {\n  background-color: rgba(255, 0, 0, 0.15);\n  border-bottom: 2px wavy #ff4444;\n}\n\n.cm-editor .cm-lintRange-warning {\n  background-color: rgba(255, 200, 0, 0.15);\n  border-bottom: 2px wavy #ffaa00;\n}\n\n.cm-editor .cm-gutter-lint {\n  width: 12px;\n}\n\n.cm-editor .cm-lint-marker-error {\n  content: \"●\";\n  color: #ff4444;\n}\n\n.cm-editor .cm-lint-marker-warning {\n  content: \"●\";\n  color: #ffaa00;\n}\n\n/* Lint tooltip styling */\n.cm-editor .cm-tooltip-lint {\n  background-color: #2d2d2d;\n  border: 1px solid #555;\n  border-radius: 4px;\n  padding: 4px 8px;\n  font-size: 13px;\n  max-width: 350px;\n}\n\n.cm-editor .cm-diagnostic {\n  padding: 4px 8px;\n  border-left: 3px solid;\n  margin: 2px 0;\n}\n\n.cm-editor .cm-diagnostic-error {\n  border-left-color: #ff4444;\n  background-color: rgba(255, 68, 68, 0.1);\n}\n\n.cm-editor .cm-diagnostic-warning {\n  border-left-color: #ffaa00;\n  background-color: rgba(255, 170, 0, 0.1);\n}\n\n#chart {\n  flex: 1;\n  overflow: hidden;\n  position: relative;\n  background: linear-gradient(to bottom, #fafbfc 0%, #f5f7fa 100%);\n}\n\n/* Safari HTML overlay for foreignObject workaround */\n.html-overlay-container {\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  pointer-events: none;\n  overflow: hidden;\n  z-index: 10;\n}\n\n.html-overlay-container .overlay-node {\n  pointer-events: auto;\n  background: transparent;\n  border-radius: 8px;\n}\n\n.html-overlay-container .overlay-content {\n  user-select: text;\n  -webkit-user-select: text;\n  cursor: text;\n}\n\n.html-overlay-container .overlay-content .details-btn,\n.html-overlay-container .overlay-content button,\n.html-overlay-container .overlay-content a {\n  cursor: pointer;\n}\n\n.html-overlay-container .overlay-button {\n  z-index: 5;\n}\n\n.html-overlay-container .overlay-button:hover {\n  opacity: 0.8;\n}\n\n#chart svg {\n  display: block;\n  cursor: grab;\n}\n\n#chart svg:active {\n  cursor: grabbing;\n}\n\n/* Scroll hint indicators */\n#chart::before {\n  content: 'Use mouse wheel to zoom • Drag to pan';\n  position: absolute;\n  bottom: 1rem;\n  left: 50%;\n  transform: translateX(-50%);\n  background: rgba(0, 0, 0, 0.7);\n  color: white;\n  padding: 0.5rem 1rem;\n  border-radius: 20px;\n  font-size: 0.75rem;\n  pointer-events: none;\n  z-index: 10;\n  opacity: 0;\n  animation: fadeInOut 4s ease-in-out;\n}\n\n@keyframes fadeInOut {\n  0%, 100% { opacity: 0; }\n  10%, 90% { opacity: 1; }\n}\n\n#node-details {\n  position: absolute;\n  top: 1rem;\n  right: 1rem;\n  background: white;\n  border: 1px solid #e0e0e0;\n  border-radius: 8px;\n  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);\n  max-width: 350px;\n  z-index: 100;\n  max-height: calc(100vh - 12rem);\n  overflow-y: auto;\n}\n\n.node-details-content {\n  padding: 1.5rem;\n}\n\n#node-details h3 {\n  color: #333;\n  font-size: 1.3rem;\n  margin-bottom: 1rem;\n  padding-bottom: 0.75rem;\n  border-bottom: 2px solid #667eea;\n}\n\n.details-grid {\n  display: flex;\n  flex-direction: column;\n  gap: 0.75rem;\n  margin-bottom: 1.5rem;\n}\n\n.detail-row {\n  display: grid;\n  grid-template-columns: 120px 1fr;\n  gap: 0.5rem;\n  align-items: start;\n}\n\n.detail-label {\n  color: #666;\n  font-size: 0.85rem;\n  font-weight: 600;\n  text-transform: capitalize;\n}\n\n.detail-value {\n  color: #333;\n  font-size: 0.9rem;\n  word-break: break-word;\n}\n\n.btn-close {\n  width: 100%;\n  background: #667eea;\n  color: white;\n  border: none;\n  padding: 0.75rem;\n  border-radius: 6px;\n  font-size: 0.9rem;\n  font-weight: 600;\n  cursor: pointer;\n  transition: all 0.3s ease;\n}\n\n.btn-close:hover {\n  background: #5568d3;\n  transform: translateY(-1px);\n  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);\n}\n\n.btn-close:active {\n  transform: translateY(0);\n}\n\n.btn-reorder {\n  transition: all 0.3s ease;\n}\n\n.btn-reorder:hover {\n  background: #5568d3 !important;\n  transform: translateY(-1px);\n  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);\n}\n\n.btn-reorder:active {\n  transform: translateY(0);\n}\n\n#node-details p {\n  margin: 0.5rem 0;\n  color: #666;\n  font-size: 0.9rem;\n}\n\n#node-details strong {\n  color: #333;\n  font-weight: 600;\n}\n\n#node-details a {\n  color: #667eea;\n  text-decoration: none;\n}\n\n#node-details a:hover {\n  text-decoration: underline;\n}\n\n/* Selected node styling */\n.node.selected .node-rect {\n  stroke: #2196F3 !important;\n  stroke-width: 4px !important;\n  filter: drop-shadow(0 0 8px rgba(33, 150, 243, 0.6));\n}\n\n/* Focus outline for accessibility */\n.svg-chart-container:focus {\n  outline: 2px solid #2196F3;\n  outline-offset: -2px;\n}\n\n/* Responsive design */\n@media (max-width: 768px) {\n  .container {\n    flex-direction: column;\n  }\n\n  .editor-panel {\n    width: 100%;\n    height: 40%;\n    border-right: none;\n    border-bottom: 1px solid #e0e0e0;\n  }\n\n  .chart-panel {\n    height: 60%;\n  }\n\n  header h1 {\n    font-size: 1.3rem;\n  }\n\n  #node-details {\n    max-width: calc(100% - 2rem);\n  }\n}\n\n/* Scrollbar styling */\n::-webkit-scrollbar {\n  width: 10px;\n  height: 10px;\n}\n\n::-webkit-scrollbar-track {\n  background: #f1f1f1;\n}\n\n::-webkit-scrollbar-thumb {\n  background: #ccc;\n  border-radius: 5px;\n}\n\n::-webkit-scrollbar-thumb:hover {\n  background: #999;\n}\n\n/* Draggable node styles */\n.node-group.dragging {\n  opacity: 0.7;\n  cursor: grabbing !important;\n}\n\n.node-group {\n  cursor: move;\n  transition: opacity 0.2s ease;\n}\n\n.node-group:hover {\n  opacity: 0.9;\n}\n\n/* Visual feedback for draggable nodes */\n#chart .node-group rect,\n#chart .node-group foreignObject {\n  transition: box-shadow 0.2s ease;\n}\n\n#chart .node-group:hover rect,\n#chart .node-group:hover foreignObject {\n  filter: brightness(1.05);\n}\n\n/* Force graph styles */\n#chart svg circle {\n  cursor: pointer;\n  transition: all 0.2s ease;\n}\n\n#chart svg circle:hover {\n  fill: #5a7fc4;\n  r: 45;\n  stroke-width: 4;\n}\n\n#chart svg text {\n  user-select: none;\n  -webkit-user-select: none;\n}\n\n#chart svg g {\n  cursor: move;\n}\n\n/* Safari foreignObject fix */\n@supports (-webkit-touch-callout: none) {\n  /* Safari-only styles - minimal intervention */\n  svg foreignObject {\n    overflow: visible !important;\n  }\n}\n\n/* General foreignObject fixes */\nsvg .node-foreign-object {\n  overflow: visible;\n}\n\nsvg .node-foreign-object-div {\n  position: relative;\n  user-select: text;\n  -webkit-user-select: text;\n  cursor: text;\n}\n\n/* Allow pointer cursor on interactive elements within cards */\nsvg .node-foreign-object-div .details-btn,\nsvg .node-foreign-object-div button,\nsvg .node-foreign-object-div a {\n  cursor: pointer;\n}";
+    style.textContent = "@charset \"UTF-8\";\n:root {\n  --yc-color-primary: #667eea;\n  --yc-color-primary-dark: #5568d3;\n  --yc-color-primary-light: #764ba2;\n  --yc-color-secondary: #4A90E2;\n  --yc-color-secondary-hover: #5a7fc4;\n  --yc-color-gray-50: #fafbfc;\n  --yc-color-gray-100: #f7fafc;\n  --yc-color-gray-200: #f5f7fa;\n  --yc-color-gray-300: #f1f1f1;\n  --yc-color-gray-400: #e0e0e0;\n  --yc-color-gray-500: #ccc;\n  --yc-color-gray-600: #999;\n  --yc-color-gray-700: #666;\n  --yc-color-gray-800: #333;\n  --yc-color-gray-900: #1a202c;\n  --yc-color-text-primary: #333;\n  --yc-color-text-secondary: #666;\n  --yc-color-text-tertiary: #999;\n  --yc-color-text-muted: #718096;\n  --yc-color-text-light: #a0aec0;\n  --yc-color-text-heading: #2d3748;\n  --yc-color-text-inverse: #ffffff;\n  --yc-color-bg-primary: #ffffff;\n  --yc-color-bg-secondary: #f5f7fa;\n  --yc-color-bg-tertiary: #fafbfc;\n  --yc-color-bg-card: #ffffff;\n  --yc-color-editor-bg: #282c34;\n  --yc-color-editor-border: #3e4451;\n  --yc-color-editor-text: #abb2bf;\n  --yc-color-error: #c33;\n  --yc-color-error-light: #fee;\n  --yc-color-error-bg: #fee2e2;\n  --yc-color-error-bg-gradient: #fecaca;\n  --yc-color-error-border: #ef4444;\n  --yc-color-error-red: #ff4444;\n  --yc-color-error-red-bg: rgba(255, 68, 68, 0.1);\n  --yc-color-error-red-light: #dc2626;\n  --yc-color-error-red-dark: #b91c1c;\n  --yc-color-error-red-text: #7f1d1d;\n  --yc-color-error-red-accent: #c53030;\n  --yc-color-error-red-hover: #feb2b2;\n  --yc-color-error-red-border: #fc8181;\n  --yc-color-warning: #ffaa00;\n  --yc-color-warning-bg: rgba(255, 170, 0, 0.1);\n  --yc-color-warning-amber: #f59e0b;\n  --yc-color-warning-amber-dark: #d97706;\n  --yc-color-warning-amber-darker: #b45309;\n  --yc-color-success: #2196F3;\n  --yc-color-success-shadow: rgba(33, 150, 243, 0.6);\n  --yc-color-accent-purple: #9b59b6;\n  --yc-color-accent-purple-dark: #8e44ad;\n  --yc-color-accent-red: #e74c3c;\n  --yc-color-button-text: #667eea;\n  --yc-color-button-bg: #f7fafc;\n  --yc-color-button-bg-hover: #edf2f7;\n  --yc-color-button-border: #e2e8f0;\n  --yc-color-button-border-hover: #cbd5e0;\n  --yc-color-icon: #4a5568;\n  --yc-color-ui-slate: #2c3e50;\n  --yc-color-ui-slate-light: #7f8c8d;\n  --yc-color-ui-slate-lighter: #95a5a6;\n  --yc-color-ui-gray-light: #ecf0f1;\n  --yc-color-header-subtext: #b0c4de;\n  --yc-color-overlay-bg: rgba(255, 255, 255, 0.95);\n  --yc-color-overlay-dark: rgba(0, 0, 0, 0.9);\n  --yc-color-overlay-white-15: rgba(255, 255, 255, 0.15);\n  --yc-color-overlay-white-90: rgba(255, 255, 255, 0.9);\n  --yc-color-shadow-light: rgba(0, 0, 0, 0.1);\n  --yc-color-shadow-medium: rgba(0, 0, 0, 0.15);\n  --yc-color-shadow-dark: rgba(0, 0, 0, 0.2);\n  --yc-color-shadow-3xl: rgba(0, 0, 0, 0.3);\n  --yc-color-pattern: #cccccc;\n  --yc-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;\n  --yc-font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;\n  --yc-font-size-xs: 0.6875rem;\n  --yc-font-size-sm: 0.75rem;\n  --yc-font-size-base: 0.8125rem;\n  --yc-font-size-md: 0.875rem;\n  --yc-font-size-lg: 0.9375rem;\n  --yc-font-size-xl: 1rem;\n  --yc-font-size-2xl: 1.125rem;\n  --yc-font-size-3xl: 1.3rem;\n  --yc-font-size-4xl: 1.8rem;\n  --yc-line-height-tight: 1.3;\n  --yc-line-height-normal: 1.5;\n  --yc-line-height-relaxed: 1.75;\n  --yc-font-weight-normal: 400;\n  --yc-font-weight-medium: 500;\n  --yc-font-weight-semibold: 600;\n  --yc-font-weight-bold: 700;\n  --yc-spacing-unit: 0.5rem;\n  --yc-spacing-xxs: 0.125rem;\n  --yc-spacing-xs: 0.25rem;\n  --yc-spacing-sm: 0.375rem;\n  --yc-spacing-md: 0.5rem;\n  --yc-spacing-lg: 0.625rem;\n  --yc-spacing-xl: 0.75rem;\n  --yc-spacing-2xl: 0.875rem;\n  --yc-spacing-3xl: 1rem;\n  --yc-spacing-4xl: 1.25rem;\n  --yc-spacing-5xl: 1.5rem;\n  --yc-spacing-6xl: 2rem;\n  --yc-spacing-toolbar-gap: 0.5rem;\n  --yc-spacing-toolbar-padding: 0.5rem;\n  --yc-spacing-button-padding-sm: 0.25rem 0.5rem;\n  --yc-spacing-button-padding-md: 0.5rem 0.75rem;\n  --yc-spacing-button-padding-lg: 0.75rem 1.5rem;\n  --yc-border-width-thin: 1px;\n  --yc-border-width-medium: 2px;\n  --yc-border-width-thick: 3px;\n  --yc-border-width-heavy: 4px;\n  --yc-border-radius-sm: 0.25rem;\n  --yc-border-radius-md: 0.375rem;\n  --yc-border-radius-lg: 0.5rem;\n  --yc-border-radius-xl: 0.75rem;\n  --yc-border-radius-full: 50%;\n  --yc-border-radius-pill: 1.25rem;\n  --yc-border-radius-left: 0.25rem 0 0 0.25rem;\n  --yc-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);\n  --yc-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);\n  --yc-shadow-md: 0 2px 5px rgba(0, 0, 0, 0.1);\n  --yc-shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.1);\n  --yc-shadow-xl: 0 4px 10px rgba(0, 0, 0, 0.15);\n  --yc-shadow-2xl: 0 4px 12px rgba(0, 0, 0, 0.15);\n  --yc-shadow-3xl: 0 4px 15px rgba(0, 0, 0, 0.1);\n  --yc-shadow-4xl: 0 8px 24px rgba(0, 0, 0, 0.2);\n  --yc-shadow-button: 0 2px 8px rgba(102, 126, 234, 0.3);\n  --yc-shadow-node-selected: 0 0 8px rgba(33, 150, 243, 0.6);\n  --yc-shadow-header: 0 4px 12px rgba(0, 0, 0, 0.3);\n  --yc-shadow-wrapper: 0 8px 32px rgba(0, 0, 0, 0.2);\n  --yc-width-sidebar: 400px;\n  --yc-width-sidebar-collapsed: 0px;\n  --yc-width-detail-panel: 400px;\n  --yc-width-detail-panel-max: 350px;\n  --yc-width-search-popup: 500px;\n  --yc-width-toolbar-button: 36px;\n  --yc-height-toolbar-button: 36px;\n  --yc-height-badge: 16px;\n  --yc-height-icon-sm: 20px;\n  --yc-height-icon-md: 24px;\n  --yc-height-button-sm: 24px;\n  --yc-height-button-md: 28px;\n  --yc-height-error-banner-max: 120px;\n  --yc-z-index-base: 1;\n  --yc-z-index-overlay-button: 5;\n  --yc-z-index-overlay: 10;\n  --yc-z-index-toolbar: 50;\n  --yc-z-index-detail-panel: 100;\n  --yc-z-index-search-popup: 1000;\n  --yc-z-index-search-history: 999;\n  --yc-z-index-collapse-button: 1001;\n  --yc-transition-fast: 0.2s ease;\n  --yc-transition-normal: 0.3s ease;\n  --yc-transition-slow: 0.4s ease;\n  --yc-transition-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);\n  --yc-opacity-disabled: 0.5;\n  --yc-opacity-hover: 0.8;\n  --yc-opacity-dragging: 0.7;\n  --yc-opacity-node-hover: 0.9;\n  --yc-opacity-transparent: 0;\n  --yc-opacity-full: 1;\n  --yc-blur-sm: 5px;\n  --yc-blur-md: 10px;\n  --yc-transform-button-hover: translateY(-2px);\n  --yc-transform-button-active: translateY(0);\n  --yc-transform-button-lift-sm: translateY(-1px);\n  --yc-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n  --yc-gradient-error: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);\n  --yc-gradient-background: linear-gradient(to bottom, #fafbfc 0%, #f5f7fa 100%);\n  --yc-gradient-header-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);\n  --yc-gradient-rainbow: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);\n  --yc-gradient-title-light: linear-gradient(135deg, #ffffff 0%, #a8dadc 50%, #f1faee 100%);\n  --yc-backdrop-blur: blur(10px);\n}\n\n* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: var(--yc-font-family-base);\n  background: var(--yc-color-bg-secondary);\n  overflow: hidden;\n}\n\n#app {\n  display: flex;\n  flex-direction: column;\n  height: 100vh;\n}\n\nheader {\n  background: var(--yc-gradient-primary);\n  color: var(--yc-color-text-inverse);\n  padding: var(--yc-spacing-5xl) var(--yc-spacing-6xl);\n  box-shadow: var(--yc-shadow-md);\n  z-index: var(--yc-z-index-overlay);\n}\nheader h1 {\n  font-size: var(--yc-font-size-3xl);\n  font-weight: var(--yc-font-weight-bold);\n  margin-bottom: var(--yc-spacing-md);\n}\n\n.header-content {\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  flex-wrap: wrap;\n  gap: var(--yc-spacing-md);\n}\n\n.git-info {\n  display: flex;\n  align-items: center;\n  gap: var(--yc-spacing-3xl);\n  font-size: var(--yc-font-size-sm);\n}\n.git-info a {\n  color: rgba(255, 255, 255, 0.9);\n  text-decoration: none;\n  display: flex;\n  align-items: center;\n  gap: var(--yc-spacing-xs);\n  transition: color var(--yc-transition-fast);\n}\n.git-info a:hover {\n  color: var(--yc-color-text-inverse);\n  text-decoration: underline;\n}\n.git-info svg {\n  width: var(--yc-height-icon-sm);\n  height: var(--yc-height-icon-sm);\n  fill: currentColor;\n}\n\n.commit-hash {\n  font-family: var(--yc-font-family-mono);\n  background: rgba(255, 255, 255, 0.15);\n  padding: var(--yc-spacing-xs) var(--yc-spacing-md);\n  border-radius: var(--yc-border-radius-sm);\n}\n\n.controls {\n  display: flex;\n  gap: var(--yc-spacing-md);\n  flex-wrap: wrap;\n}\n\n.btn {\n  padding: var(--yc-spacing-md) var(--yc-spacing-3xl);\n  background: rgba(255, 255, 255, 0.2);\n  color: var(--yc-color-text-inverse);\n  border: var(--yc-border-width-thin) solid rgba(255, 255, 255, 0.3);\n  border-radius: var(--yc-border-radius-md);\n  cursor: pointer;\n  font-size: var(--yc-font-size-base);\n  font-weight: var(--yc-font-weight-medium);\n  transition: all var(--yc-transition-fast);\n}\n.btn:hover {\n  background: rgba(255, 255, 255, 0.3);\n  transform: translateY(-1px);\n}\n\n#error {\n  background: var(--yc-color-error-light);\n  color: var(--yc-color-error);\n  padding: var(--yc-spacing-3xl) var(--yc-spacing-6xl);\n  border-left: var(--yc-border-width-heavy) solid var(--yc-color-error);\n  margin: 0;\n  font-weight: var(--yc-font-weight-medium);\n}\n\n.container {\n  display: flex;\n  flex: 1;\n  overflow: hidden;\n}\n\n.panel {\n  display: flex;\n  flex-direction: column;\n  background: var(--yc-color-bg-primary);\n  overflow: hidden;\n}\n\n.editor-panel {\n  width: 40%;\n  border-right: var(--yc-border-width-thin) solid var(--yc-color-gray-400);\n}\n\n.chart-panel {\n  flex: 1;\n  position: relative;\n}\n\n.panel-header {\n  padding: var(--yc-spacing-5xl) var(--yc-spacing-6xl);\n  background: var(--yc-color-bg-tertiary);\n  border-bottom: var(--yc-border-width-thin) solid var(--yc-color-gray-400);\n}\n.panel-header h2 {\n  font-size: var(--yc-font-size-2xl);\n  color: var(--yc-color-text-primary);\n  margin-bottom: var(--yc-spacing-md);\n}\n.panel-header .hint {\n  font-size: var(--yc-font-size-md);\n  color: var(--yc-color-text-secondary);\n}\n\n#editor {\n  flex: 1;\n  overflow: auto;\n}\n#editor .cm-editor {\n  height: 100%;\n  font-size: var(--yc-font-size-md);\n  /* CodeMirror lint error styling */\n}\n#editor .cm-editor .cm-lintRange-error {\n  background-color: var(--yc-color-error-red-bg);\n  border-bottom: var(--yc-border-width-medium) wavy var(--yc-color-error-red);\n}\n#editor .cm-editor .cm-lintRange-warning {\n  background-color: var(--yc-color-warning-bg);\n  border-bottom: var(--yc-border-width-medium) wavy var(--yc-color-warning);\n}\n#editor .cm-editor .cm-gutter-lint {\n  width: var(--yc-spacing-xl);\n}\n#editor .cm-editor .cm-lint-marker-error {\n  content: \"●\";\n  color: var(--yc-color-error-red);\n}\n#editor .cm-editor .cm-lint-marker-warning {\n  content: \"●\";\n  color: var(--yc-color-warning);\n}\n#editor .cm-editor {\n  /* Lint tooltip styling */\n}\n#editor .cm-editor .cm-tooltip-lint {\n  background-color: var(--yc-color-editor-bg);\n  border: var(--yc-border-width-thin) solid var(--yc-color-gray-700);\n  border-radius: var(--yc-border-radius-sm);\n  padding: var(--yc-spacing-xs) var(--yc-spacing-md);\n  font-size: var(--yc-font-size-base);\n  max-width: var(--yc-width-detail-panel-max);\n}\n#editor .cm-editor .cm-diagnostic {\n  padding: var(--yc-spacing-xs) var(--yc-spacing-md);\n  border-left: var(--yc-border-width-thick) solid;\n  margin: var(--yc-spacing-xxs) 0;\n}\n#editor .cm-editor .cm-diagnostic-error {\n  border-left-color: var(--yc-color-error-red);\n  background-color: var(--yc-color-error-red-bg);\n}\n#editor .cm-editor .cm-diagnostic-warning {\n  border-left-color: var(--yc-color-warning);\n  background-color: var(--yc-color-warning-bg);\n}\n\n#chart {\n  flex: 1;\n  overflow: hidden;\n  position: relative;\n  background: var(--yc-gradient-background);\n  /* Safari HTML overlay for foreignObject workaround */\n}\n#chart .html-overlay-container {\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  pointer-events: none;\n  overflow: hidden;\n  z-index: var(--yc-z-index-overlay);\n}\n#chart .html-overlay-container .overlay-node {\n  pointer-events: auto;\n  background: transparent;\n  border-radius: var(--yc-border-radius-lg);\n}\n#chart .html-overlay-container .overlay-content {\n  user-select: text;\n  -webkit-user-select: text;\n  cursor: text;\n}\n#chart .html-overlay-container .overlay-content .details-btn,\n#chart .html-overlay-container .overlay-content button,\n#chart .html-overlay-container .overlay-content a {\n  cursor: pointer;\n}\n#chart .html-overlay-container .overlay-button {\n  z-index: var(--yc-z-index-overlay-button);\n}\n#chart .html-overlay-container .overlay-button:hover {\n  opacity: var(--yc-opacity-hover);\n}\n#chart svg {\n  display: block;\n  cursor: grab;\n}\n#chart svg:active {\n  cursor: grabbing;\n}\n#chart svg circle {\n  cursor: pointer;\n  transition: all var(--yc-transition-fast);\n}\n#chart svg circle:hover {\n  fill: var(--yc-color-secondary-hover);\n  r: 45;\n  stroke-width: var(--yc-border-width-heavy);\n}\n#chart svg text {\n  user-select: none;\n  -webkit-user-select: none;\n}\n#chart svg g {\n  cursor: move;\n}\n#chart svg {\n  /* Safari foreignObject fix */\n}\n@supports (-webkit-touch-callout: none) {\n  #chart svg foreignObject {\n    overflow: visible !important;\n  }\n}\n#chart svg {\n  /* General foreignObject fixes */\n}\n#chart svg .node-foreign-object {\n  overflow: visible;\n}\n#chart svg .node-foreign-object-div {\n  position: relative;\n  user-select: text;\n  -webkit-user-select: text;\n  cursor: text;\n  /* Allow pointer cursor on interactive elements within cards */\n}\n#chart svg .node-foreign-object-div .details-btn,\n#chart svg .node-foreign-object-div button,\n#chart svg .node-foreign-object-div a {\n  cursor: pointer;\n}\n#chart {\n  /* Scroll hint indicators */\n}\n#chart::before {\n  content: \"Use mouse wheel to zoom • Drag to pan\";\n  position: absolute;\n  bottom: var(--yc-spacing-3xl);\n  left: 50%;\n  transform: translateX(-50%);\n  background: var(--yc-color-overlay-dark);\n  color: var(--yc-color-text-inverse);\n  padding: var(--yc-spacing-md) var(--yc-spacing-3xl);\n  border-radius: var(--yc-border-radius-pill);\n  font-size: var(--yc-font-size-sm);\n  pointer-events: none;\n  z-index: var(--yc-z-index-overlay);\n  opacity: var(--yc-opacity-transparent);\n  animation: fadeInOut 4s ease-in-out;\n}\n#chart {\n  /* Draggable node styles */\n}\n#chart .node-group {\n  cursor: move;\n  transition: opacity var(--yc-transition-fast);\n}\n#chart .node-group.dragging {\n  opacity: var(--yc-opacity-dragging);\n  cursor: grabbing !important;\n}\n#chart .node-group:hover {\n  opacity: var(--yc-opacity-node-hover);\n}\n#chart .node-group:hover rect,\n#chart .node-group:hover foreignObject {\n  filter: brightness(1.05);\n}\n#chart .node-group {\n  /* Visual feedback for draggable nodes */\n}\n#chart .node-group rect,\n#chart .node-group foreignObject {\n  transition: box-shadow var(--yc-transition-fast);\n}\n\n@keyframes fadeInOut {\n  0%, 100% {\n    opacity: var(--yc-opacity-transparent);\n  }\n  10%, 90% {\n    opacity: var(--yc-opacity-full);\n  }\n}\n#node-details {\n  position: absolute;\n  top: var(--yc-spacing-3xl);\n  right: var(--yc-spacing-3xl);\n  background: var(--yc-color-bg-primary);\n  border: var(--yc-border-width-thin) solid var(--yc-color-gray-400);\n  border-radius: var(--yc-border-radius-lg);\n  box-shadow: var(--yc-shadow-3xl);\n  max-width: var(--yc-width-detail-panel-max);\n  z-index: var(--yc-z-index-detail-panel);\n  max-height: calc(100vh - 12rem);\n  overflow-y: auto;\n}\n#node-details .node-details-content {\n  padding: var(--yc-spacing-5xl);\n}\n#node-details h3 {\n  color: var(--yc-color-text-primary);\n  font-size: var(--yc-font-size-3xl);\n  margin-bottom: var(--yc-spacing-3xl);\n  padding-bottom: var(--yc-spacing-xl);\n  border-bottom: var(--yc-border-width-medium) solid var(--yc-color-primary);\n}\n#node-details .details-grid {\n  display: flex;\n  flex-direction: column;\n  gap: var(--yc-spacing-xl);\n  margin-bottom: var(--yc-spacing-5xl);\n}\n#node-details .detail-row {\n  display: grid;\n  grid-template-columns: 120px 1fr;\n  gap: var(--yc-spacing-md);\n  align-items: start;\n}\n#node-details .detail-label {\n  color: var(--yc-color-text-secondary);\n  font-size: var(--yc-font-size-md);\n  font-weight: var(--yc-font-weight-semibold);\n  text-transform: capitalize;\n}\n#node-details .detail-value {\n  color: var(--yc-color-text-primary);\n  font-size: var(--yc-font-size-lg);\n  word-break: break-word;\n}\n#node-details .btn-close {\n  width: 100%;\n  background: var(--yc-color-primary);\n  color: var(--yc-color-text-inverse);\n  border: none;\n  padding: var(--yc-spacing-xl);\n  border-radius: var(--yc-border-radius-md);\n  font-size: var(--yc-font-size-lg);\n  font-weight: var(--yc-font-weight-semibold);\n  cursor: pointer;\n  transition: all var(--yc-transition-normal);\n}\n#node-details .btn-close:hover {\n  background: var(--yc-color-primary-dark);\n  transform: var(--yc-transform-button-lift-sm);\n  box-shadow: var(--yc-shadow-button);\n}\n#node-details .btn-close:active {\n  transform: var(--yc-transform-button-active);\n}\n#node-details .btn-reorder {\n  transition: all var(--yc-transition-normal);\n}\n#node-details .btn-reorder:hover {\n  background: var(--yc-color-primary-dark) !important;\n  transform: var(--yc-transform-button-lift-sm);\n  box-shadow: var(--yc-shadow-button);\n}\n#node-details .btn-reorder:active {\n  transform: var(--yc-transform-button-active);\n}\n#node-details p {\n  margin: var(--yc-spacing-md) 0;\n  color: var(--yc-color-text-secondary);\n  font-size: var(--yc-font-size-lg);\n}\n#node-details strong {\n  color: var(--yc-color-text-primary);\n  font-weight: var(--yc-font-weight-semibold);\n}\n#node-details a {\n  color: var(--yc-color-primary);\n  text-decoration: none;\n}\n#node-details a:hover {\n  text-decoration: underline;\n}\n\n/* Selected node styling */\n.node.selected .node-rect {\n  stroke: var(--yc-color-success) !important;\n  stroke-width: var(--yc-border-width-heavy) !important;\n  filter: drop-shadow(var(--yc-shadow-node-selected));\n}\n\n/* Focus outline for accessibility */\n.svg-chart-container:focus {\n  outline: var(--yc-border-width-medium) solid var(--yc-color-success);\n  outline-offset: calc(-1 * var(--yc-border-width-medium));\n}\n\n/* Responsive design */\n@media (max-width: 768px) {\n  .container {\n    flex-direction: column;\n  }\n  .editor-panel {\n    width: 100%;\n    height: 40%;\n    border-right: none;\n    border-bottom: var(--yc-border-width-thin) solid var(--yc-color-gray-400);\n  }\n  .chart-panel {\n    height: 60%;\n  }\n  header h1 {\n    font-size: var(--yc-font-size-3xl);\n  }\n  #node-details {\n    max-width: calc(100% - var(--yc-spacing-6xl));\n  }\n}\n/* Scrollbar styling */\n::-webkit-scrollbar {\n  width: 10px;\n  height: 10px;\n}\n\n::-webkit-scrollbar-track {\n  background: var(--yc-color-gray-300);\n}\n\n::-webkit-scrollbar-thumb {\n  background: var(--yc-color-gray-500);\n  border-radius: var(--yc-border-radius-sm);\n}\n::-webkit-scrollbar-thumb:hover {\n  background: var(--yc-color-gray-600);\n}";
     document.head.appendChild(style);
   }
 })();
@@ -33469,17 +33469,17 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       console.log("Total nodes:", nodes.length);
       console.log("Total links:", links.length);
       console.log("Sample links:", links.slice(0, 5));
-      const svg2 = select(this.container).append("svg").attr("width", width).attr("height", height).style("background", "linear-gradient(to bottom, #fafbfc 0%, #f5f7fa 100%)");
+      const svg2 = select(this.container).append("svg").attr("width", width).attr("height", height).style("background", "linear-gradient(to bottom, var(--yc-color-gray-50) 0%, var(--yc-color-gray-200) 100%)");
       const g = svg2.append("g");
       const zoom$1 = zoom().scaleExtent([0.1, 4]).on("zoom", (event) => {
         g.attr("transform", event.transform);
       });
       svg2.call(zoom$1);
       this.simulation = simulation(nodes).force("link", link(links).id((d) => d.id).distance(150)).force("charge", manyBody().strength(-300)).force("center", center(width / 2, height / 2)).force("collision", collide().radius(60));
-      const link$12 = g.append("g").selectAll("line").data(links).join("line").attr("stroke", "#999").attr("stroke-opacity", 0.6).attr("stroke-width", 2);
+      const link$12 = g.append("g").selectAll("line").data(links).join("line").attr("stroke", "var(--yc-color-gray-600)").attr("stroke-opacity", 0.6).attr("stroke-width", 2);
       const node = g.append("g").selectAll("g").data(nodes).join("g").call(drag().on("start", (event, d) => this.dragstarted(event, d)).on("drag", (event, d) => this.dragged(event, d)).on("end", (event, d) => this.dragended(event, d)));
-      node.append("circle").attr("r", 40).attr("fill", "#4A90E2").attr("stroke", "#fff").attr("stroke-width", 3);
-      node.append("text").text((d) => d.name).attr("text-anchor", "middle").attr("dy", 60).attr("font-size", "12px").attr("font-weight", "bold").attr("fill", "#333").style("pointer-events", "none");
+      node.append("circle").attr("r", 40).attr("fill", "var(--yc-color-secondary)").attr("stroke", "var(--yc-color-text-inverse)").attr("stroke-width", 3);
+      node.append("text").text((d) => d.name).attr("text-anchor", "middle").attr("dy", 60).attr("font-size", "12px").attr("font-weight", "bold").attr("fill", "var(--yc-color-text-primary)").style("pointer-events", "none");
       node.append("title").text((d) => `${d.name}
 ${d.title || ""}
 ${d.email || ""}`);
@@ -33607,17 +33607,17 @@ ${d.email || ""}`);
       this.detailsPanel.style.cssText = `
       display: none;
       position: absolute;
-      right: 20px;
-      top: 20px;
-      background: white;
-      border: 2px solid #667eea;
-      border-radius: 8px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-      max-width: 400px;
+      right: var(--yc-spacing-4xl);
+      top: var(--yc-spacing-4xl);
+      background: var(--yc-color-bg-card);
+      border: var(--yc-border-width-medium) solid var(--yc-color-primary);
+      border-radius: var(--yc-border-radius-lg);
+      padding: var(--yc-spacing-5xl);
+      box-shadow: var(--yc-shadow-lg);
+      max-width: var(--yc-width-detail-panel);
       max-height: 80%;
       overflow-y: auto;
-      z-index: 100;
+      z-index: var(--yc-z-index-detail-panel);
     `;
       chartWrapper.appendChild(this.detailsPanel);
       this.toolbar = this.createToolbar();
@@ -33626,12 +33626,12 @@ ${d.email || ""}`);
       editorSidebar.id = `ychart-editor-sidebar-${this.instanceId}`;
       editorSidebar.setAttribute("data-id", `ychart-editor-sidebar-${this.instanceId}`);
       editorSidebar.style.cssText = `
-      width: 400px;
+      width: var(--yc-width-sidebar);
       height: 100%;
-      border-left: 1px solid #ccc;
+      border-left: var(--yc-border-width-thin) solid var(--yc-color-gray-500);
       overflow: hidden;
       position: relative;
-      transition: width 0.3s ease, border-left-width 0s 0.3s;
+      transition: width var(--yc-transition-normal), border-left-width 0s 0.3s;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -33641,13 +33641,13 @@ ${d.email || ""}`);
       this.errorBanner.className = "ychart-error-banner";
       this.errorBanner.style.cssText = `
       display: none;
-      background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
-      border-bottom: 2px solid #ef4444;
-      padding: 8px 12px;
-      max-height: 120px;
+      background: var(--yc-gradient-error);
+      border-bottom: var(--yc-border-width-medium) solid var(--yc-color-error-border);
+      padding: var(--yc-spacing-md) var(--yc-spacing-xl);
+      max-height: var(--yc-height-error-banner-max);
       overflow-y: auto;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13px;
+      font-family: var(--yc-font-family-base);
+      font-size: var(--yc-font-size-base);
     `;
       editorSidebar.appendChild(this.errorBanner);
       const editorHeader = document.createElement("div");
@@ -33655,13 +33655,13 @@ ${d.email || ""}`);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
-      background: #282c34;
-      border-bottom: 1px solid #3e4451;
+      padding: var(--yc-spacing-md) var(--yc-spacing-xl);
+      background: var(--yc-color-editor-bg);
+      border-bottom: var(--yc-border-width-thin) solid var(--yc-color-editor-border);
     `;
       const editorTitle = document.createElement("div");
       editorTitle.textContent = "YAML Editor";
-      editorTitle.style.cssText = "color: #abb2bf; font-size: 12px; font-weight: 600;";
+      editorTitle.style.cssText = "color: var(--yc-color-editor-text); font-size: var(--yc-font-size-sm); font-weight: var(--yc-font-weight-semibold);";
       editorHeader.appendChild(editorTitle);
       const formatBtn = document.createElement("button");
       formatBtn.innerHTML = `
@@ -33669,25 +33669,25 @@ ${d.email || ""}`);
         <polyline points="16 18 22 12 16 6"/>
         <polyline points="8 6 2 12 8 18"/>
       </svg>
-      <span style="margin-left: 4px;">Format</span>
+      <span style="margin-left: var(--yc-spacing-xs);">Format</span>
     `;
       formatBtn.style.cssText = `
       display: flex;
       align-items: center;
-      background: #667eea;
+      background: var(--yc-color-primary);
       color: white;
       border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
+      padding: var(--yc-spacing-xs) var(--yc-spacing-md);
+      border-radius: var(--yc-border-radius-sm);
       cursor: pointer;
-      font-size: 11px;
-      transition: background 0.2s ease;
+      font-size: var(--yc-font-size-xs);
+      transition: background var(--yc-transition-fast);
     `;
       formatBtn.onmouseenter = () => {
-        formatBtn.style.background = "#5568d3";
+        formatBtn.style.background = "var(--yc-color-primary-dark)";
       };
       formatBtn.onmouseleave = () => {
-        formatBtn.style.background = "#667eea";
+        formatBtn.style.background = "var(--yc-color-primary)";
       };
       formatBtn.onclick = () => this.handleFormatYAML();
       editorHeader.appendChild(formatBtn);
@@ -33704,17 +33704,17 @@ ${d.email || ""}`);
         collapseBtn.style.cssText = `
         position: absolute;
         right: 399px;
-        top: 10px;
-        z-index: 1001;
-        background: #667eea;
+        top: var(--yc-spacing-lg);
+        z-index: var(--yc-z-index-collapse-button);
+        background: var(--yc-color-primary);
         color: white;
         border: none;
-        padding: 8px 6px;
+        padding: var(--yc-spacing-md) var(--yc-spacing-sm);
         cursor: pointer;
-        border-radius: 4px 0 0 4px;
-        font-size: 12px;
-        transition: right 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        border-radius: var(--yc-border-radius-left);
+        font-size: var(--yc-font-size-sm);
+        transition: right var(--yc-transition-normal);
+        box-shadow: var(--yc-shadow-sm);
       `;
         collapseBtn.onclick = () => this.toggleEditor();
         this.viewContainer.appendChild(collapseBtn);
@@ -33723,7 +33723,7 @@ ${d.email || ""}`);
       this.viewContainer.appendChild(editorSidebar);
     }
     getToolbarPositionStyles() {
-      const margin = "20px";
+      const margin = "var(--yc-spacing-4xl)";
       switch (this.toolbarPosition) {
         case "topleft":
           return `top: ${margin}; left: ${margin};`;
@@ -33745,14 +33745,14 @@ ${d.email || ""}`);
       const isVertical = this.toolbarOrientation === "vertical";
       if (isVertical) {
         if (this.toolbarPosition.includes("left")) {
-          return `left: calc(100% + 8px); top: 50%; transform: translateY(-50%) scale(0.8);`;
+          return `left: calc(100% + var(--yc-spacing-md)); top: 50%; transform: translateY(-50%) scale(0.8);`;
         }
-        return `right: calc(100% + 8px); top: 50%; transform: translateY(-50%) scale(0.8);`;
+        return `right: calc(100% + var(--yc-spacing-md)); top: 50%; transform: translateY(-50%) scale(0.8);`;
       }
       if (this.toolbarPosition.includes("top")) {
-        return `top: calc(100% + 8px); left: 50%; transform: translateX(-50%) scale(0.8);`;
+        return `top: calc(100% + var(--yc-spacing-md)); left: 50%; transform: translateX(-50%) scale(0.8);`;
       }
-      return `bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) scale(0.8);`;
+      return `bottom: calc(100% + var(--yc-spacing-md)); left: 50%; transform: translateX(-50%) scale(0.8);`;
     }
     createToolbar() {
       const toolbar = document.createElement("div");
@@ -33764,14 +33764,14 @@ ${d.email || ""}`);
       ${positionStyles}
       display: flex;
       flex-direction: ${orientation};
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 12px;
-      padding: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 50;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      gap: var(--yc-spacing-md);
+      background: var(--yc-color-overlay-bg);
+      backdrop-filter: var(--yc-backdrop-blur);
+      border-radius: var(--yc-border-radius-xl);
+      padding: var(--yc-spacing-md);
+      box-shadow: var(--yc-shadow-2xl);
+      z-index: var(--yc-z-index-toolbar);
+      border: var(--yc-border-width-thin) solid var(--yc-color-shadow-light);
     `;
       const icons = {
         reset: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>`,
@@ -33813,14 +33813,14 @@ ${d.email || ""}`);
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: var(--yc-width-toolbar-button);
+        height: var(--yc-height-toolbar-button);
         border: none;
         background: transparent;
-        color: #4a5568;
+        color: var(--yc-color-icon);
         cursor: pointer;
-        border-radius: 8px;
-        transition: all 0.2s ease;
+        border-radius: var(--yc-border-radius-lg);
+        transition: all var(--yc-transition-fast);
         padding: 0;
       `;
         const tooltip = document.createElement("span");
@@ -33830,18 +33830,18 @@ ${d.email || ""}`);
         tooltip.style.cssText = `
         position: absolute;
         ${tooltipPosition}
-        background: rgba(0, 0, 0, 0.9);
+        background: var(--yc-color-overlay-dark);
         color: white;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
+        padding: var(--yc-spacing-sm) var(--yc-spacing-xl);
+        border-radius: var(--yc-border-radius-md);
+        font-size: var(--yc-font-size-sm);
         white-space: nowrap;
         pointer-events: none;
         opacity: 0;
         transform: scale(0.8);
-        transition: all 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        z-index: 1000;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transition: all var(--yc-transition-fast) var(--yc-transition-bounce);
+        z-index: var(--yc-z-index-search-popup);
+        box-shadow: var(--yc-shadow-md);
       `;
         button.appendChild(tooltip);
         if (btn.id === "toggleView" && this.experimental) {
@@ -33851,24 +33851,24 @@ ${d.email || ""}`);
           position: absolute;
           top: -4px;
           right: -4px;
-          background: #f59e0b;
+          background: var(--yc-color-warning-amber);
           color: white;
-          border-radius: 50%;
-          width: 16px;
-          height: 16px;
+          border-radius: var(--yc-border-radius-full);
+          width: var(--yc-height-badge);
+          height: var(--yc-height-badge);
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 12px;
-          font-weight: bold;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+          font-size: var(--yc-font-size-sm);
+          font-weight: var(--yc-font-weight-bold);
+          box-shadow: var(--yc-shadow-sm);
         `;
           button.appendChild(badge);
         }
         button.onmouseenter = () => {
-          button.style.background = "#667eea";
+          button.style.background = "var(--yc-color-primary)";
           button.style.color = "white";
-          button.style.transform = "translateY(-2px)";
+          button.style.transform = "var(--yc-transform-button-hover)";
           tooltip.style.opacity = "1";
           const isVertical = this.toolbarOrientation === "vertical";
           if (isVertical) {
@@ -33883,16 +33883,16 @@ ${d.email || ""}`);
         };
         button.onmouseleave = () => {
           if (btn.id === "swap" && this.swapModeEnabled) {
-            button.style.background = "#e74c3c";
+            button.style.background = "var(--yc-color-accent-red)";
             button.style.color = "white";
           } else if (btn.id === "columnAdjust" && this.columnAdjustMode) {
-            button.style.background = "#9b59b6";
+            button.style.background = "var(--yc-color-accent-purple)";
             button.style.color = "white";
           } else {
             button.style.background = "transparent";
-            button.style.color = "#4a5568";
+            button.style.color = "var(--yc-color-icon)";
           }
-          button.style.transform = "translateY(0)";
+          button.style.transform = "var(--yc-transform-button-active)";
           tooltip.style.opacity = "0";
           const isVertical = this.toolbarOrientation === "vertical";
           if (isVertical) {
@@ -33932,11 +33932,11 @@ ${d.email || ""}`);
       const swapBtn = document.querySelector(`[data-id="ychart-btn-swap-${this.instanceId}"]`);
       if (swapBtn) {
         if (this.swapModeEnabled) {
-          swapBtn.style.background = "#e74c3c";
+          swapBtn.style.background = "var(--yc-color-accent-red)";
           swapBtn.style.color = "white";
         } else {
           swapBtn.style.background = "transparent";
-          swapBtn.style.color = "#4a5568";
+          swapBtn.style.color = "var(--yc-color-icon)";
         }
       }
     }
@@ -34089,14 +34089,14 @@ ${formattedData.trim()}
     `;
       const searchBox = document.createElement("div");
       searchBox.style.cssText = `
-      background: white;
-      border-radius: 8px;
-      padding: 10px 14px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      width: 500px;
+      background: var(--yc-color-bg-card);
+      border-radius: var(--yc-border-radius-lg);
+      padding: var(--yc-spacing-lg) var(--yc-spacing-2xl);
+      box-shadow: var(--yc-shadow-4xl);
+      width: var(--yc-width-search-popup);
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--yc-spacing-md);
       position: relative;
     `;
       const header = document.createElement("div");
@@ -34110,9 +34110,9 @@ ${formattedData.trim()}
       title.textContent = "Search Nodes";
       title.style.cssText = `
       margin: 0;
-      font-size: 14px;
-      font-weight: 600;
-      color: #1a202c;
+      font-size: var(--yc-font-size-md);
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-gray-900);
     `;
       const buttonsContainer = document.createElement("div");
       buttonsContainer.style.cssText = `
@@ -34130,9 +34130,9 @@ ${formattedData.trim()}
     `;
       historyButton.style.cssText = `
       position: relative;
-      background: #f7fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
+      background: var(--yc-color-button-bg);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
       width: 28px;
       height: 28px;
       display: flex;
@@ -34149,11 +34149,11 @@ ${formattedData.trim()}
       bottom: 100%;
       right: 0;
       margin-bottom: 8px;
-      background: rgba(0, 0, 0, 0.9);
+      background: var(--yc-color-overlay-dark);
       color: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
+      padding: var(--yc-spacing-button-padding-sm);
+      border-radius: var(--yc-border-radius-sm);
+      font-size: var(--yc-font-size-xs);
       white-space: nowrap;
       pointer-events: none;
       opacity: 0;
@@ -34163,14 +34163,14 @@ ${formattedData.trim()}
     `;
       historyButton.appendChild(historyTooltip);
       historyButton.addEventListener("mouseenter", () => {
-        historyButton.style.background = "#edf2f7";
-        historyButton.style.borderColor = "#667eea";
+        historyButton.style.background = "var(--yc-color-button-bg-hover)";
+        historyButton.style.borderColor = "var(--yc-color-primary)";
         historyTooltip.style.opacity = "1";
         historyTooltip.style.transform = "scale(1)";
       });
       historyButton.addEventListener("mouseleave", () => {
-        historyButton.style.background = "#f7fafc";
-        historyButton.style.borderColor = "#e2e8f0";
+        historyButton.style.background = "var(--yc-color-button-bg)";
+        historyButton.style.borderColor = "var(--yc-color-button-border)";
         historyTooltip.style.opacity = "0";
         historyTooltip.style.transform = "scale(0.8)";
       });
@@ -34182,8 +34182,8 @@ ${formattedData.trim()}
       closeButton.style.cssText = `
       background: none;
       border: none;
-      font-size: 22px;
-      color: #a0aec0;
+      font-size: var(--yc-font-size-3xl);
+      color: var(--yc-color-text-light);
       cursor: pointer;
       padding: 0;
       width: 24px;
@@ -34191,16 +34191,16 @@ ${formattedData.trim()}
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 4px;
+      border-radius: var(--yc-border-radius-sm);
       transition: all 0.2s;
     `;
       closeButton.addEventListener("mouseenter", () => {
-        closeButton.style.background = "#f7fafc";
-        closeButton.style.color = "#4a5568";
+        closeButton.style.background = "var(--yc-color-button-bg)";
+        closeButton.style.color = "var(--yc-color-icon)";
       });
       closeButton.addEventListener("mouseleave", () => {
         closeButton.style.background = "none";
-        closeButton.style.color = "#a0aec0";
+        closeButton.style.color = "var(--yc-color-text-light)";
       });
       closeButton.addEventListener("click", () => this.closeSearchPopup());
       buttonsContainer.appendChild(historyButton);
@@ -34218,20 +34218,20 @@ ${formattedData.trim()}
       filtersContainer.appendChild(initialFilter);
       const addFilterBtn = document.createElement("button");
       addFilterBtn.innerHTML = `
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 4px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: var(--yc-spacing-xs);">
         <line x1="12" y1="5" x2="12" y2="19"/>
         <line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
       Add Filter
     `;
       addFilterBtn.style.cssText = `
-      padding: 6px 10px;
-      background: #f7fafc;
-      color: #667eea;
-      border: 1px dashed #cbd5e0;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
+      padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+      background: var(--yc-color-button-bg);
+      color: var(--yc-color-primary);
+      border: 1px dashed var(--yc-color-button-border-hover);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-sm);
+      font-weight: var(--yc-font-weight-semibold);
       cursor: pointer;
       transition: all 0.2s;
       display: flex;
@@ -34240,12 +34240,12 @@ ${formattedData.trim()}
       width: fit-content;
     `;
       addFilterBtn.addEventListener("mouseenter", () => {
-        addFilterBtn.style.background = "#edf2f7";
-        addFilterBtn.style.borderColor = "#667eea";
+        addFilterBtn.style.background = "var(--yc-color-button-bg-hover)";
+        addFilterBtn.style.borderColor = "var(--yc-color-primary)";
       });
       addFilterBtn.addEventListener("mouseleave", () => {
-        addFilterBtn.style.background = "#f7fafc";
-        addFilterBtn.style.borderColor = "#cbd5e0";
+        addFilterBtn.style.background = "var(--yc-color-button-bg)";
+        addFilterBtn.style.borderColor = "var(--yc-color-button-border-hover)";
       });
       addFilterBtn.addEventListener("click", () => {
         const newFilter = this.createFilterRow(filtersContainer);
@@ -34259,10 +34259,10 @@ ${formattedData.trim()}
       flex-direction: column;
       max-height: 150px;
       overflow-y: auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      background: white;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
+      background: var(--yc-color-bg-card);
+      box-shadow: 0 2px 8px var(--yc-color-shadow-light);
     `;
       searchBox.appendChild(header);
       searchBox.appendChild(filtersContainer);
@@ -34285,13 +34285,13 @@ ${formattedData.trim()}
     `;
       const fieldSelect = document.createElement("select");
       fieldSelect.style.cssText = `
-      padding: 7px 10px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 13px;
+      padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-base);
       outline: none;
       cursor: pointer;
-      background: white;
+      background: var(--yc-color-bg-card);
       min-width: 120px;
       transition: border-color 0.2s;
     `;
@@ -34303,10 +34303,10 @@ ${formattedData.trim()}
         fieldSelect.appendChild(option);
       });
       fieldSelect.addEventListener("focus", () => {
-        fieldSelect.style.borderColor = "#667eea";
+        fieldSelect.style.borderColor = "var(--yc-color-primary)";
       });
       fieldSelect.addEventListener("blur", () => {
-        fieldSelect.style.borderColor = "#e2e8f0";
+        fieldSelect.style.borderColor = "var(--yc-color-button-border)";
       });
       const inputWrapper = document.createElement("div");
       inputWrapper.style.cssText = `
@@ -34318,19 +34318,19 @@ ${formattedData.trim()}
       searchInput.placeholder = "Type to search...";
       searchInput.style.cssText = `
       width: 100%;
-      padding: 7px 10px;
-      border: 1px solid #e2e8f0;
-      border-radius: 6px;
-      font-size: 13px;
+      padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+      border: 1px solid var(--yc-color-button-border);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-base);
       outline: none;
       transition: border-color 0.2s;
     `;
       searchInput.addEventListener("focus", () => {
-        searchInput.style.borderColor = "#667eea";
+        searchInput.style.borderColor = "var(--yc-color-primary)";
       });
       searchInput.addEventListener("blur", () => {
         setTimeout(() => {
-          searchInput.style.borderColor = "#e2e8f0";
+          searchInput.style.borderColor = "var(--yc-color-button-border)";
         }, 200);
       });
       searchInput.addEventListener("input", () => {
@@ -34348,11 +34348,11 @@ ${formattedData.trim()}
       padding: 0;
       width: 28px;
       height: 28px;
-      background: #fee;
-      color: #c53030;
-      border: 1px solid #fc8181;
-      border-radius: 6px;
-      font-size: 18px;
+      background: var(--yc-color-error-light);
+      color: var(--yc-color-error-red-accent);
+      border: 1px solid var(--yc-color-error-red-border);
+      border-radius: var(--yc-border-radius-md);
+      font-size: var(--yc-font-size-2xl);
       cursor: pointer;
       transition: all 0.2s;
       display: flex;
@@ -34361,10 +34361,10 @@ ${formattedData.trim()}
       flex-shrink: 0;
     `;
       removeBtn.addEventListener("mouseenter", () => {
-        removeBtn.style.background = "#feb2b2";
+        removeBtn.style.background = "var(--yc-color-error-red-hover)";
       });
       removeBtn.addEventListener("mouseleave", () => {
-        removeBtn.style.background = "#fee";
+        removeBtn.style.background = "var(--yc-color-error-light)";
       });
       removeBtn.addEventListener("click", () => {
         const filters = container.querySelectorAll('[data-id="filter-row"]');
@@ -34448,8 +34448,8 @@ ${formattedData.trim()}
       matches.forEach(({ node, score: score2 }) => {
         const suggestionItem = document.createElement("div");
         suggestionItem.style.cssText = `
-        padding: 6px 10px;
-        border-bottom: 1px solid #f7fafc;
+        padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+        border-bottom: 1px solid var(--yc-color-button-bg);
         cursor: pointer;
         transition: background 0.2s;
       `;
@@ -34458,17 +34458,17 @@ ${formattedData.trim()}
         const displayTitle = nodeData.title || "";
         const displayDept = nodeData.department || "";
         suggestionItem.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: start; gap: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: start; gap: var(--yc-spacing-md);">
           <div style="flex: 1; min-width: 0;">
-            <div style="font-weight: 600; color: #2d3748; font-size: 12px; line-height: 1.3; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
-            ${displayTitle ? `<div style="font-size: 10px; line-height: 1.3; color: #718096; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>` : ""}
-            ${displayDept ? `<div style="font-size: 9px; line-height: 1.3; color: #a0aec0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayDept}</div>` : ""}
+            <div style="font-weight: var(--yc-font-weight-semibold); color: var(--yc-color-text-heading); font-size: var(--yc-font-size-sm); line-height: var(--yc-line-height-tight); margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
+            ${displayTitle ? `<div style="font-size: var(--yc-font-size-xs); line-height: var(--yc-line-height-tight); color: var(--yc-color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>` : ""}
+            ${displayDept ? `<div style="font-size: var(--yc-font-size-xs); line-height: var(--yc-line-height-tight); color: var(--yc-color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayDept}</div>` : ""}
           </div>
-          <div style="font-size: 9px; color: #667eea; font-weight: 600; flex-shrink: 0;">${Math.round(score2 * 100)}%</div>
+          <div style="font-size: var(--yc-font-size-xs); color: var(--yc-color-primary); font-weight: var(--yc-font-weight-semibold); flex-shrink: 0;">${Math.round(score2 * 100)}%</div>
         </div>
       `;
         suggestionItem.addEventListener("mouseenter", () => {
-          suggestionItem.style.background = "#f7fafc";
+          suggestionItem.style.background = "var(--yc-color-button-bg)";
         });
         suggestionItem.addEventListener("mouseleave", () => {
           suggestionItem.style.background = "white";
@@ -34552,15 +34552,15 @@ ${formattedData.trim()}
     `;
       const historyBox = document.createElement("div");
       historyBox.style.cssText = `
-      background: white;
-      border-radius: 8px;
+      background: var(--yc-color-bg-card);
+      border-radius: var(--yc-border-radius-lg);
       padding: 10px 14px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 4px 16px var(--yc-color-shadow-dark);
       width: 500px;
       max-height: 300px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: var(--yc-spacing-md);
     `;
       const historyHeader = document.createElement("div");
       historyHeader.style.cssText = `
@@ -34573,28 +34573,28 @@ ${formattedData.trim()}
       historyTitle.textContent = "Search History";
       historyTitle.style.cssText = `
       margin: 0;
-      font-size: 13px;
-      font-weight: 600;
-      color: #1a202c;
+      font-size: var(--yc-font-size-base);
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-gray-900);
     `;
       const clearAllButton = document.createElement("button");
       clearAllButton.textContent = "Clear All";
       clearAllButton.style.cssText = `
-      background: #fee;
-      color: #c53030;
-      border: 1px solid #fc8181;
-      border-radius: 6px;
+      background: var(--yc-color-error-light);
+      color: var(--yc-color-error-red-accent);
+      border: 1px solid var(--yc-color-error-red-border);
+      border-radius: var(--yc-border-radius-md);
       padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 600;
+      font-size: var(--yc-font-size-xs);
+      font-weight: var(--yc-font-weight-semibold);
       cursor: pointer;
       transition: all 0.2s;
     `;
       clearAllButton.addEventListener("mouseenter", () => {
-        clearAllButton.style.background = "#feb2b2";
+        clearAllButton.style.background = "var(--yc-color-error-red-hover)";
       });
       clearAllButton.addEventListener("mouseleave", () => {
-        clearAllButton.style.background = "#fee";
+        clearAllButton.style.background = "var(--yc-color-error-light)";
       });
       clearAllButton.addEventListener("click", () => {
         this.clearSearchHistory();
@@ -34628,8 +34628,8 @@ ${formattedData.trim()}
         emptyMessage.style.cssText = `
         padding: 20px;
         text-align: center;
-        color: #a0aec0;
-        font-size: 12px;
+        color: var(--yc-color-text-light);
+        font-size: var(--yc-font-size-sm);
       `;
         historyList.appendChild(emptyMessage);
         return;
@@ -34639,11 +34639,11 @@ ${formattedData.trim()}
         historyItem.style.cssText = `
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: var(--yc-spacing-md);
         padding: 8px 10px;
-        background: #f7fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 6px;
+        background: var(--yc-color-button-bg);
+        border: 1px solid var(--yc-color-button-border);
+        border-radius: var(--yc-border-radius-md);
         transition: all 0.2s;
         cursor: pointer;
       `;
@@ -34656,16 +34656,16 @@ ${formattedData.trim()}
         const nodeInfo = item.nodeName ? ` → ${item.nodeName}` : "";
         const timestamp2 = new Date(item.timestamp).toLocaleString();
         historyContent.innerHTML = `
-        <div style="font-size: 12px; color: #2d3748; font-weight: 500; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${searchText}${nodeInfo}</div>
-        <div style="font-size: 10px; color: #a0aec0;">${timestamp2}</div>
+        <div style="font-size: var(--yc-font-size-sm); color: var(--yc-color-text-heading); font-weight: var(--yc-font-weight-medium); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${searchText}${nodeInfo}</div>
+        <div style="font-size: var(--yc-font-size-xs); color: var(--yc-color-text-light);">${timestamp2}</div>
       `;
         const removeButton = document.createElement("button");
         removeButton.innerHTML = "×";
         removeButton.style.cssText = `
-        background: #fee;
-        color: #c53030;
-        border: 1px solid #fc8181;
-        border-radius: 4px;
+        background: var(--yc-color-error-light);
+        color: var(--yc-color-error-red-accent);
+        border: 1px solid var(--yc-color-error-red-border);
+        border-radius: var(--yc-border-radius-sm);
         width: 24px;
         height: 24px;
         display: flex;
@@ -34673,26 +34673,26 @@ ${formattedData.trim()}
         justify-content: center;
         cursor: pointer;
         transition: all 0.2s;
-        font-size: 16px;
+        font-size: var(--yc-font-size-xl);
         flex-shrink: 0;
       `;
         removeButton.addEventListener("mouseenter", () => {
-          removeButton.style.background = "#feb2b2";
+          removeButton.style.background = "var(--yc-color-error-red-hover)";
         });
         removeButton.addEventListener("mouseleave", () => {
-          removeButton.style.background = "#fee";
+          removeButton.style.background = "var(--yc-color-error-light)";
         });
         removeButton.addEventListener("click", (e) => {
           e.stopPropagation();
           this.removeHistoryItem(index2);
         });
         historyItem.addEventListener("mouseenter", () => {
-          historyItem.style.background = "#edf2f7";
-          historyItem.style.borderColor = "#cbd5e0";
+          historyItem.style.background = "var(--yc-color-button-bg-hover)";
+          historyItem.style.borderColor = "var(--yc-color-button-border-hover)";
         });
         historyItem.addEventListener("mouseleave", () => {
-          historyItem.style.background = "#f7fafc";
-          historyItem.style.borderColor = "#e2e8f0";
+          historyItem.style.background = "var(--yc-color-button-bg)";
+          historyItem.style.borderColor = "var(--yc-color-button-border)";
         });
         historyItem.addEventListener("click", () => {
           this.applyHistorySearch(item);
@@ -34836,12 +34836,12 @@ ${formattedData.trim()}
       const columnAdjustBtn = document.querySelector(`[data-id="ychart-btn-columnAdjust-${this.instanceId}"]`);
       if (columnAdjustBtn) {
         if (this.columnAdjustMode) {
-          columnAdjustBtn.style.background = "#9b59b6";
+          columnAdjustBtn.style.background = "var(--yc-color-accent-purple)";
           columnAdjustBtn.style.color = "white";
           console.log("Column adjust mode enabled. Click a parent node to adjust its children column layout.");
         } else {
           columnAdjustBtn.style.background = "transparent";
-          columnAdjustBtn.style.color = "#4a5568";
+          columnAdjustBtn.style.color = "var(--yc-color-icon)";
           this.hideColumnAdjustButtons();
           console.log("Column adjust mode disabled.");
         }
@@ -34869,30 +34869,30 @@ ${formattedData.trim()}
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(255, 255, 255, 0.98);
+      background: var(--yc-color-overlay-bg);
       backdrop-filter: blur(10px);
       border-radius: 12px;
       padding: 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 8px 24px var(--yc-color-shadow-dark);
       z-index: 100;
-      border: 2px solid #9b59b6;
+      border: 2px solid var(--yc-color-accent-purple);
       min-width: 300px;
     `;
       const title = document.createElement("div");
       title.textContent = `Adjust Children Columns`;
       title.style.cssText = `
-      font-size: 16px;
-      font-weight: 600;
+      font-size: var(--yc-font-size-xl);
+      font-weight: var(--yc-font-weight-semibold);
       margin-bottom: 15px;
-      color: #2c3e50;
+      color: var(--yc-color-ui-slate);
       text-align: center;
     `;
       this.columnAdjustButtons.appendChild(title);
       const info = document.createElement("div");
       info.textContent = `Node: ${nodeData.data.name || nodeData.data.id} (${childrenCount} children)`;
       info.style.cssText = `
-      font-size: 13px;
-      color: #7f8c8d;
+      font-size: var(--yc-font-size-base);
+      color: var(--yc-color-ui-slate-light);
       margin-bottom: 15px;
       text-align: center;
     `;
@@ -34912,9 +34912,9 @@ ${formattedData.trim()}
       width: 40px;
       height: 40px;
       border: none;
-      background: ${currentColumns <= 2 ? "#ecf0f1" : "#9b59b6"};
+      background: ${currentColumns <= 2 ? "var(--yc-color-ui-gray-light)" : "var(--yc-color-accent-purple)"};
       color: white;
-      border-radius: 8px;
+      border-radius: var(--yc-border-radius-lg);
       cursor: ${currentColumns <= 2 ? "not-allowed" : "pointer"};
       display: flex;
       align-items: center;
@@ -34922,16 +34922,16 @@ ${formattedData.trim()}
       transition: all 0.2s ease;
     `;
       if (currentColumns > 2) {
-        decreaseBtn.onmouseover = () => decreaseBtn.style.background = "#8e44ad";
-        decreaseBtn.onmouseleave = () => decreaseBtn.style.background = "#9b59b6";
+        decreaseBtn.onmouseover = () => decreaseBtn.style.background = "var(--yc-color-accent-purple-dark)";
+        decreaseBtn.onmouseleave = () => decreaseBtn.style.background = "var(--yc-color-accent-purple)";
         decreaseBtn.onclick = () => this.adjustNodeColumns(nodeData, currentColumns - 1);
       }
       const columnDisplay = document.createElement("div");
       columnDisplay.textContent = `${currentColumns} Columns`;
       columnDisplay.style.cssText = `
-      font-size: 18px;
-      font-weight: 600;
-      color: #2c3e50;
+      font-size: var(--yc-font-size-2xl);
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-ui-slate);
       min-width: 100px;
       text-align: center;
     `;
@@ -34942,9 +34942,9 @@ ${formattedData.trim()}
       width: 40px;
       height: 40px;
       border: none;
-      background: ${currentColumns >= childrenCount ? "#ecf0f1" : "#9b59b6"};
+      background: ${currentColumns >= childrenCount ? "var(--yc-color-ui-gray-light)" : "var(--yc-color-accent-purple)"};
       color: white;
-      border-radius: 8px;
+      border-radius: var(--yc-border-radius-lg);
       cursor: ${currentColumns >= childrenCount ? "not-allowed" : "pointer"};
       display: flex;
       align-items: center;
@@ -34952,8 +34952,8 @@ ${formattedData.trim()}
       transition: all 0.2s ease;
     `;
       if (currentColumns < childrenCount) {
-        increaseBtn.onmouseover = () => increaseBtn.style.background = "#8e44ad";
-        increaseBtn.onmouseleave = () => increaseBtn.style.background = "#9b59b6";
+        increaseBtn.onmouseover = () => increaseBtn.style.background = "var(--yc-color-accent-purple-dark)";
+        increaseBtn.onmouseleave = () => increaseBtn.style.background = "var(--yc-color-accent-purple)";
         increaseBtn.onclick = () => this.adjustNodeColumns(nodeData, currentColumns + 1);
       }
       controlsWrapper.appendChild(decreaseBtn);
@@ -34966,16 +34966,16 @@ ${formattedData.trim()}
       width: 100%;
       padding: 10px;
       border: none;
-      background: #95a5a6;
+      background: var(--yc-color-ui-slate-lighter);
       color: white;
-      border-radius: 8px;
+      border-radius: var(--yc-border-radius-lg);
       cursor: pointer;
-      font-size: 14px;
-      font-weight: 500;
+      font-size: var(--yc-font-size-md);
+      font-weight: var(--yc-font-weight-medium);
       transition: all 0.2s ease;
     `;
-      closeBtn.onmouseover = () => closeBtn.style.background = "#7f8c8d";
-      closeBtn.onmouseleave = () => closeBtn.style.background = "#95a5a6";
+      closeBtn.onmouseover = () => closeBtn.style.background = "var(--yc-color-ui-slate-light)";
+      closeBtn.onmouseleave = () => closeBtn.style.background = "var(--yc-color-ui-slate-lighter)";
       closeBtn.onclick = () => this.hideColumnAdjustButtons();
       this.columnAdjustButtons.appendChild(closeBtn);
       (_a2 = this.chartContainer) == null ? void 0 : _a2.appendChild(this.columnAdjustButtons);
@@ -35242,13 +35242,13 @@ ${formattedData.trim()}
       header.style.cssText = `
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: var(--yc-spacing-md);
       margin-bottom: 6px;
-      font-weight: 600;
-      color: #b91c1c;
+      font-weight: var(--yc-font-weight-semibold);
+      color: var(--yc-color-error-red-dark);
     `;
       header.innerHTML = `
-      <span style="font-size: 16px;">⚠️</span>
+      <span style="font-size: var(--yc-font-size-xl);">⚠️</span>
       <span>${errors.length} error${errors.length !== 1 ? "s" : ""}${warnings.length > 0 ? `, ${warnings.length} warning${warnings.length !== 1 ? "s" : ""}` : ""}</span>
     `;
       banner.appendChild(header);
@@ -35258,7 +35258,7 @@ ${formattedData.trim()}
         errorItem.style.cssText = `
         display: flex;
         align-items: flex-start;
-        gap: 8px;
+        gap: var(--yc-spacing-md);
         padding: 4px 0;
         ${index2 < allDiagnostics.length - 1 ? "border-bottom: 1px solid rgba(239, 68, 68, 0.2);" : ""}
       `;
@@ -35277,22 +35277,22 @@ ${formattedData.trim()}
         jumpBtn.textContent = `L${lineNumber}`;
         jumpBtn.title = `Jump to line ${lineNumber}`;
         jumpBtn.style.cssText = `
-        background: ${diagnostic.severity === "error" ? "#dc2626" : "#d97706"};
+        background: ${diagnostic.severity === "error" ? "var(--yc-color-error-red-light)" : "var(--yc-color-warning-amber-dark)"};
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: var(--yc-border-radius-sm);
         padding: 2px 8px;
-        font-size: 11px;
-        font-weight: 600;
+        font-size: var(--yc-font-size-xs);
+        font-weight: var(--yc-font-weight-semibold);
         cursor: pointer;
         flex-shrink: 0;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
       `;
         jumpBtn.onmouseover = () => {
-          jumpBtn.style.background = diagnostic.severity === "error" ? "#b91c1c" : "#b45309";
+          jumpBtn.style.background = diagnostic.severity === "error" ? "var(--yc-color-error-red-dark)" : "var(--yc-color-warning-amber-darker)";
         };
         jumpBtn.onmouseleave = () => {
-          jumpBtn.style.background = diagnostic.severity === "error" ? "#dc2626" : "#d97706";
+          jumpBtn.style.background = diagnostic.severity === "error" ? "var(--yc-color-error-red-light)" : "var(--yc-color-warning-amber-dark)";
         };
         jumpBtn.onclick = () => {
           this.jumpToLine(lineNumber);
@@ -35300,7 +35300,7 @@ ${formattedData.trim()}
         const messageSpan = document.createElement("span");
         messageSpan.textContent = displayMessage;
         messageSpan.style.cssText = `
-        color: #7f1d1d;
+        color: var(--yc-color-error-red-text);
         flex: 1;
         word-break: break-word;
       `;
@@ -35654,40 +35654,40 @@ ${formattedData.trim()}
       if (this.cardTemplate && Array.isArray(this.cardTemplate)) {
         const cardHtml = this.cardTemplate.map((element) => this.renderCardElement(element, d.data)).join("");
         return `
-        <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;position:relative">
-          <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+        <div style="width:${d.width}px;height:${d.height}px;padding:var(--yc-spacing-xl);background:var(--yc-color-text-inverse);border:var(--yc-border-width-medium) solid var(--yc-color-secondary);border-radius:var(--yc-border-radius-lg);box-sizing:border-box;position:relative">
+          <div class="details-btn" style="position:absolute;top:var(--yc-spacing-xs);right:var(--yc-spacing-xs);width:var(--yc-height-icon-sm);height:var(--yc-height-icon-sm);background:var(--yc-color-gray-300);border-radius:var(--yc-border-radius-full);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--yc-font-size-sm);color:var(--yc-color-text-secondary);z-index:var(--yc-z-index-overlay);border:var(--yc-border-width-thin) solid var(--yc-color-gray-500);" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
           ${cardHtml}
         </div>
       `;
       }
       return `
-      <div style="width:${d.width}px;height:${d.height}px;padding:12px;background:#fff;border:2px solid #4A90E2;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;gap:12px;position:relative">
-        <div class="details-btn" style="position:absolute;top:4px;right:4px;width:20px;height:20px;background:#f0f0f0;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#666;z-index:10;border:1px solid #ccc;" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
+      <div style="width:${d.width}px;height:${d.height}px;padding:var(--yc-spacing-xl);background:var(--yc-color-text-inverse);border:var(--yc-border-width-medium) solid var(--yc-color-secondary);border-radius:var(--yc-border-radius-lg);box-sizing:border-box;display:flex;align-items:center;gap:var(--yc-spacing-xl);position:relative">
+        <div class="details-btn" style="position:absolute;top:var(--yc-spacing-xs);right:var(--yc-spacing-xs);width:var(--yc-height-icon-sm);height:var(--yc-height-icon-sm);background:var(--yc-color-gray-300);border-radius:var(--yc-border-radius-full);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:var(--yc-font-size-sm);color:var(--yc-color-text-secondary);z-index:var(--yc-z-index-overlay);border:var(--yc-border-width-thin) solid var(--yc-color-gray-500);" title="Show Details" aria-label="Show Details" role="button" tabindex="0">ℹ</div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:14px;font-weight:bold;color:#333;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ""}</div>
-          <div style="font-size:12px;color:#666;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ""}</div>
-          <div style="font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ""}</div>
+          <div style="font-size:var(--yc-font-size-md);font-weight:var(--yc-font-weight-bold);color:var(--yc-color-text-primary);margin-bottom:var(--yc-spacing-xs);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.name || ""}</div>
+          <div style="font-size:var(--yc-font-size-sm);color:var(--yc-color-text-secondary);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.title || ""}</div>
+          <div style="font-size:var(--yc-font-size-xs);color:var(--yc-color-gray-600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${d.data.department || ""}</div>
         </div>
       </div>
     `;
     }
     showNodeDetails(data) {
       if (!this.detailsPanel) return;
-      let html = '<div class="node-details-content" style="font-family:sans-serif;">';
-      html += `<h3 style="margin:0 0 1rem 0;color:#333;">${data.name || "Unknown"}</h3>`;
-      html += '<div style="display:grid;gap:0.5rem;">';
+      let html = '<div class="node-details-content" style="font-family:var(--yc-font-family-base);">';
+      html += `<h3 style="margin:0 0 var(--yc-spacing-3xl) 0;color:var(--yc-color-text-primary);">${data.name || "Unknown"}</h3>`;
+      html += '<div style="display:grid;gap:var(--yc-spacing-md);">';
       for (const [key, value] of Object.entries(data)) {
         if (key.startsWith("_") || key === "picture") continue;
         const label = key.charAt(0).toUpperCase() + key.slice(1);
         html += `
-        <div style="display:grid;grid-template-columns:120px 1fr;gap:0.5rem;">
-          <span style="font-weight:600;color:#666;">${label}:</span>
-          <span style="color:#333;">${value || "N/A"}</span>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:var(--yc-spacing-md);">
+          <span style="font-weight:var(--yc-font-weight-semibold);color:var(--yc-color-text-secondary);">${label}:</span>
+          <span style="color:var(--yc-color-text-primary);">${value || "N/A"}</span>
         </div>
       `;
       }
       html += "</div>";
-      html += `<button onclick="document.getElementById('ychart-node-details-${this.instanceId}').style.display='none'" style="margin-top:1rem;padding:0.5rem 1rem;background:#667eea;color:white;border:none;border-radius:4px;cursor:pointer;width:100%;">Close</button>`;
+      html += `<button onclick="document.getElementById('ychart-node-details-${this.instanceId}').style.display='none'" style="margin-top:var(--yc-spacing-3xl);padding:var(--yc-spacing-md) var(--yc-spacing-3xl);background:var(--yc-color-primary);color:white;border:none;border-radius:var(--yc-border-radius-sm);cursor:pointer;width:100%;">Close</button>`;
       html += "</div>";
       this.detailsPanel.innerHTML = html;
       this.detailsPanel.style.display = "block";
@@ -35709,7 +35709,7 @@ ${formattedData.trim()}
       dot.setAttribute("cx", "2");
       dot.setAttribute("cy", "2");
       dot.setAttribute("r", "0.5");
-      dot.setAttribute("fill", this.defaultOptions.patternColor || "#cccccc");
+      dot.setAttribute("fill", this.defaultOptions.patternColor || "var(--yc-color-pattern)");
       pattern.appendChild(dot);
       defs.appendChild(pattern);
       return defs;
@@ -35732,7 +35732,7 @@ ${formattedData.trim()}
       hLine.setAttribute("y1", "0");
       hLine.setAttribute("x2", "20");
       hLine.setAttribute("y2", "0");
-      hLine.setAttribute("stroke", this.defaultOptions.patternColor || "#cccccc");
+      hLine.setAttribute("stroke", this.defaultOptions.patternColor || "var(--yc-color-pattern)");
       hLine.setAttribute("stroke-width", "0.5");
       hLine.setAttribute("stroke-dasharray", "3, 3");
       const vLine = document.createElementNS(
@@ -35743,7 +35743,7 @@ ${formattedData.trim()}
       vLine.setAttribute("y1", "0");
       vLine.setAttribute("x2", "0");
       vLine.setAttribute("y2", "20");
-      vLine.setAttribute("stroke", this.defaultOptions.patternColor || "#cccccc");
+      vLine.setAttribute("stroke", this.defaultOptions.patternColor || "var(--yc-color-pattern)");
       vLine.setAttribute("stroke-width", "0.5");
       vLine.setAttribute("stroke-dasharray", "3, 3");
       pattern.appendChild(hLine);

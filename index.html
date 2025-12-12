@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YChart - Org Chart Editor</title>
     <style>
+      /* Basic reset - detailed styles in style.scss */
       * {
         margin: 0;
         padding: 0;
@@ -13,7 +14,6 @@
       }
       
       body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         height: 100vh;
         overflow: hidden;
       }
@@ -22,84 +22,6 @@
         display: flex;
         flex-direction: column;
         height: 100vh;
-      }
-      
-      header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 1rem 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        z-index: 10;
-      }
-      
-      header h1 {
-        font-size: 1.5rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .header-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-
-      .git-info {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        font-size: 0.85rem;
-      }
-
-      .git-info a {
-        color: rgba(255,255,255,0.9);
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        gap: 0.3rem;
-        transition: color 0.2s;
-      }
-
-      .git-info a:hover {
-        color: white;
-        text-decoration: underline;
-      }
-
-      .git-info svg {
-        width: 16px;
-        height: 16px;
-        fill: currentColor;
-      }
-
-      .commit-hash {
-        font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, monospace;
-        background: rgba(255,255,255,0.15);
-        padding: 0.2rem 0.5rem;
-        border-radius: 4px;
-      }
-      
-      .controls {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-      }
-      
-      .btn {
-        padding: 0.5rem 1rem;
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.3);
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        font-weight: 500;
-        transition: all 0.2s;
-      }
-      
-      .btn:hover {
-        background: rgba(255,255,255,0.3);
-        transform: translateY(-1px);
       }
       
       #container {
