@@ -5,6 +5,7 @@ import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import * as jsyaml from 'js-yaml';
 import { OrgChart } from './d3-org-chart.js';
 import { ForceGraph } from './forceGraph.js';
+import { ReactFlowView } from './reactFlowView.js';
 import './style.css';
 
 interface YChartOptions {
@@ -68,7 +69,8 @@ class YChartEditor {
   private editor: EditorView | null = null;
   private orgChart: any = null;
   private forceGraph: ForceGraph | null = null;
-  private currentView: 'hierarchy' | 'force' = 'hierarchy';
+  private reactFlowView: ReactFlowView | null = null;
+  private currentView: 'hierarchy' | 'force' | 'reactflow' = 'hierarchy';
   private swapModeEnabled = false;
   private isUpdatingProgrammatically = false;
   private defaultOptions: YChartOptions;
@@ -380,6 +382,7 @@ class YChartEditor {
       export: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5-5 5 5M12 15V3"/></svg>`,
       swap: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3l4 4-4 4M8 21l-4-4 4-4M20 7H4M4 17h16"/></svg>`,
       forceGraph: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="14" y1="12" x2="17" y2="12"/><line x1="7" y1="12" x2="10" y2="12"/></svg>`,
+      reactFlow: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><circle cx="12" cy="5" r="3"/><circle cx="12" cy="19" r="3"/><path d="M8 12h8M12 8v8"/></svg>`,
       orgChart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`,
       expandAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
       collapseAll: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>`,
@@ -399,12 +402,26 @@ class YChartEditor {
       { id: 'export', icon: icons.export, tooltip: 'Export SVG', action: () => this.handleExport() },
     ];
 
-    // Add Force Graph toggle button only if experimental mode is enabled
+    // Add view toggle button only if experimental mode is enabled
     if (this.experimental) {
+      let viewIcon = icons.forceGraph;
+      let viewTooltip = 'Switch to Force Graph';
+      
+      if (this.currentView === 'hierarchy') {
+        viewIcon = icons.forceGraph;
+        viewTooltip = 'Switch to Force Graph';
+      } else if (this.currentView === 'force') {
+        viewIcon = icons.reactFlow;
+        viewTooltip = 'Switch to ReactFlow View';
+      } else {
+        viewIcon = icons.orgChart;
+        viewTooltip = 'Switch to Org Chart';
+      }
+      
       buttons.splice(6, 0, { 
         id: 'toggleView', 
-        icon: this.currentView === 'hierarchy' ? icons.forceGraph : icons.orgChart, 
-        tooltip: this.currentView === 'hierarchy' ? 'Switch to Force Graph (Experimental)' : 'Switch to Org Chart', 
+        icon: viewIcon, 
+        tooltip: viewTooltip + ' (Experimental)', 
         action: () => this.handleToggleView() 
       });
     }
@@ -572,8 +589,11 @@ class YChartEditor {
   }
 
   private handleToggleView(): void {
+    // Cycle through views: hierarchy -> force -> reactflow -> hierarchy
     if (this.currentView === 'hierarchy') {
       this.renderForceGraph();
+    } else if (this.currentView === 'force') {
+      this.renderReactFlowView();
     } else {
       this.renderChart();
     }
@@ -583,12 +603,16 @@ class YChartEditor {
     if (toggleBtn) {
       const icons = {
         forceGraph: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="12" cy="19" r="2"/><line x1="12" y1="7" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="14" y1="12" x2="17" y2="12"/><line x1="7" y1="12" x2="10" y2="12"/></svg>`,
+        reactFlow: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="3"/><circle cx="19" cy="12" r="3"/><circle cx="12" cy="5" r="3"/><circle cx="12" cy="19" r="3"/><path d="M8 12h8M12 8v8"/></svg>`,
         orgChart: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>`,
       };
 
       if (this.currentView === 'hierarchy') {
         toggleBtn.innerHTML = icons.forceGraph;
-        toggleBtn.title = 'Switch to Force Graph';
+        toggleBtn.title = 'Switch to Force Graph (Experimental)';
+      } else if (this.currentView === 'force') {
+        toggleBtn.innerHTML = icons.reactFlow;
+        toggleBtn.title = 'Switch to ReactFlow View (Experimental)';
       } else {
         toggleBtn.innerHTML = icons.orgChart;
         toggleBtn.title = 'Switch to Org Chart';
@@ -3006,10 +3030,38 @@ class YChartEditor {
         this.forceGraph.stop();
       }
 
-      this.forceGraph = new ForceGraph('ychart-chart', (data: any) => this.showNodeDetails(data));
+      this.forceGraph = new ForceGraph(`ychart-chart-${this.instanceId}`, (data: any) => this.showNodeDetails(data));
       this.forceGraph.render(resolvedData);
       
       this.currentView = 'force';
+    } catch (error) {
+      // Silently handle - linter will display errors in the editor
+    }
+  }
+
+  private renderReactFlowView(): void {
+    try {
+      if (!this.editor) return;
+
+      const yamlContent = this.editor.state.doc.toString();
+      const { data: yamlData } = this.parseFrontMatter(yamlContent);
+      const parsedData = jsyaml.load(yamlData) as any[];
+
+      if (!Array.isArray(parsedData)) {
+        throw new Error('YAML must be an array');
+      }
+
+      // Resolve missing parentId values by looking up supervisor names
+      const resolvedData = this.resolveMissingParentIds(parsedData);
+
+      if (this.reactFlowView) {
+        this.reactFlowView.stop();
+      }
+
+      this.reactFlowView = new ReactFlowView(`ychart-chart-${this.instanceId}`, (data: any) => this.showNodeDetails(data));
+      this.reactFlowView.render(resolvedData);
+      
+      this.currentView = 'reactflow';
     } catch (error) {
       // Silently handle - linter will display errors in the editor
     }
