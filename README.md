@@ -17,7 +17,7 @@ A beautiful, interactive organizational chart editor with YAML input powered by 
 - ⚡ **Fast & Efficient** - Optimized layout algorithms
 - 🖱️ **Draggable Nodes** - Rearrange nodes by dragging them
 - 💾 **Position Persistence** - Node positions saved in browser localStorage
-- 🔀 **Dual View Modes** - Switch between hierarchical and force-directed graph layouts
+- 🔀 **Triple View Modes** - Switch between hierarchical org chart, force-directed graph, and ReactFlow-style layouts
 
 ## Getting Started
 
@@ -459,6 +459,26 @@ watch(() => props.data, (newData) => {
 </script>
 ```
 
+## View Modes
+
+YChart supports three different visualization modes (experimental feature):
+
+1. **Hierarchical Org Chart** (default) - Traditional tree-based organizational chart using d3-org-chart
+2. **Force-Directed Graph** - Physics-based network layout using D3 force simulation
+3. **ReactFlow View** - Hierarchical flow chart with directed edges using Cytoscape.js
+
+To enable view switching, set `experimental: true` in the options:
+
+```typescript
+const ychartEditor = new YChartEditor({
+  nodeWidth: 220,
+  nodeHeight: 110,
+  experimental: true  // Enables view toggle button
+});
+```
+
+When enabled, a toggle button appears in the toolbar allowing you to cycle through all three views.
+
 ## Browser Support
 
 - Chrome/Edge (latest)
@@ -474,6 +494,7 @@ MIT
 Built with:
 - [d3-org-chart](https://github.com/bumbeishvili/org-chart) by David Bumbeishvili - Org chart visualization
 - [D3.js](https://d3js.org/) - Data visualization
+- [Cytoscape.js](https://js.cytoscape.org/) - Graph theory library for ReactFlow view
 - [CodeMirror](https://codemirror.net/) - Code editor
 - [js-yaml](https://github.com/nodeca/js-yaml) - YAML parser
 
