@@ -1,14 +1,13 @@
 @use 'variables' as *;
 
 // Import Bootstrap with YChart variable overrides
-// @import 'bootstrap/scss/bootstrap';
-// @import 'bootstrap-variables';
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-variables';
 
 /* Tailwind CSS v4 */
 // @import "tailwindcss/theme" layer(theme);
 // @import "tailwindcss/preflight" layer(base);
 // @import "tailwindcss/utilities" layer(utilities);
-
 // @import "tailwind-variables";
 
 
@@ -302,6 +301,11 @@ header {
     /* General foreignObject fixes */
     .node-foreign-object {
       overflow: visible;
+      
+      /* Initial state: allow content to determine height */
+      &:not([data-height-synced]) {
+        height: auto !important;
+      }
     }
 
     .node-foreign-object-div {
@@ -309,6 +313,17 @@ header {
       user-select: text;
       -webkit-user-select: text;
       cursor: text;
+      
+      /* Initial state: allow content to flow naturally */
+      &:not([data-height-synced]) {
+        height: auto !important;
+        min-height: auto !important;
+        
+        > div {
+          height: auto !important;
+          min-height: auto !important;
+        }
+      }
 
       /* Allow pointer cursor on interactive elements within cards */
       .details-btn,
