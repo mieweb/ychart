@@ -5,6 +5,7 @@ import { linter, lintGutter, type Diagnostic } from '@codemirror/lint';
 import * as jsyaml from 'js-yaml';
 import { OrgChart } from './d3-org-chart.js';
 import { ForceGraph } from './forceGraph.js';
+import { NodeHeightSyncService } from './nodeHeightSyncService.js';
 import './styles/styles.scss';
 
 interface YChartOptions {
@@ -91,6 +92,7 @@ class YChartEditor {
   // Default supervisor field aliases - can be overridden via schema or supervisorLookup()
   private supervisorFields: string[] = ['supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'];
   private nameField: string = 'name';
+  private nodeHeightSync: NodeHeightSyncService | null = null;
   
   constructor(options?: YChartOptions) {
     this.instanceId = generateUUID();
@@ -2521,6 +2523,12 @@ class YChartEditor {
     if (typeof config === 'string') {
       // Replace variables like $name$ with actual data
       const content = this.replaceVariables(config, data);
+      
+      // Add word-break style to span elements
+      if (tagName === 'span') {
+        return `<${tagName} style="word-break:break-all">${content}</${tagName}>`;
+      }
+      
       return `<${tagName}>${content}</${tagName}>`;
     }
 
@@ -2534,7 +2542,17 @@ class YChartEditor {
     }
 
     if (config.style) {
-      attrs.push(`style="${config.style}"`);
+      // Add word-break to existing style for span elements
+      if (tagName === 'span') {
+        const existingStyle = config.style.trim();
+        const separator = existingStyle.endsWith(';') ? '' : ';';
+        attrs.push(`style="${existingStyle}${separator}word-break:break-all"`);
+      } else {
+        attrs.push(`style="${config.style}"`);
+      }
+    } else if (tagName === 'span') {
+      // Add word-break style if no style exists
+      attrs.push(`style="word-break:break-all"`);
     }
 
     if (config.content) {
@@ -2751,6 +2769,9 @@ class YChartEditor {
           if (this.bgPattern) {
             this.applyBackgroundPattern();
           }
+          
+          // Initialize height synchronization after nodes are rendered
+          this.initializeHeightSync();
         }
       }, 100);
       
@@ -2985,6 +3006,45 @@ class YChartEditor {
 
     // Store observer reference for cleanup
     (this as any)._patternObserver = observer;
+  }
+
+  /**
+   * Initialize node height synchronization service
+   * Ensures all nodes have the same height based on the tallest content
+   */
+  private initializeHeightSync(): void {
+    if (!this.chartContainer) return;
+
+    // Clean up existing service if any
+    if (this.nodeHeightSync) {
+      this.nodeHeightSync.destroy();
+    }
+
+    // Find the SVG container within the chart
+    const svg = this.chartContainer.querySelector('svg');
+    if (!svg) {
+      console.warn('SVG not found for height sync');
+      return;
+    }
+
+    // Initialize the height sync service
+    this.nodeHeightSync = new NodeHeightSyncService(svg, {
+      minHeight: this.defaultOptions.nodeHeight || 110,
+      maxHeight: 500, // Reasonable max to prevent excessive heights
+      heightPadding: 10, // Add a bit of padding for breathing room
+      resizeDebounce: 150,
+      onHeightChange: (newHeight) => {
+        console.log(`Node heights synchronized to: ${newHeight}px`);
+        
+        // Update the org chart's node height setting
+        if (this.orgChart) {
+          this.orgChart.nodeHeight(() => newHeight);
+        }
+      }
+    });
+
+    // Perform initial sync
+    this.nodeHeightSync.init();
   }
 
   private renderForceGraph(): void {
