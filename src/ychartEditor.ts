@@ -2547,6 +2547,11 @@ class YChartEditor {
         console.log('Re-rendering and fitting chart to new container bounds...');
         // Force SVG to update by calling render then fit
         this.orgChart.render().fit();
+        
+        // Reapply background pattern after re-render
+        if (this.bgPattern) {
+          setTimeout(() => this.applyBackgroundPattern(), 50);
+        }
       }
     }, 250);
   }
@@ -3140,6 +3145,9 @@ class YChartEditor {
         .nodeContent((d: any) => this.getNodeContent(d))
         .render();
       
+      // Set up pattern persistence observer (always, it will only act if bgPattern is set)
+      this.setupPatternPersistence();
+      
       // Apply pattern immediately after render
       if (this.bgPattern) {
         // Small delay to ensure SVG is ready
@@ -3160,11 +3168,6 @@ class YChartEditor {
           this.initializeHeightSync();
         }
       }, 100);
-      
-      // Also reapply on any future updates (zoom, pan, etc)
-      if (this.bgPattern) {
-        this.setupPatternPersistence();
-      }
       
       this.currentView = 'hierarchy';
     } catch (error) {
@@ -3248,9 +3251,9 @@ class YChartEditor {
       "http://www.w3.org/2000/svg",
       "circle"
     );
-    dot.setAttribute("cx", "2");
-    dot.setAttribute("cy", "2");
-    dot.setAttribute("r", "0.5");
+    dot.setAttribute("cx", "5");
+    dot.setAttribute("cy", "5");
+    dot.setAttribute("r", "0.75");
     dot.setAttribute("fill", this.defaultOptions.patternColor || "var(--yc-color-pattern)");
 
     pattern.appendChild(dot);
@@ -3371,15 +3374,26 @@ class YChartEditor {
   private setupPatternPersistence(): void {
     if (!this.chartContainer) return;
 
+    // Don't set up multiple observers
+    if ((this as any)._patternObserver) {
+      return;
+    }
+
     // Use MutationObserver to watch for SVG changes
     const observer = new MutationObserver(() => {
       if (this.bgPattern) {
         // Check if pattern is still there
         const svg = this.chartContainer?.querySelector('svg');
         const bgRect = svg?.querySelector('#pattern-background');
-        if (svg && !bgRect) {
-          // Pattern was removed, reapply it
-          this.applyBackgroundPattern();
+        const patternDef = svg?.querySelector('#dotPattern, #gridPattern');
+        if (svg && (!bgRect || !patternDef)) {
+          // Pattern was removed, reapply it (with debounce)
+          if ((this as any)._patternDebounce) {
+            clearTimeout((this as any)._patternDebounce);
+          }
+          (this as any)._patternDebounce = setTimeout(() => {
+            this.applyBackgroundPattern();
+          }, 50);
         }
       }
     });
