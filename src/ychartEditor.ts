@@ -89,6 +89,8 @@ class YChartEditor {
   private searchPopup: HTMLElement | null = null;
   private searchHistoryPopup: HTMLElement | null = null;
   private errorBanner: HTMLElement | null = null;
+  private floatingSearchBar: HTMLElement | null = null;
+  private searchResultsDropdown: HTMLElement | null = null;
   // Default supervisor field aliases - can be overridden via schema or supervisorLookup()
   private supervisorFields: string[] = ['supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'];
   private nameField: string = 'name';
@@ -192,6 +194,10 @@ class YChartEditor {
     // Create toolbar
     this.toolbar = this.createToolbar();
     chartWrapper.appendChild(this.toolbar);
+
+    // Create floating search bar
+    this.floatingSearchBar = this.createFloatingSearchBar();
+    chartWrapper.appendChild(this.floatingSearchBar);
 
     // Create editor sidebar (now on right side, open by default)
     const editorSidebar = document.createElement('div');
@@ -393,7 +399,6 @@ class YChartEditor {
     const buttons = [
       { id: 'fit', icon: icons.fit, tooltip: 'Fit to Screen', action: () => this.handleFit() },
       { id: 'reset', icon: icons.reset, tooltip: 'Reset Position', action: () => this.handleReset() },
-      { id: 'search', icon: icons.search, tooltip: 'Search/Filter Nodes', action: () => this.handleSearch() },
       { id: 'expandAll', icon: icons.expandAll, tooltip: 'Expand All', action: () => this.handleExpandAll() },
       { id: 'collapseAll', icon: icons.collapseAll, tooltip: 'Collapse All', action: () => this.handleCollapseAll() },
       { id: 'columnAdjust', icon: icons.columnAdjust, tooltip: 'Adjust Child Columns', action: () => this.handleColumnAdjustToggle() },
@@ -533,6 +538,377 @@ class YChartEditor {
     });
 
     return toolbar;
+  }
+
+  private createFloatingSearchBar(): HTMLElement {
+    const container = document.createElement('div');
+    container.setAttribute('data-id', `ychart-floating-search-${this.instanceId}`);
+    container.className = 'ychart-floating-search';
+    container.style.cssText = `
+      position: absolute;
+      top: var(--yc-spacing-4xl);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: var(--yc-z-index-search-popup);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    `;
+
+    const searchBarWrapper = document.createElement('div');
+    searchBarWrapper.className = 'ychart-search-bar-wrapper';
+    searchBarWrapper.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: var(--yc-spacing-sm);
+      background: var(--yc-color-bg-card);
+      border-radius: var(--yc-border-radius-pill);
+      padding: var(--yc-spacing-sm) var(--yc-spacing-lg);
+      box-shadow: var(--yc-shadow-2xl);
+      border: var(--yc-border-width-thin) solid var(--yc-color-shadow-light);
+      min-width: 320px;
+      transition: all var(--yc-transition-fast);
+    `;
+
+    // Search icon
+    const searchIcon = document.createElement('span');
+    searchIcon.innerHTML = `
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+    `;
+    searchIcon.style.cssText = `
+      color: var(--yc-color-text-muted);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    `;
+
+    // Search input
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search organization...';
+    searchInput.setAttribute('data-id', `ychart-search-input-${this.instanceId}`);
+    searchInput.setAttribute('aria-label', 'Search organization directory');
+    searchInput.style.cssText = `
+      flex: 1;
+      border: none;
+      background: transparent;
+      font-size: var(--yc-font-size-md);
+      color: var(--yc-color-text-primary);
+      outline: none;
+      min-width: 150px;
+    `;
+
+    // Field filter dropdown
+    const fieldSelect = document.createElement('select');
+    fieldSelect.setAttribute('data-id', `ychart-search-field-${this.instanceId}`);
+    fieldSelect.setAttribute('aria-label', 'Filter search by field');
+    fieldSelect.style.cssText = `
+      border: none;
+      background: var(--yc-color-button-bg);
+      border-radius: var(--yc-border-radius-md);
+      padding: var(--yc-spacing-xs) var(--yc-spacing-md);
+      font-size: var(--yc-font-size-sm);
+      color: var(--yc-color-text-secondary);
+      cursor: pointer;
+      outline: none;
+      flex-shrink: 0;
+    `;
+
+    // Add "All Fields" as default option
+    const allOption = document.createElement('option');
+    allOption.value = '__all__';
+    allOption.textContent = 'All Fields';
+    allOption.selected = true;
+    fieldSelect.appendChild(allOption);
+
+    // Keyboard shortcut hint
+    const shortcutHint = document.createElement('span');
+    shortcutHint.textContent = '⌘K';
+    shortcutHint.style.cssText = `
+      font-size: var(--yc-font-size-xs);
+      color: var(--yc-color-text-light);
+      background: var(--yc-color-button-bg);
+      padding: var(--yc-spacing-xxs) var(--yc-spacing-sm);
+      border-radius: var(--yc-border-radius-sm);
+      flex-shrink: 0;
+      font-family: var(--yc-font-family-mono);
+    `;
+
+    searchBarWrapper.appendChild(searchIcon);
+    searchBarWrapper.appendChild(searchInput);
+    searchBarWrapper.appendChild(fieldSelect);
+    searchBarWrapper.appendChild(shortcutHint);
+
+    // Results dropdown
+    const resultsDropdown = document.createElement('div');
+    resultsDropdown.setAttribute('data-id', `ychart-search-results-${this.instanceId}`);
+    resultsDropdown.className = 'ychart-search-results';
+    resultsDropdown.style.cssText = `
+      display: none;
+      flex-direction: column;
+      background: var(--yc-color-bg-card);
+      border-radius: var(--yc-border-radius-lg);
+      box-shadow: var(--yc-shadow-2xl);
+      border: var(--yc-border-width-thin) solid var(--yc-color-shadow-light);
+      margin-top: var(--yc-spacing-sm);
+      max-height: 300px;
+      overflow-y: auto;
+      min-width: 320px;
+      width: 100%;
+    `;
+    this.searchResultsDropdown = resultsDropdown;
+
+    container.appendChild(searchBarWrapper);
+    container.appendChild(resultsDropdown);
+
+    // Add focus styles
+    searchInput.addEventListener('focus', () => {
+      searchBarWrapper.style.boxShadow = 'var(--yc-shadow-2xl), 0 0 0 2px var(--yc-color-primary)';
+      this.updateSearchFieldOptions(fieldSelect);
+    });
+
+    searchInput.addEventListener('blur', () => {
+      setTimeout(() => {
+        searchBarWrapper.style.boxShadow = 'var(--yc-shadow-2xl)';
+        // Only hide results if not clicking on them
+        if (!resultsDropdown.matches(':hover')) {
+          resultsDropdown.style.display = 'none';
+        }
+      }, 150);
+    });
+
+    // Real-time search as user types
+    searchInput.addEventListener('input', () => {
+      this.performGlobalSearch(searchInput.value, fieldSelect.value);
+    });
+
+    // Handle field change
+    fieldSelect.addEventListener('change', () => {
+      if (searchInput.value.trim()) {
+        this.performGlobalSearch(searchInput.value, fieldSelect.value);
+      }
+      searchInput.focus();
+    });
+
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        searchInput.blur();
+        resultsDropdown.style.display = 'none';
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const firstResult = resultsDropdown.querySelector('.ychart-search-result-item') as HTMLElement;
+        if (firstResult) firstResult.focus();
+      }
+    });
+
+    return container;
+  }
+
+  private updateSearchFieldOptions(fieldSelect: HTMLSelectElement): void {
+    const currentValue = fieldSelect.value;
+    
+    // Clear all options except "All Fields"
+    while (fieldSelect.options.length > 1) {
+      fieldSelect.remove(1);
+    }
+
+    // Get available fields
+    const fields = this.getAvailableFields();
+    fields.forEach(field => {
+      const option = document.createElement('option');
+      option.value = field;
+      option.textContent = field.charAt(0).toUpperCase() + field.slice(1).replace(/_/g, ' ');
+      fieldSelect.appendChild(option);
+    });
+
+    // Restore selection if it still exists
+    if (currentValue && Array.from(fieldSelect.options).some(opt => opt.value === currentValue)) {
+      fieldSelect.value = currentValue;
+    }
+  }
+
+  private performGlobalSearch(query: string, field: string): void {
+    if (!this.searchResultsDropdown || !this.orgChart) return;
+
+    const trimmedQuery = query.trim().toLowerCase();
+
+    // If no query, hide results
+    if (!trimmedQuery) {
+      this.searchResultsDropdown.style.display = 'none';
+      return;
+    }
+
+    const attrs = this.orgChart.getChartState();
+    const allNodes = attrs.allNodes || [];
+
+    // Perform search
+    const matches: { node: any; score: number; matchedField: string }[] = [];
+
+    allNodes.forEach((node: any) => {
+      if (field === '__all__') {
+        // Search across all fields
+        let bestScore = 0;
+        let bestField = '';
+        
+        Object.entries(node.data).forEach(([key, value]) => {
+          if (key.startsWith('_') || value === null || value === undefined) return;
+          
+          const strValue = String(value).toLowerCase();
+          const score = this.fuzzyMatch(trimmedQuery, strValue);
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestField = key;
+          }
+        });
+
+        if (bestScore > 0) {
+          matches.push({ node, score: bestScore, matchedField: bestField });
+        }
+      } else {
+        // Search in specific field
+        const fieldValue = node.data[field];
+        if (fieldValue !== null && fieldValue !== undefined) {
+          const score = this.fuzzyMatch(trimmedQuery, String(fieldValue).toLowerCase());
+          if (score > 0) {
+            matches.push({ node, score, matchedField: field });
+          }
+        }
+      }
+    });
+
+    // Sort by score (highest first)
+    matches.sort((a, b) => b.score - a.score);
+
+    // Limit results
+    const limitedMatches = matches.slice(0, 10);
+
+    // Display results
+    this.displaySearchResults(limitedMatches, attrs);
+  }
+
+  private displaySearchResults(matches: { node: any; score: number; matchedField: string }[], attrs: any): void {
+    if (!this.searchResultsDropdown) return;
+
+    this.searchResultsDropdown.innerHTML = '';
+
+    if (matches.length === 0) {
+      this.searchResultsDropdown.style.display = 'flex';
+      const noResults = document.createElement('div');
+      noResults.style.cssText = `
+        padding: var(--yc-spacing-xl);
+        text-align: center;
+        color: var(--yc-color-text-muted);
+        font-size: var(--yc-font-size-sm);
+      `;
+      noResults.textContent = 'No results found';
+      this.searchResultsDropdown.appendChild(noResults);
+      return;
+    }
+
+    this.searchResultsDropdown.style.display = 'flex';
+
+    matches.forEach(({ node, score, matchedField }) => {
+      const resultItem = document.createElement('div');
+      resultItem.className = 'ychart-search-result-item';
+      resultItem.tabIndex = 0;
+      resultItem.style.cssText = `
+        padding: var(--yc-spacing-lg) var(--yc-spacing-xl);
+        border-bottom: 1px solid var(--yc-color-button-bg);
+        cursor: pointer;
+        transition: background var(--yc-transition-fast);
+        outline: none;
+      `;
+
+      const nodeData = node.data;
+      const displayName = nodeData.name || attrs.nodeId(nodeData);
+      const displayTitle = nodeData.title || '';
+      const displayDept = nodeData.department || '';
+
+      resultItem.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: start; gap: var(--yc-spacing-md);">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: var(--yc-font-weight-semibold); color: var(--yc-color-text-heading); font-size: var(--yc-font-size-md); line-height: var(--yc-line-height-tight); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</div>
+            ${displayTitle ? `<div style="font-size: var(--yc-font-size-sm); line-height: var(--yc-line-height-tight); color: var(--yc-color-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</div>` : ''}
+            ${displayDept ? `<div style="font-size: var(--yc-font-size-xs); line-height: var(--yc-line-height-tight); color: var(--yc-color-text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayDept}</div>` : ''}
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0;">
+            <span style="font-size: var(--yc-font-size-xs); color: var(--yc-color-primary); font-weight: var(--yc-font-weight-semibold);">${Math.round(score * 100)}%</span>
+            <span style="font-size: var(--yc-font-size-xs); color: var(--yc-color-text-light); background: var(--yc-color-button-bg); padding: 1px 6px; border-radius: var(--yc-border-radius-sm);">${matchedField}</span>
+          </div>
+        </div>
+      `;
+
+      // Hover effects
+      resultItem.addEventListener('mouseenter', () => {
+        resultItem.style.background = 'var(--yc-color-button-bg)';
+      });
+
+      resultItem.addEventListener('mouseleave', () => {
+        resultItem.style.background = 'transparent';
+      });
+
+      resultItem.addEventListener('focus', () => {
+        resultItem.style.background = 'var(--yc-color-button-bg)';
+      });
+
+      resultItem.addEventListener('blur', () => {
+        resultItem.style.background = 'transparent';
+      });
+
+      // Click to select
+      resultItem.addEventListener('click', () => {
+        this.selectAndHighlightNode(node);
+        this.clearFloatingSearch();
+      });
+
+      // Keyboard navigation
+      resultItem.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.selectAndHighlightNode(node);
+          this.clearFloatingSearch();
+        } else if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          const next = resultItem.nextElementSibling as HTMLElement;
+          if (next && next.classList.contains('ychart-search-result-item')) {
+            next.focus();
+          }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          const prev = resultItem.previousElementSibling as HTMLElement;
+          if (prev && prev.classList.contains('ychart-search-result-item')) {
+            prev.focus();
+          } else {
+            // Focus back to input
+            const searchInput = this.floatingSearchBar?.querySelector('input') as HTMLInputElement;
+            if (searchInput) searchInput.focus();
+          }
+        } else if (e.key === 'Escape') {
+          this.clearFloatingSearch();
+        }
+      });
+
+      this.searchResultsDropdown!.appendChild(resultItem);
+    });
+  }
+
+  private clearFloatingSearch(): void {
+    if (this.floatingSearchBar) {
+      const searchInput = this.floatingSearchBar.querySelector('input') as HTMLInputElement;
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.blur();
+      }
+    }
+    if (this.searchResultsDropdown) {
+      this.searchResultsDropdown.style.display = 'none';
+      this.searchResultsDropdown.innerHTML = '';
+    }
   }
 
   private handleFit(): void {
@@ -724,21 +1100,12 @@ class YChartEditor {
     }
   }
 
-  private handleSearch(): void {
-    if (!this.searchPopup) {
-      this.createSearchPopup();
-    }
-    
-    if (this.searchPopup) {
-      this.searchPopup.style.display = 'flex';
-      const searchInput = this.searchPopup.querySelector('input') as HTMLInputElement;
-      if (searchInput) {
-        searchInput.focus();
-        searchInput.select();
-      }
-    }
-  }
-
+  /**
+   * @deprecated Legacy search popup - kept for search history functionality
+   * The floating search bar is now the primary search UI
+   * @internal
+   */
+  /* @ts-expect-error Legacy code kept for potential future use */
   private createSearchPopup(): void {
     if (!this.chartContainer) return;
 
@@ -2316,7 +2683,26 @@ class YChartEditor {
         event.preventDefault();
         this.toggleEditorAndFindSelectedNode();
       }
+      
+      // Cmd/Ctrl + K to focus search bar
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault();
+        this.focusFloatingSearch();
+      }
     });
+  }
+
+  /**
+   * Focus the floating search bar
+   */
+  private focusFloatingSearch(): void {
+    if (this.floatingSearchBar) {
+      const searchInput = this.floatingSearchBar.querySelector('input') as HTMLInputElement;
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    }
   }
 
   /**
