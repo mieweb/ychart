@@ -5,9 +5,38 @@
   "type": "module",
   "main": "./dist/ychart-editor.js",
   "types": "./dist/ychartEditor.d.ts",
+  "style": "./dist/ychart-editor.css",
+  "exports": {
+    ".": {
+      "types": "./dist/ychartEditor.d.ts",
+      "import": "./dist/ychart-editor.js",
+      "require": "./dist/ychart-editor.js"
+    },
+    "./style.css": "./dist/ychart-editor.css"
+  },
   "files": [
     "dist"
   ],
+  "keywords": [
+    "org-chart",
+    "organizational-chart",
+    "d3",
+    "yaml",
+    "editor",
+    "visualization",
+    "hierarchy",
+    "tree"
+  ],
+  "author": "MIE <https://mieweb.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mieweb/ychart.git"
+  },
+  "homepage": "https://orgchart.opensource.mieweb.org/",
+  "bugs": {
+    "url": "https://github.com/mieweb/ychart/issues"
+  },
   "scripts": {
     "dev": "vite",
     "dev:https": "vite --mode https",
