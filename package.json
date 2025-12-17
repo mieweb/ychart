@@ -1,5 +1,5 @@
 {
-  "name": "ychart-editor",
+  "name": "@mieweb/ychart-editor",
   "version": "1.0.0",
   "description": "A flexible organizational chart editor with YAML-based data management",
   "type": "module",
