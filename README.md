@@ -39,6 +39,77 @@ pnpm dev
 pnpm build
 ```
 
+## Usage as a Library (NPM/CDN)
+
+When using YChart as a library, you have two options for loading styles:
+
+### Option 1: JS-Only (Automatic CSS Injection)
+
+The JS file includes CSS and auto-injects it. Simple but may cause a brief flash of unstyled content (FOUC):
+
+```html
+<script src="https://cdn.example.com/ychart-editor.js"></script>
+```
+
+### Option 2: Separate CSS (Recommended - No FOUC)
+
+Load the CSS file in `<head>` for instant styling, then load JS:
+
+```html
+<head>
+  <link rel="stylesheet" href="https://cdn.example.com/ychart-editor.css">
+</head>
+<body>
+  <div id="container"></div>
+  <script src="https://cdn.example.com/ychart-editor.js"></script>
+</body>
+```
+
+### Option 3: Critical CSS (Best Performance)
+
+For the best user experience, add critical inline CSS to prevent any flash while styles load:
+
+```html
+<head>
+  <style>
+    /* Critical CSS - prevents FOUC */
+    :root {
+      --yc-color-primary: #667eea;
+      --yc-color-primary-light: #764ba2;
+      --yc-color-bg-secondary: #f5f7fa;
+      --yc-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    #container { height: 100%; overflow: hidden; }
+  </style>
+  <link rel="stylesheet" href="https://cdn.example.com/ychart-editor.css">
+</head>
+```
+
+### Minimal Example
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="./dist/ychart-editor.css">
+</head>
+<body>
+  <div id="container" style="width: 100%; height: 600px;"></div>
+  <script src="./dist/ychart-editor.js"></script>
+  <script>
+    const yaml = `
+- id: 1
+  name: CEO
+- id: 2
+  parentId: 1
+  name: CTO
+`;
+    new YChartEditor().initView('container', yaml);
+  </script>
+</body>
+</html>
+```
+
 ## YAML Format with Front Matter
 
 The editor supports **YAML front matter** for both chart options and data schema validation:

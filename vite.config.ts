@@ -103,22 +103,29 @@ function inlineCssPlugin(): Plugin {
         const jsChunk = bundle[jsFileName];
         
         if (cssAsset && 'source' in cssAsset && jsChunk && 'code' in jsChunk) {
-          // Inject CSS auto-loading code at the beginning of the JS bundle
+          // Inject CSS synchronously at the very beginning of script execution
+          // Uses document.write for synchronous injection (only runs during initial page load)
+          // Falls back to createElement for async script loading
           const cssInjectionCode = `
 (function() {
   if (typeof document !== 'undefined') {
+    var css = ${JSON.stringify(cssAsset.source)};
+    var id = 'ychart-editor-styles';
+    // Skip if already loaded (e.g., via separate CSS file)
+    if (document.getElementById(id)) return;
     var style = document.createElement('style');
-    style.textContent = ${JSON.stringify(cssAsset.source)};
-    document.head.appendChild(style);
+    style.id = id;
+    style.textContent = css;
+    // Insert at the beginning of head for highest priority
+    var head = document.head || document.getElementsByTagName('head')[0];
+    head.insertBefore(style, head.firstChild);
   }
 })();
 
 `;
           jsChunk.code = cssInjectionCode + jsChunk.code;
           
-          // Optionally, still keep the CSS file for users who want separate loading
-          // Or delete it if you want single-file only:
-          // delete bundle[cssFileName];
+          // Keep the CSS file for users who want separate loading (recommended for no FOUC)
         }
       }
     }
@@ -133,6 +140,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins,
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // Silence Bootstrap's Sass deprecation warnings
+          silenceDeprecations: ['import', 'global-builtin', 'color-functions'],
+          quietDeps: true
+        }
+      }
+    },
     server: {
       cors: true, // Enable CORS for cross-origin requests from production
       host: 'localhost',

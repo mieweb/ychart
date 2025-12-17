@@ -6,7 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YChart - Org Chart Editor</title>
     <style>
-      /* Basic reset - detailed styles in style.scss */
+      /* Critical CSS - prevents FOUC by matching key styles from styles.scss */
+      :root {
+        --yc-color-primary: #667eea;
+        --yc-color-primary-light: #764ba2;
+        --yc-color-bg-secondary: #f5f7fa;
+        --yc-color-text-inverse: #ffffff;
+        --yc-font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        --yc-gradient-primary: linear-gradient(135deg, var(--yc-color-primary) 0%, var(--yc-color-primary-light) 100%);
+      }
+      
       * {
         margin: 0;
         padding: 0;
@@ -14,6 +23,8 @@
       }
       
       body {
+        font-family: var(--yc-font-family-base);
+        background: var(--yc-color-bg-secondary);
         height: 100vh;
         overflow: hidden;
       }
@@ -22,6 +33,56 @@
         display: flex;
         flex-direction: column;
         height: 100vh;
+      }
+      
+      header {
+        background: var(--yc-gradient-primary);
+        color: var(--yc-color-text-inverse);
+        padding: 0.75rem 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+      }
+      
+      header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+      
+      .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+      
+      .git-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+      }
+      
+      .git-info a {
+        color: rgba(255, 255, 255, 0.9);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.125rem;
+      }
+      
+      .git-info svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+      
+      .commit-hash {
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        background: rgba(255, 255, 255, 0.15);
+        padding: 0.125rem 0.25rem;
+        border-radius: 4px;
       }
       
       #container {
