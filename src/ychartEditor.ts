@@ -179,6 +179,30 @@ class YChartEditor {
     return this;
   
 }
+
+  /**
+   * Load new YAML data into the editor and re-render the chart
+   */
+  loadYaml(yamlData: string): this {
+    if (!this.editor) {
+      throw new Error('Editor not initialized. Call initView first.');
+    }
+
+    // Update editor content
+    this.editor.dispatch({
+      changes: {
+        from: 0,
+        to: this.editor.state.doc.length,
+        insert: yamlData
+      }
+    });
+
+    // Re-render the chart
+    this.renderChart();
+
+    return this;
+  }
+
   private createLayout(): void {
     if (!this.viewContainer) return;
 

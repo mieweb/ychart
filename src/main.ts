@@ -1,7 +1,18 @@
 import './styles/styles.scss';
 import YChartEditor from './ychartEditor';
 import orgChartDataRaw from './orgchart.yaml?raw';
+import budgetDataRaw from '../examples/budget-indicators/orgchart.yaml?raw';
+import okrDataRaw from '../examples/okr/orgchart.yaml?raw';
+import salaryDataRaw from '../examples/salary-headcount/orgchart.yaml?raw';
 import { commitHash, commitHashFull, repoUrl } from 'virtual:git-info';
+
+// Example data mapping
+const exampleData: Record<string, string> = {
+  default: orgChartDataRaw,
+  budget: budgetDataRaw,
+  okr: okrDataRaw,
+  salary: salaryDataRaw,
+};
 
 // Update git info in header
 function updateGitInfo() {
@@ -143,3 +154,37 @@ console.log('YChart Editor initialized!');
 // Expose editor to window for debugging
 (window as any).ychartEditor = ychartEditor;
 // Test deployment
+
+// Set up example selector
+function setupExampleSelector() {
+  const select = document.getElementById('example-select') as HTMLSelectElement;
+  if (!select) return;
+
+  // Check URL for example parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const exampleParam = urlParams.get('example');
+  if (exampleParam && exampleData[exampleParam]) {
+    select.value = exampleParam;
+    if (exampleParam !== 'default') {
+      ychartEditor.loadYaml(exampleData[exampleParam]);
+    }
+  }
+
+  select.addEventListener('change', (e) => {
+    const value = (e.target as HTMLSelectElement).value;
+    const yaml = exampleData[value];
+    if (yaml) {
+      ychartEditor.loadYaml(yaml);
+      // Update URL without reloading
+      const url = new URL(window.location.href);
+      if (value === 'default') {
+        url.searchParams.delete('example');
+      } else {
+        url.searchParams.set('example', value);
+      }
+      window.history.pushState({}, '', url.toString());
+    }
+  });
+}
+
+setupExampleSelector();

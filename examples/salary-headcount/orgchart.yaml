@@ -1,0 +1,448 @@
+---
+options:
+  nodeWidth: 270
+  nodeHeight: 165
+  childrenMargin: 60
+  compactMarginBetween: 40
+  compactMarginPair: 35
+  neighbourMargin: 25
+schema:
+  id: number | required
+  name: string | required
+  title: string | required
+  department: string | required
+  direct_reports: number | required
+  total_headcount: number | required
+  direct_salary: number | required
+  total_salary_budget: string | required
+  avg_salary: string | optional
+  open_positions: number | optional
+card:
+  - div:
+      style: font-size:13px;font-weight:700;color:#1a202c;margin-bottom:3px;
+      content: $name$
+  - div:
+      style: font-size:10px;color:#667eea;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;
+      content: $title$
+  - div:
+      style: display:flex;gap:12px;margin-bottom:6px;
+      children:
+        - div:
+            style: font-size:10px;color:#2d3748;
+            children:
+              - span:
+                  style: font-weight:600;
+                  content: "👤 Direct: "
+              - span:
+                  style: color:#3182ce;font-weight:700;
+                  content: $direct_reports$
+        - div:
+            style: font-size:10px;color:#2d3748;
+            children:
+              - span:
+                  style: font-weight:600;
+                  content: "👥 Total: "
+              - span:
+                  style: color:#805ad5;font-weight:700;
+                  content: $total_headcount$
+  - div:
+      style: font-size:10px;color:#2d3748;margin-bottom:4px;
+      children:
+        - span:
+            style: font-weight:600;
+            content: "💵 My Salary: "
+        - span:
+            style: color:#38a169;font-weight:600;
+            content: $direct_salary$
+  - div:
+      style: font-size:10px;color:#2d3748;margin-bottom:4px;
+      children:
+        - span:
+            style: font-weight:600;
+            content: "💰 Team Budget: "
+        - span:
+            style: color:#dd6b20;font-weight:700;
+            content: $total_salary_budget$
+  - div:
+      style: font-size:9px;margin-top:6px;padding-top:6px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;
+      children:
+        - div:
+            style: color:#718096;
+            children:
+              - span:
+                  style: font-weight:600;
+                  content: "Avg: "
+              - span:
+                  content: $avg_salary$
+        - div:
+            style: color:#e53e3e;font-weight:600;
+            children:
+              - span:
+                  content: "🔴 Open: "
+              - span:
+                  content: $open_positions$
+---
+
+# Salary & Headcount - Hierarchical Roll-up Example
+# Shows individual salary, team salary budgets, and headcount rolling up
+# Demonstrates organizational span of control and compensation distribution
+
+- id: 1
+  name: Sarah Chen
+  title: Chief Executive Officer
+  department: Executive
+  direct_reports: 4
+  total_headcount: 47
+  direct_salary: "$450,000"
+  total_salary_budget: "$8,250,000"
+  avg_salary: "$175,532"
+  open_positions: 5
+  parentId: null
+
+- id: 2
+  name: Michael Rodriguez
+  title: Chief Technology Officer
+  department: Technology
+  direct_reports: 3
+  total_headcount: 22
+  direct_salary: "$380,000"
+  total_salary_budget: "$4,180,000"
+  avg_salary: "$190,000"
+  open_positions: 3
+  parentId: 1
+
+- id: 3
+  name: Emily Watson
+  title: Chief Financial Officer
+  department: Finance
+  direct_reports: 2
+  total_headcount: 6
+  direct_salary: "$340,000"
+  total_salary_budget: "$1,020,000"
+  avg_salary: "$170,000"
+  open_positions: 1
+  parentId: 1
+
+- id: 4
+  name: David Kim
+  title: Chief Marketing Officer
+  department: Marketing
+  direct_reports: 2
+  total_headcount: 8
+  direct_salary: "$320,000"
+  total_salary_budget: "$1,180,000"
+  avg_salary: "$147,500"
+  open_positions: 1
+  parentId: 1
+
+- id: 5
+  name: Jennifer Martinez
+  title: VP of Engineering
+  department: Technology
+  direct_reports: 3
+  total_headcount: 12
+  direct_salary: "$280,000"
+  total_salary_budget: "$2,340,000"
+  avg_salary: "$195,000"
+  open_positions: 2
+  parentId: 2
+
+- id: 6
+  name: Robert Taylor
+  title: VP of Product
+  department: Technology
+  direct_reports: 2
+  total_headcount: 4
+  direct_salary: "$260,000"
+  total_salary_budget: "$700,000"
+  avg_salary: "$175,000"
+  open_positions: 0
+  parentId: 2
+
+- id: 7
+  name: Lisa Anderson
+  title: VP of Data Science
+  department: Technology
+  direct_reports: 2
+  total_headcount: 4
+  direct_salary: "$270,000"
+  total_salary_budget: "$760,000"
+  avg_salary: "$190,000"
+  open_positions: 1
+  parentId: 2
+
+- id: 8
+  name: James Wilson
+  title: Controller
+  department: Finance
+  direct_reports: 1
+  total_headcount: 2
+  direct_salary: "$195,000"
+  total_salary_budget: "$315,000"
+  avg_salary: "$157,500"
+  open_positions: 0
+  parentId: 3
+
+- id: 9
+  name: Maria Garcia
+  title: Director of FP&A
+  department: Finance
+  direct_reports: 1
+  total_headcount: 2
+  direct_salary: "$185,000"
+  total_salary_budget: "$305,000"
+  avg_salary: "$152,500"
+  open_positions: 1
+  parentId: 3
+
+- id: 10
+  name: Christopher Lee
+  title: Director of Brand Marketing
+  department: Marketing
+  direct_reports: 1
+  total_headcount: 2
+  direct_salary: "$175,000"
+  total_salary_budget: "$290,000"
+  avg_salary: "$145,000"
+  open_positions: 0
+  parentId: 4
+
+- id: 11
+  name: Amanda Brown
+  title: Director of Growth Marketing
+  department: Marketing
+  direct_reports: 2
+  total_headcount: 4
+  direct_salary: "$170,000"
+  total_salary_budget: "$425,000"
+  avg_salary: "$106,250"
+  open_positions: 1
+  parentId: 4
+
+- id: 12
+  name: Daniel Thompson
+  title: Senior Engineering Manager
+  department: Technology
+  direct_reports: 2
+  total_headcount: 3
+  direct_salary: "$220,000"
+  total_salary_budget: "$560,000"
+  avg_salary: "$186,667"
+  open_positions: 1
+  parentId: 5
+
+- id: 13
+  name: Jessica White
+  title: Engineering Manager - Frontend
+  department: Technology
+  direct_reports: 2
+  total_headcount: 3
+  direct_salary: "$200,000"
+  total_salary_budget: "$500,000"
+  avg_salary: "$166,667"
+  open_positions: 0
+  parentId: 5
+
+- id: 14
+  name: Kevin Harris
+  title: Engineering Manager - Backend
+  department: Technology
+  direct_reports: 2
+  total_headcount: 3
+  direct_salary: "$205,000"
+  total_salary_budget: "$525,000"
+  avg_salary: "$175,000"
+  open_positions: 1
+  parentId: 5
+
+- id: 15
+  name: Michelle Clark
+  title: Senior Product Manager
+  department: Technology
+  direct_reports: 1
+  total_headcount: 2
+  direct_salary: "$185,000"
+  total_salary_budget: "$320,000"
+  avg_salary: "$160,000"
+  open_positions: 0
+  parentId: 6
+
+- id: 16
+  name: Ryan Lewis
+  title: Product Manager
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$145,000"
+  total_salary_budget: "$145,000"
+  avg_salary: "$145,000"
+  open_positions: 0
+  parentId: 6
+
+- id: 17
+  name: Samantha Walker
+  title: Lead Data Scientist
+  department: Technology
+  direct_reports: 1
+  total_headcount: 2
+  direct_salary: "$210,000"
+  total_salary_budget: "$375,000"
+  avg_salary: "$187,500"
+  open_positions: 0
+  parentId: 7
+
+- id: 18
+  name: Brian Hall
+  title: ML Engineer
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$175,000"
+  total_salary_budget: "$175,000"
+  avg_salary: "$175,000"
+  open_positions: 1
+  parentId: 7
+
+- id: 19
+  name: Nicole Young
+  title: Senior Accountant
+  department: Finance
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$120,000"
+  total_salary_budget: "$120,000"
+  avg_salary: "$120,000"
+  open_positions: 0
+  parentId: 8
+
+- id: 20
+  name: Andrew King
+  title: Financial Analyst
+  department: Finance
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$95,000"
+  total_salary_budget: "$95,000"
+  avg_salary: "$95,000"
+  open_positions: 0
+  parentId: 9
+
+- id: 21
+  name: Rachel Wright
+  title: Content Marketing Manager
+  department: Marketing
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$115,000"
+  total_salary_budget: "$115,000"
+  avg_salary: "$115,000"
+  open_positions: 0
+  parentId: 10
+
+- id: 22
+  name: Justin Scott
+  title: Performance Marketing Manager
+  department: Marketing
+  direct_reports: 1
+  total_headcount: 2
+  direct_salary: "$125,000"
+  total_salary_budget: "$195,000"
+  avg_salary: "$97,500"
+  open_positions: 0
+  parentId: 11
+
+- id: 23
+  name: Laura Green
+  title: Senior Software Engineer
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$185,000"
+  total_salary_budget: "$185,000"
+  avg_salary: "$185,000"
+  open_positions: 0
+  parentId: 12
+
+- id: 24
+  name: Marcus Adams
+  title: Software Engineer
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$155,000"
+  total_salary_budget: "$155,000"
+  avg_salary: "$155,000"
+  open_positions: 0
+  parentId: 12
+
+- id: 25
+  name: Olivia Baker
+  title: Frontend Engineer
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$150,000"
+  total_salary_budget: "$150,000"
+  avg_salary: "$150,000"
+  open_positions: 0
+  parentId: 13
+
+- id: 26
+  name: Tyler Mitchell
+  title: UX Designer
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$140,000"
+  total_salary_budget: "$140,000"
+  avg_salary: "$140,000"
+  open_positions: 0
+  parentId: 13
+
+- id: 27
+  name: Ethan Nelson
+  title: Backend Engineer
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$160,000"
+  total_salary_budget: "$160,000"
+  avg_salary: "$160,000"
+  open_positions: 0
+  parentId: 14
+
+- id: 28
+  name: Sophia Carter
+  title: DevOps Engineer
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$165,000"
+  total_salary_budget: "$165,000"
+  avg_salary: "$165,000"
+  open_positions: 0
+  parentId: 14
+
+- id: 29
+  name: Isabella Perez
+  title: Data Analyst
+  department: Technology
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$130,000"
+  total_salary_budget: "$130,000"
+  avg_salary: "$130,000"
+  open_positions: 0
+  parentId: 17
+
+- id: 30
+  name: Nathan Roberts
+  title: Marketing Coordinator
+  department: Marketing
+  direct_reports: 0
+  total_headcount: 1
+  direct_salary: "$70,000"
+  total_salary_budget: "$70,000"
+  avg_salary: "$70,000"
+  open_positions: 0
+  parentId: 22
