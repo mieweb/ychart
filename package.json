@@ -73,7 +73,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.38.6",
-    "@mieweb/ui": "^0.2.4",
+    "@mieweb/ui": "workspace:*",
     "bootstrap": "^5.3.8",
     "codemirror": "^6.0.2",
     "d3": "^7.9.0",
