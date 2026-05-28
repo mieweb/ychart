@@ -54,11 +54,7 @@ export class SidebarManager {
       }, 350);
     } else {
       // Collapse
-      sidebar.style.width = '0px';
-      sidebar.style.borderLeftWidth = '0px';
-      sidebar.style.transition = 'width 0.3s ease, border-left-width 0s 0.3s';
-      collapseBtn.style.right = '-1px';
-      collapseBtn.innerHTML = '◀';
+      this.collapse(false);
     }
 
     // Force chart to recalculate SVG dimensions after toggle animation completes
@@ -76,6 +72,20 @@ export class SidebarManager {
         }
       }
     }, 250);
+  }
+
+  collapse(immediate = false): void {
+    const root = this.getScopedRoot();
+    const sidebar = root.querySelector(`[data-id="ychart-editor-sidebar-${this.ctx.instanceId}"]`) as HTMLElement | null;
+    const collapseBtn = root.querySelector(`[data-id="ychart-collapse-editor-${this.ctx.instanceId}"]`) as HTMLElement | null;
+
+    if (!sidebar || !collapseBtn) return;
+
+    sidebar.style.width = '0px';
+    sidebar.style.borderLeftWidth = '0px';
+    sidebar.style.transition = immediate ? 'none' : 'width 0.3s ease, border-left-width 0s 0.3s';
+    collapseBtn.style.right = '-1px';
+    collapseBtn.innerHTML = '◀';
   }
 
   toggleAndScrollToNode(): void {

@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.7
+ * YChart Editor Build Version: v1.2.8
  * ========================================
  */
 var YChartEditor = (function() {
@@ -34226,7 +34226,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.7";
+  const YCHART_VERSION = "1.2.8";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -40855,11 +40855,7 @@ ${formattedData.trim()}
           }
         }, 350);
       } else {
-        sidebar.style.width = "0px";
-        sidebar.style.borderLeftWidth = "0px";
-        sidebar.style.transition = "width 0.3s ease, border-left-width 0s 0.3s";
-        collapseBtn.style.right = "-1px";
-        collapseBtn.innerHTML = "◀";
+        this.collapse(false);
       }
       setTimeout(() => {
         const orgChart = this.ctx.getOrgChart();
@@ -40872,6 +40868,17 @@ ${formattedData.trim()}
           }
         }
       }, 250);
+    }
+    collapse(immediate = false) {
+      const root2 = this.getScopedRoot();
+      const sidebar = root2.querySelector(`[data-id="ychart-editor-sidebar-${this.ctx.instanceId}"]`);
+      const collapseBtn = root2.querySelector(`[data-id="ychart-collapse-editor-${this.ctx.instanceId}"]`);
+      if (!sidebar || !collapseBtn) return;
+      sidebar.style.width = "0px";
+      sidebar.style.borderLeftWidth = "0px";
+      sidebar.style.transition = immediate ? "none" : "width 0.3s ease, border-left-width 0s 0.3s";
+      collapseBtn.style.right = "-1px";
+      collapseBtn.innerHTML = "◀";
     }
     toggleAndScrollToNode() {
       const sidebar = this.getScopedRoot().querySelector(`[data-id="ychart-editor-sidebar-${this.ctx.instanceId}"]`);
@@ -41966,8 +41973,8 @@ ${newYamlData}`;
       });
       this.shortcutManager.init();
       this.poiManager.setupExpandSiblingsHandlers();
+      this.sidebarManager.collapse(true);
       this.renderChart();
-      this.sidebarManager.toggle();
       console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? " (Shadow DOM)" : ""}`, "color: #667eea; font-weight: bold;", "color: inherit;");
       return this;
     }

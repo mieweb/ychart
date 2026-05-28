@@ -175,14 +175,12 @@ class YChartEditor {
     
     // Set up expand siblings handlers for POI feature
     this.poiManager.setupExpandSiblingsHandlers();
+
+    // Start collapsed before the first render so chart dimensions are measured once.
+    this.sidebarManager.collapse(true);
     
     // Render initial chart
     this.renderChart();
-
-    // Auto-collapse editor after 1 second to ensure proper initialization
-    this.sidebarManager.toggle();
-    // setTimeout(() => {
-    // }, 10);
 
     // eslint-disable-next-line no-console -- Intentional: Display version on successful init
     console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? ' (Shadow DOM)' : ''}`, 'color: #667eea; font-weight: bold;', 'color: inherit;');
