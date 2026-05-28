@@ -525,7 +525,7 @@ class YChartEditor {
     return this;
   }
 
-  private renderChart(): void {
+  private renderChart(suppressTransition = false): void {
     try {
       if (this.forceGraph) {
         this.forceGraph.stop();
@@ -577,8 +577,9 @@ class YChartEditor {
         this.orgChart = new OrgChart();
       }
 
-      const initialRenderDuration = isInitialHierarchyRender ? this.orgChart.duration?.() : undefined;
-      if (isInitialHierarchyRender) {
+      const shouldRenderWithoutTransition = isInitialHierarchyRender || suppressTransition;
+      const initialRenderDuration = shouldRenderWithoutTransition ? this.orgChart.duration?.() : undefined;
+      if (shouldRenderWithoutTransition) {
         this.orgChart.duration?.(0);
       }
 
@@ -606,7 +607,7 @@ class YChartEditor {
         .nodeContent((d: any) => this.getNodeContent(d))
         .render();
 
-      if (isInitialHierarchyRender) {
+      if (shouldRenderWithoutTransition) {
         this.orgChart.fit({ animate: false });
         if (initialRenderDuration !== undefined) {
           this.orgChart.duration?.(initialRenderDuration);
@@ -625,7 +626,7 @@ class YChartEditor {
       // Fit to container bounds after render completes
       setTimeout(() => {
         if (this.orgChart && this.chartContainer) {
-          if (!isInitialHierarchyRender) {
+          if (!shouldRenderWithoutTransition) {
             this.orgChart.fit();
           }
           
@@ -837,7 +838,7 @@ class YChartEditor {
    */
   bgPatternStyle(style: 'dotted' | 'dashed'): this {
     this.bgPattern = style;
-    this.renderChart();
+    this.renderChart(true);
     return this;
   }
 
@@ -873,7 +874,7 @@ class YChartEditor {
     
     // Re-render chart with new template if already initialized
     if (this.orgChart) {
-      this.renderChart();
+      this.renderChart(true);
     }
     
     return this;

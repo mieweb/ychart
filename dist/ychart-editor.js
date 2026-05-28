@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.11
+ * YChart Editor Build Version: v1.2.12
  * ========================================
  */
 var YChartEditor = (function() {
@@ -34231,7 +34231,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.11";
+  const YCHART_VERSION = "1.2.12";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -42267,7 +42267,7 @@ ${newYamlData}`;
       }
       return this;
     }
-    renderChart() {
+    renderChart(suppressTransition = false) {
       var _a2, _b, _c, _d, _e, _f, _g;
       try {
         if (this.forceGraph) {
@@ -42299,8 +42299,9 @@ ${newYamlData}`;
         if (!this.orgChart) {
           this.orgChart = new OrgChart();
         }
-        const initialRenderDuration = isInitialHierarchyRender ? (_c = (_b = this.orgChart).duration) == null ? void 0 : _c.call(_b) : void 0;
-        if (isInitialHierarchyRender) {
+        const shouldRenderWithoutTransition = isInitialHierarchyRender || suppressTransition;
+        const initialRenderDuration = shouldRenderWithoutTransition ? (_c = (_b = this.orgChart).duration) == null ? void 0 : _c.call(_b) : void 0;
+        if (shouldRenderWithoutTransition) {
           (_e = (_d = this.orgChart).duration) == null ? void 0 : _e.call(_d, 0);
         }
         if (!this.chartContainer) return;
@@ -42311,7 +42312,7 @@ ${newYamlData}`;
         }).onNodeDetailsClick((d) => {
           this.showNodeDetails(d.data);
         }).nodeContent((d) => this.getNodeContent(d)).render();
-        if (isInitialHierarchyRender) {
+        if (shouldRenderWithoutTransition) {
           this.orgChart.fit({ animate: false });
           if (initialRenderDuration !== void 0) {
             (_g = (_f = this.orgChart).duration) == null ? void 0 : _g.call(_f, initialRenderDuration);
@@ -42323,7 +42324,7 @@ ${newYamlData}`;
         }
         setTimeout(() => {
           if (this.orgChart && this.chartContainer) {
-            if (!isInitialHierarchyRender) {
+            if (!shouldRenderWithoutTransition) {
               this.orgChart.fit();
             }
             if (this.bgPattern) {
@@ -42486,7 +42487,7 @@ ${newYamlData}`;
      */
     bgPatternStyle(style) {
       this.bgPattern = style;
-      this.renderChart();
+      this.renderChart(true);
       return this;
     }
     /**
@@ -42512,7 +42513,7 @@ ${newYamlData}`;
     template(templateFn) {
       this.customTemplate = templateFn;
       if (this.orgChart) {
-        this.renderChart();
+        this.renderChart(true);
       }
       return this;
     }
