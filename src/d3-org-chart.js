@@ -1437,8 +1437,14 @@ export class OrgChart {
             .transition()
             .duration(attrs.duration)
             .attr("transform", (d) => {
+                const exitTarget = maxDepthNode.parent || maxDepthNode || d;
+                let { x, y, width, height } = exitTarget;
 
-                let { x, y, width, height } = maxDepthNode.parent || {};
+                x = Number.isFinite(x) ? x : d.x || d.x0 || 0;
+                y = Number.isFinite(y) ? y : d.y || d.y0 || 0;
+                width = Number.isFinite(width) ? width : d.width || 0;
+                height = Number.isFinite(height) ? height : d.height || 0;
+
                 const ex = attrs.layoutBindings[attrs.layout].nodeJoinX({ x, y, width, height });
                 const ey = attrs.layoutBindings[attrs.layout].nodeJoinY({ x, y, width, height });
                 return `translate(${ex},${ey})`

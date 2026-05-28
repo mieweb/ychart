@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.4
+ * YChart Editor Build Version: v1.2.5
  * ========================================
  */
 var YChartEditor = (function() {
@@ -33381,7 +33381,12 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       nodeExitTransition.each(attrs.nodeExit);
       const maxDepthNode = nodeExitTransition.data().reduce((a2, b) => a2.depth < b.depth ? a2 : b, { depth: Infinity });
       nodeExitTransition.attr("opacity", 1).transition().duration(attrs.duration).attr("transform", (d) => {
-        let { x: x3, y: y3, width: width2, height: height2 } = maxDepthNode.parent || {};
+        const exitTarget = maxDepthNode.parent || maxDepthNode || d;
+        let { x: x3, y: y3, width: width2, height: height2 } = exitTarget;
+        x3 = Number.isFinite(x3) ? x3 : d.x || d.x0 || 0;
+        y3 = Number.isFinite(y3) ? y3 : d.y || d.y0 || 0;
+        width2 = Number.isFinite(width2) ? width2 : d.width || 0;
+        height2 = Number.isFinite(height2) ? height2 : d.height || 0;
         const ex = attrs.layoutBindings[attrs.layout].nodeJoinX({ x: x3, y: y3, width: width2, height: height2 });
         const ey = attrs.layoutBindings[attrs.layout].nodeJoinY({ x: x3, y: y3, width: width2, height: height2 });
         return `translate(${ex},${ey})`;
@@ -34221,7 +34226,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.4";
+  const YCHART_VERSION = "1.2.5";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
