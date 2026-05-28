@@ -1361,16 +1361,23 @@ export class OrgChart {
 
 
 
-        // Transition to the proper position for the node
-        nodeUpdate
-            .transition()
-            .attr("opacity", 0)
-            .duration(attrs.duration)
-            .attr("transform", ({ x, y, width, height }) => {
-                return attrs.layoutBindings[attrs.layout].nodeUpdateTransform({ x, y, width, height });
+        const nodeUpdateTransform = ({ x, y, width, height }) => {
+            return attrs.layoutBindings[attrs.layout].nodeUpdateTransform({ x, y, width, height });
+        };
 
-            })
-            .attr("opacity", 1);
+        // Transition to the proper position for the node
+        if (attrs.duration > 0) {
+            nodeUpdate
+                .transition()
+                .attr("opacity", 0)
+                .duration(attrs.duration)
+                .attr("transform", nodeUpdateTransform)
+                .attr("opacity", 1);
+        } else {
+            nodeUpdate
+                .attr("transform", nodeUpdateTransform)
+                .attr("opacity", 1);
+        }
 
         // Style node rectangles
         nodeUpdate

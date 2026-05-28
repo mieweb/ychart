@@ -737,7 +737,12 @@ class YChartEditor {
 
     this.orgChart.svgWidth?.(width);
     this.orgChart.svgHeight?.(height);
-    this.orgChart.render().fit();
+    const previousDuration = this.orgChart.duration?.();
+    this.orgChart.duration?.(0);
+    this.orgChart.render().fit({ animate: false });
+    if (previousDuration !== undefined) {
+      this.orgChart.duration?.(previousDuration);
+    }
     this.orgChart.updateHtmlOverlay?.();
 
     if (this.bgPattern) {

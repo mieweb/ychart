@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.10
+ * YChart Editor Build Version: v1.2.11
  * ========================================
  */
 var YChartEditor = (function() {
@@ -33347,9 +33347,14 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
         selector: "node-button-div",
         data: (d) => [d]
       }).style("pointer-events", "none").style("display", "flex").style("width", "100%").style("height", "100%");
-      nodeUpdate.transition().attr("opacity", 0).duration(attrs.duration).attr("transform", ({ x: x3, y: y3, width: width2, height: height2 }) => {
+      const nodeUpdateTransform = ({ x: x3, y: y3, width: width2, height: height2 }) => {
         return attrs.layoutBindings[attrs.layout].nodeUpdateTransform({ x: x3, y: y3, width: width2, height: height2 });
-      }).attr("opacity", 1);
+      };
+      if (attrs.duration > 0) {
+        nodeUpdate.transition().attr("opacity", 0).duration(attrs.duration).attr("transform", nodeUpdateTransform).attr("opacity", 1);
+      } else {
+        nodeUpdate.attr("transform", nodeUpdateTransform).attr("opacity", 1);
+      }
       nodeUpdate.select(".node-rect").attr("width", ({ width: width2 }) => width2).attr("height", ({ height: height2 }) => height2).attr("x", ({ width: width2 }) => 0).attr("y", ({ height: height2 }) => 0).attr("cursor", "pointer").attr("rx", 8).attr("fill", attrs.nodeDefaultBackground);
       nodeUpdate.select(".node-button-g").attr("transform", ({ data, width: width2, height: height2 }) => {
         const x3 = attrs.layoutBindings[attrs.layout].buttonX({ width: width2, height: height2 });
@@ -34226,7 +34231,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.10";
+  const YCHART_VERSION = "1.2.11";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -42394,7 +42399,7 @@ ${newYamlData}`;
       });
     }
     handleChartResize() {
-      var _a2, _b, _c, _d, _e, _f, _g;
+      var _a2, _b, _c, _d, _e, _f, _g, _h, _i, _j, _k, _l, _m;
       if (!this.chartContainer) return;
       const width = this.chartContainer.clientWidth;
       const height = this.chartContainer.clientHeight;
@@ -42406,8 +42411,13 @@ ${newYamlData}`;
       if (!this.orgChart) return;
       (_c = (_b = this.orgChart).svgWidth) == null ? void 0 : _c.call(_b, width);
       (_e = (_d = this.orgChart).svgHeight) == null ? void 0 : _e.call(_d, height);
-      this.orgChart.render().fit();
-      (_g = (_f = this.orgChart).updateHtmlOverlay) == null ? void 0 : _g.call(_f);
+      const previousDuration = (_g = (_f = this.orgChart).duration) == null ? void 0 : _g.call(_f);
+      (_i = (_h = this.orgChart).duration) == null ? void 0 : _i.call(_h, 0);
+      this.orgChart.render().fit({ animate: false });
+      if (previousDuration !== void 0) {
+        (_k = (_j = this.orgChart).duration) == null ? void 0 : _k.call(_j, previousDuration);
+      }
+      (_m = (_l = this.orgChart).updateHtmlOverlay) == null ? void 0 : _m.call(_l);
       if (this.bgPattern) {
         applyBackgroundPattern(this.chartContainer, this.bgPattern, this.defaultOptions.patternColor);
       }
