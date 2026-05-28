@@ -6,10 +6,27 @@
     <title>YChart Editor - Interactive Org Chart</title>
     
     <!-- Load YChart Editor CSS and JS from dist -->
-    <link rel="stylesheet" href="./dist/ychart.css">
+    <link rel="stylesheet" href="./dist/ychart-editor.css">
     <script src="./dist/ychart-editor.js"></script>
 
     <style>
+      :root {
+        --yc-color-primary: #667eea;
+        --yc-color-primary-light: #764ba2;
+        --yc-color-header-subtext: #b0c4de;
+        --yc-color-text-inverse: #ffffff;
+        --yc-color-bg-card: #ffffff;
+        --yc-color-overlay-white-15: rgba(255, 255, 255, 0.15);
+        --yc-color-overlay-white-90: rgba(255, 255, 255, 0.9);
+        --yc-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --yc-gradient-header-dark: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        --yc-gradient-rainbow: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3, #ff0000);
+        --yc-gradient-title-light: linear-gradient(135deg, #ffffff 0%, #a8dadc 50%, #f1faee 100%);
+        --yc-shadow-header: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --yc-shadow-wrapper: 0 8px 32px rgba(0, 0, 0, 0.2);
+        --yc-backdrop-blur: blur(10px);
+      }
+
         * {
             margin: 0;
             padding: 0;
