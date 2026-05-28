@@ -52,6 +52,8 @@ export class RenderPipeline {
       if (this.forceGraph) {
         this.forceGraph.stop();
         this.forceGraph = null;
+        this.orgChart = null;
+        this.ctx.getChartContainer()?.replaceChildren();
       }
 
       const editor = this.ctx.getEditor();
@@ -100,8 +102,11 @@ export class RenderPipeline {
 
       const columnAdjustManager = this.ctx.getColumnAdjustManager();
 
+      const chartContainer = this.ctx.getChartContainer();
+      if (!chartContainer) return;
+
       this.orgChart
-        .container(`#ychart-chart-${this.ctx.instanceId}`)
+        .container(chartContainer)
         .data(virtualData)
         .nodeHeight(() => options.nodeHeight!)
         .nodeWidth(() => options.nodeWidth!)
@@ -122,7 +127,6 @@ export class RenderPipeline {
         .nodeContent((d: any) => this.getNodeContent(d))
         .render();
 
-      const chartContainer = this.ctx.getChartContainer();
       const bgPattern = this.ctx.getBgPattern();
 
       // Set up pattern persistence observer (always, it will only act if bgPattern is set)
@@ -178,8 +182,12 @@ export class RenderPipeline {
       if (this.forceGraph) {
         this.forceGraph.stop();
       }
+      this.orgChart = null;
 
-      this.forceGraph = new ForceGraph('ychart-chart', (data: any) => this.showNodeDetails(data));
+      const chartContainer = this.ctx.getChartContainer();
+      if (!chartContainer) return;
+
+      this.forceGraph = new ForceGraph(chartContainer, (data: any) => this.showNodeDetails(data));
       this.forceGraph.render(resolvedData);
 
       this.currentView = 'force';
@@ -218,6 +226,10 @@ export class RenderPipeline {
     if (!detailsPanel) return;
     detailsPanel.innerHTML = renderNodeDetails(data, this.ctx.instanceId);
     detailsPanel.style.display = 'block';
+    detailsPanel.querySelector(`[data-id="ychart-node-details-close-${this.ctx.instanceId}"]`)
+      ?.addEventListener('click', () => {
+        detailsPanel.style.display = 'none';
+      });
   }
 
   private initializeHeightSync(): void {

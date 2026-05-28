@@ -24,9 +24,14 @@ export class SidebarManager {
     this.ctx = ctx;
   }
 
+  private getScopedRoot(): ParentNode {
+    return this.ctx.getChartContainer()?.closest('.ychart-container') ?? document;
+  }
+
   toggle(): void {
-    const sidebar = document.getElementById(`ychart-editor-sidebar-${this.ctx.instanceId}`);
-    const collapseBtn = document.querySelector(`[data-id="ychart-collapse-editor-${this.ctx.instanceId}"]`) as HTMLElement;
+    const root = this.getScopedRoot();
+    const sidebar = root.querySelector(`[data-id="ychart-editor-sidebar-${this.ctx.instanceId}"]`) as HTMLElement | null;
+    const collapseBtn = root.querySelector(`[data-id="ychart-collapse-editor-${this.ctx.instanceId}"]`) as HTMLElement | null;
 
     if (!sidebar || !collapseBtn) return;
 
@@ -74,7 +79,7 @@ export class SidebarManager {
   }
 
   toggleAndScrollToNode(): void {
-    const sidebar = document.getElementById(`ychart-editor-sidebar-${this.ctx.instanceId}`);
+    const sidebar = this.getScopedRoot().querySelector(`[data-id="ychart-editor-sidebar-${this.ctx.instanceId}"]`) as HTMLElement | null;
     if (!sidebar) return;
 
     const isCollapsed = sidebar.style.width === '0px';

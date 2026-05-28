@@ -134,7 +134,7 @@ export function renderNodeDetails(data: any, instanceId: string): string {
   }
 
   html += '</div>';
-  html += `<button onclick="document.getElementById('ychart-node-details-${instanceId}').style.display='none'" style="margin-top:var(--yc-spacing-3xl);padding:var(--yc-spacing-md) var(--yc-spacing-3xl);background:var(--yc-color-primary);color:white;border:none;border-radius:var(--yc-border-radius-sm);cursor:pointer;width:100%;">Close</button>`;
+  html += `<button type="button" data-id="ychart-node-details-close-${instanceId}" style="margin-top:var(--yc-spacing-3xl);padding:var(--yc-spacing-md) var(--yc-spacing-3xl);background:var(--yc-color-primary);color:white;border:none;border-radius:var(--yc-border-radius-sm);cursor:pointer;width:100%;">Close</button>`;
   html += '</div>';
 
   return html;

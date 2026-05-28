@@ -6,6 +6,7 @@ export interface SwapHandlerContext {
   instanceId: string;
   getEditor: () => EditorView | null;
   getOrgChart: () => any;
+  getRootContainer?: () => HTMLElement | null;
   parseFrontMatter: (content: string) => FrontMatter;
   setIsUpdatingProgrammatically: (value: boolean) => void;
 }
@@ -16,6 +17,10 @@ export class SwapHandler {
 
   constructor(ctx: SwapHandlerContext) {
     this.ctx = ctx;
+  }
+
+  private getScopedRoot(): ParentNode {
+    return this.ctx.getRootContainer?.() ?? document;
   }
 
   toggle(): void {
@@ -35,7 +40,7 @@ export class SwapHandler {
     }
 
     // Update button style
-    const swapBtn = document.querySelector(`[data-id="ychart-btn-swap-${this.ctx.instanceId}"]`) as HTMLElement;
+    const swapBtn = this.getScopedRoot().querySelector(`[data-id="ychart-btn-swap-${this.ctx.instanceId}"]`) as HTMLElement;
     if (swapBtn) {
       if (this.enabled) {
         swapBtn.style.background = 'var(--yc-color-accent-red)';

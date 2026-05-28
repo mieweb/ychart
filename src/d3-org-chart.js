@@ -184,7 +184,8 @@ export class OrgChart {
                         if (d.data._selectedForSwap) return '#4169E1';  // Blue for selected nodes in swap mode
                         if (d.data._selectedForExpandCollapse) return '#4169E1';  // Blue for selected nodes in expand/collapse mode
                         if (d.data._highlighted || d.data._upToTheRootHighlighted) return '#E27396';
-                        return getComputedStyle(document.documentElement).getPropertyValue('--yc-color-primary').trim() || '#667eea';
+                        const chartRoot = this.closest?.('.ychart-container') || document.documentElement;
+                        return getComputedStyle(chartRoot).getPropertyValue('--yc-color-primary').trim() || '#667eea';
                     })
                     .attr("stroke-width", d => {
                         if (d.data._selectedForSwap) return 8;

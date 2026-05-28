@@ -77,6 +77,9 @@ class YChartEditor {
   private supervisorFields: string[] = ['supervisor', 'reports', 'reports_to', 'manager', 'leader', 'parent'];
   private nameField: string = 'name';
   private nodeHeightSync: NodeHeightSyncService | null = null;
+  private chartResizeObserver: ResizeObserver | null = null;
+  private chartResizeFrame: number | null = null;
+  private lastChartSize = { width: 0, height: 0 };
   // Current merged options (defaultOptions + YAML options)
   private currentOptions: YChartOptions = {};
   // Truth data (complete YAML data)
@@ -197,6 +200,7 @@ class YChartEditor {
       instanceId: this.instanceId,
       getEditor: () => this.editor,
       getOrgChart: () => this.orgChart,
+      getRootContainer: () => this.viewContainer,
       parseFrontMatter: (content: string) => this.parseFrontMatter(content),
       setIsUpdatingProgrammatically: (value: boolean) => { this.isUpdatingProgrammatically = value; },
     });
@@ -212,6 +216,7 @@ class YChartEditor {
     this.detailsPanel = layout.detailsPanel;
     this.editorContainer = layout.editorContainer;
     this.errorBanner = layout.errorBanner;
+    this.initializeChartResizeObserver();
 
     // Create toolbar
     this.columnAdjustManager = new ColumnAdjustManager({
@@ -295,7 +300,7 @@ class YChartEditor {
     }
 
     // Update the toggle view button icon and tooltip
-    const toggleBtn = document.querySelector(`[data-id="ychart-btn-toggleView-${this.instanceId}"]`) as HTMLElement;
+    const toggleBtn = this.viewContainer?.querySelector(`[data-id="ychart-btn-toggleView-${this.instanceId}"]`) as HTMLElement | null;
     if (toggleBtn) {
       if (this.currentView === 'hierarchy') {
         toggleBtn.innerHTML = toolbarIcons.forceGraph;
@@ -442,6 +447,8 @@ class YChartEditor {
       if (this.forceGraph) {
         this.forceGraph.stop();
         this.forceGraph = null;
+        this.orgChart = null;
+        this.chartContainer?.replaceChildren();
       }
 
       if (!this.editor) return;
@@ -484,8 +491,10 @@ class YChartEditor {
         this.orgChart = new OrgChart();
       }
 
+      if (!this.chartContainer) return;
+
       this.orgChart
-        .container(`#ychart-chart-${this.instanceId}`)
+        .container(this.chartContainer)
         .data(virtualData)
         .nodeHeight(() => options.nodeHeight!)
         .nodeWidth(() => options.nodeWidth!)
@@ -567,6 +576,73 @@ class YChartEditor {
     if (!this.detailsPanel) return;
     this.detailsPanel.innerHTML = renderNodeDetails(data, this.instanceId);
     this.detailsPanel.style.display = 'block';
+    this.detailsPanel.querySelector(`[data-id="ychart-node-details-close-${this.instanceId}"]`)
+      ?.addEventListener('click', () => {
+        if (this.detailsPanel) {
+          this.detailsPanel.style.display = 'none';
+        }
+      });
+  }
+
+  private initializeChartResizeObserver(): void {
+    if (!this.chartContainer || typeof ResizeObserver === 'undefined') return;
+
+    this.chartResizeObserver?.disconnect();
+    const rect = this.chartContainer.getBoundingClientRect();
+    this.lastChartSize = {
+      width: Math.round(rect.width),
+      height: Math.round(rect.height),
+    };
+
+    this.chartResizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+      if (width <= 0 || height <= 0) return;
+      if (width === this.lastChartSize.width && height === this.lastChartSize.height) return;
+
+      this.lastChartSize = { width, height };
+      this.scheduleChartResize();
+    });
+
+    this.chartResizeObserver.observe(this.chartContainer);
+  }
+
+  private scheduleChartResize(): void {
+    if (this.chartResizeFrame !== null) {
+      cancelAnimationFrame(this.chartResizeFrame);
+    }
+
+    this.chartResizeFrame = requestAnimationFrame(() => {
+      this.chartResizeFrame = null;
+      this.handleChartResize();
+    });
+  }
+
+  private handleChartResize(): void {
+    if (!this.chartContainer) return;
+
+    const width = this.chartContainer.clientWidth;
+    const height = this.chartContainer.clientHeight;
+    if (width <= 0 || height <= 0) return;
+
+    if (this.currentView === 'force') {
+      this.forceGraph?.resize();
+      return;
+    }
+
+    if (!this.orgChart) return;
+
+    this.orgChart.svgWidth?.(width);
+    this.orgChart.svgHeight?.(height);
+    this.orgChart.render().fit();
+    this.orgChart.updateHtmlOverlay?.();
+
+    if (this.bgPattern) {
+      applyBackgroundPattern(this.chartContainer, this.bgPattern, this.defaultOptions.patternColor);
+    }
   }
 
           /**
@@ -638,8 +714,11 @@ class YChartEditor {
       if (this.forceGraph) {
         this.forceGraph.stop();
       }
+      this.orgChart = null;
 
-      this.forceGraph = new ForceGraph('ychart-chart', (data: any) => this.showNodeDetails(data));
+      if (!this.chartContainer) return;
+
+      this.forceGraph = new ForceGraph(this.chartContainer, (data: any) => this.showNodeDetails(data));
       this.forceGraph.render(resolvedData);
       
       this.currentView = 'force';
@@ -792,6 +871,14 @@ class YChartEditor {
     }
     if (this.forceGraph) {
       this.forceGraph.stop();
+    }
+    if (this.chartResizeFrame !== null) {
+      cancelAnimationFrame(this.chartResizeFrame);
+      this.chartResizeFrame = null;
+    }
+    if (this.chartResizeObserver) {
+      this.chartResizeObserver.disconnect();
+      this.chartResizeObserver = null;
     }
     if (this.editor) {
       this.editor.destroy();

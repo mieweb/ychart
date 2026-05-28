@@ -19,9 +19,11 @@ export class ForceGraph {
   private simulation: d3.Simulation<ForceGraphNode, ForceGraphLink> | null = null;
   private container: HTMLElement | null = null;
   private onNodeClick?: (data: any) => void;
+  private svg: d3.Selection<SVGSVGElement, unknown, null, undefined> | null = null;
+  private centerForce: d3.ForceCenter<ForceGraphNode> | null = null;
 
-  constructor(containerId: string, onNodeClick?: (data: any) => void) {
-    this.container = document.getElementById(containerId);
+  constructor(container: string | HTMLElement, onNodeClick?: (data: any) => void) {
+    this.container = typeof container === 'string' ? document.getElementById(container) : container;
     this.onNodeClick = onNodeClick;
   }
 
@@ -70,6 +72,7 @@ export class ForceGraph {
       .attr('width', width)
       .attr('height', height)
       .style('background', 'linear-gradient(to bottom, var(--yc-color-gray-50) 0%, var(--yc-color-gray-200) 100%)');
+    this.svg = svg;
 
     // Add zoom behavior
     const g = svg.append('g');
@@ -83,12 +86,14 @@ export class ForceGraph {
     svg.call(zoom);
 
     // Create force simulation
+    this.centerForce = d3.forceCenter<ForceGraphNode>(width / 2, height / 2);
+
     this.simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink<ForceGraphNode, ForceGraphLink>(links)
         .id((d: ForceGraphNode) => d.id)
         .distance(150))
       .force('charge', d3.forceManyBody().strength(-300))
-      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('center', this.centerForce)
       .force('collision', d3.forceCollide().radius(60));
 
     // Create links
@@ -178,10 +183,24 @@ export class ForceGraph {
     return this.simulation?.nodes() ?? [];
   }
 
+  resize(): void {
+    if (!this.container || !this.svg) return;
+
+    const width = this.container.clientWidth;
+    const height = this.container.clientHeight;
+    if (width <= 0 || height <= 0) return;
+
+    this.svg.attr('width', width).attr('height', height);
+    this.centerForce?.x(width / 2).y(height / 2);
+    this.simulation?.alpha(0.2).restart();
+  }
+
   stop() {
     if (this.simulation) {
       this.simulation.stop();
       this.simulation = null;
     }
+    this.svg = null;
+    this.centerForce = null;
   }
 }

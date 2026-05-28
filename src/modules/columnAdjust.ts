@@ -21,13 +21,17 @@ export class ColumnAdjustManager {
     return this.columnAdjustMode;
   }
 
+  private getScopedRoot(): ParentNode {
+    return this.ctx.getChartContainer()?.closest('.ychart-container') ?? document;
+  }
+
   toggle(): void {
     const orgChart = this.ctx.getOrgChart();
     if (!orgChart) return;
 
     this.columnAdjustMode = !this.columnAdjustMode;
 
-    const columnAdjustBtn = document.querySelector(
+    const columnAdjustBtn = this.getScopedRoot().querySelector(
       `[data-id="ychart-btn-columnAdjust-${this.ctx.instanceId}"]`
     ) as HTMLElement;
     if (columnAdjustBtn) {
