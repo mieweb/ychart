@@ -1,7 +1,7 @@
 import { defineConfig, Plugin } from 'vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import { execSync } from 'child_process';
-import { watch, readFileSync } from 'fs';
+import { watch } from 'fs';
 import { resolve } from 'path';
 
 const getGitInfo = () => {
@@ -87,53 +87,8 @@ export const repoUrl = ${JSON.stringify(info.repoUrl)};`;
   };
 }
 
-// Plugin to inline CSS into JS bundle
-function inlineCssPlugin(): Plugin {
-  return {
-    name: 'inline-css',
-    apply: 'build',
-    enforce: 'post',
-    generateBundle(options, bundle) {
-      // Find the CSS file
-      const cssFileName = Object.keys(bundle).find(name => name.endsWith('.css'));
-      const jsFileName = Object.keys(bundle).find(name => name.endsWith('.js'));
-      
-      if (cssFileName && jsFileName) {
-        const cssAsset = bundle[cssFileName];
-        const jsChunk = bundle[jsFileName];
-        
-        if (cssAsset && 'source' in cssAsset && jsChunk && 'code' in jsChunk) {
-          // Inject CSS synchronously at the very beginning of script execution
-          // Uses document.write for synchronous injection (only runs during initial page load)
-          // Falls back to createElement for async script loading
-          const cssInjectionCode = `
-(function() {
-  if (typeof document !== 'undefined') {
-    var css = ${JSON.stringify(cssAsset.source)};
-    var id = 'ychart-editor-styles';
-    // Skip if already loaded (e.g., via separate CSS file)
-    if (document.getElementById(id)) return;
-    var style = document.createElement('style');
-    style.id = id;
-    style.textContent = css;
-    // Insert at the beginning of head for highest priority
-    var head = document.head || document.getElementsByTagName('head')[0];
-    head.insertBefore(style, head.firstChild);
-  }
-})();
-
-`;
-          jsChunk.code = cssInjectionCode + jsChunk.code;
-          
-          // Keep the CSS file for users who want separate loading (recommended for no FOUC)
-        }
-      }
-    }
-  };
-}
-
 export default defineConfig(({ mode }) => {
-  const plugins: Plugin[] = [gitInfoPlugin(), inlineCssPlugin()];
+  const plugins: Plugin[] = [gitInfoPlugin()];
   if (mode === 'https') {
     plugins.push(basicSsl());
   }
@@ -154,13 +109,6 @@ export default defineConfig(({ mode }) => {
       host: 'localhost',
       port: 5173
     },
-    resolve: {
-      dedupe: ['react', 'react-dom', 'react/jsx-runtime']
-    },
-    esbuild: {
-      jsx: 'automatic',
-      jsxImportSource: 'react'
-    },
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
       'process.env': JSON.stringify({})
@@ -171,6 +119,7 @@ export default defineConfig(({ mode }) => {
         entry: 'src/ychartEditor.ts',
         name: 'YChartEditor',
         fileName: () => 'ychart-editor.js',
+        cssFileName: 'ychart-editor',
         formats: ['iife']
       },
       minify: false,

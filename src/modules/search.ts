@@ -835,7 +835,7 @@ private createFilterRow(container: HTMLElement): HTMLElement {
       align-items: center;
     `;
 
-    // Field selector dropdown (React @mieweb/ui Select)
+    // Field selector dropdown
     const fieldSelectContainer = document.createElement('div');
     fieldSelectContainer.setAttribute('data-id', 'filter-field-select');
     fieldSelectContainer.style.cssText = `min-width: 120px;`;
