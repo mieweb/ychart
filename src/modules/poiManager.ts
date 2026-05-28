@@ -33,6 +33,7 @@ export class POIManager {
   supervisorChainExpanded: boolean = false;
   initialSelf: string | number | null = null;
   selfApplied: boolean = false;
+  private centerPersonOfInterest: boolean = true;
 
   // DOM references
   private poiSelector: HTMLElement | null = null;
@@ -209,6 +210,7 @@ export class POIManager {
     this.personOfInterest = null;
     this.expandedSiblings.clear();
     this.supervisorChainExpanded = false;
+    this.centerPersonOfInterest = false;
 
     this.updatePOISelector(this.ctx.getTruthData());
     this.ctx.renderChart();
@@ -224,6 +226,7 @@ export class POIManager {
       this.personOfInterest = null;
       this.expandedSiblings.clear();
       this.supervisorChainExpanded = false;
+      this.centerPersonOfInterest = false;
       this.ctx.renderChart();
       this.updateResetButtonAnimation();
       return;
@@ -236,6 +239,7 @@ export class POIManager {
     this.expandedSiblings.clear();
     this.expandedSiblings.add(String(person.id));
     this.supervisorChainExpanded = false;
+    this.centerPersonOfInterest = true;
     this.ctx.renderChart();
     this.updateResetButtonAnimation();
 
@@ -292,6 +296,25 @@ export class POIManager {
     }
   }
 
+  /** Apply initial self before the first render so the chart does not visibly reflow into POI mode. */
+  applyInitialSelfBeforeRender(): void {
+    if (this.selfApplied || this.initialSelf === null) return;
+    this.selfApplied = true;
+
+    const personId = this.resolveSelfToPersonId(this.initialSelf);
+    if (!personId) return;
+
+    const person = this.ctx.getTruthData().find((item: any) => String(item.id) === personId);
+    if (!person) return;
+
+    this.personOfInterest = person;
+    this.expandedSiblings.clear();
+    this.expandedSiblings.add(String(person.id));
+    this.supervisorChainExpanded = false;
+    this.centerPersonOfInterest = false;
+    this.updateResetButtonAnimation();
+  }
+
   // ── POI data delegation (thin wrappers) ──
 
   buildVirtualData(data: any[]): any[] {
@@ -326,6 +349,7 @@ export class POIManager {
       truthData: this.ctx.getTruthData(),
       expandedSiblings: this.expandedSiblings,
       supervisorChainExpanded: this.supervisorChainExpanded,
+      centerPersonOfInterest: this.centerPersonOfInterest,
     };
   }
 

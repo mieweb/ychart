@@ -90,12 +90,15 @@ export class RenderPipeline {
       // Store truth data (complete YAML) for POI filtering comparisons
       this.truthData = resolvedData;
 
+      poiManager.applyInitialSelfBeforeRender();
+
       // Update POI selector with all people from truth data
       poiManager.updatePOISelector(resolvedData);
 
       // Build virtual data list - filters based on POI and expanded siblings
       const virtualData = poiManager.buildVirtualData(resolvedData);
 
+      const isInitialHierarchyRender = !this.orgChart;
       if (!this.orgChart) {
         this.orgChart = new OrgChart();
       }
@@ -141,7 +144,7 @@ export class RenderPipeline {
       // Fit to container bounds after render completes
       setTimeout(() => {
         if (this.orgChart && chartContainer) {
-          this.orgChart.fit();
+          this.orgChart.fit({ animate: !isInitialHierarchyRender });
 
           // Reapply pattern after fit to ensure it persists
           const currentBgPattern = this.ctx.getBgPattern();

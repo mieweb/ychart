@@ -8,6 +8,7 @@ export interface POIState {
   truthData: any[];
   expandedSiblings: Set<string>;
   supervisorChainExpanded: boolean;
+  centerPersonOfInterest?: boolean;
 }
 
 /**
@@ -172,7 +173,9 @@ export function buildVirtualData(data: any[], state: POIState): any[] {
 
   const poiNodeFiltered = filteredData.find(item => item.id === poiId);
   if (poiNodeFiltered) {
-    poiNodeFiltered._centered = true;
+    if (state.centerPersonOfInterest !== false) {
+      poiNodeFiltered._centered = true;
+    }
     poiNodeFiltered._expanded = true;
   }
 

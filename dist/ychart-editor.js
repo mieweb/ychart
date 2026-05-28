@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.5
+ * YChart Editor Build Version: v1.2.6
  * ========================================
  */
 var YChartEditor = (function() {
@@ -34226,7 +34226,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.5";
+  const YCHART_VERSION = "1.2.6";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -40239,7 +40239,9 @@ ${formattedData.trim()}
     });
     const poiNodeFiltered = filteredData.find((item) => item.id === poiId);
     if (poiNodeFiltered) {
-      poiNodeFiltered._centered = true;
+      if (state.centerPersonOfInterest !== false) {
+        poiNodeFiltered._centered = true;
+      }
       poiNodeFiltered._expanded = true;
     }
     return filteredData;
@@ -40340,6 +40342,7 @@ ${formattedData.trim()}
       __publicField(this, "supervisorChainExpanded", false);
       __publicField(this, "initialSelf", null);
       __publicField(this, "selfApplied", false);
+      __publicField(this, "centerPersonOfInterest", true);
       // DOM references
       __publicField(this, "poiSelector", null);
       __publicField(this, "poiClearBtn", null);
@@ -40491,6 +40494,7 @@ ${formattedData.trim()}
       this.personOfInterest = null;
       this.expandedSiblings.clear();
       this.supervisorChainExpanded = false;
+      this.centerPersonOfInterest = false;
       this.updatePOISelector(this.ctx.getTruthData());
       this.ctx.renderChart();
       const orgChart = this.ctx.getOrgChart();
@@ -40503,6 +40507,7 @@ ${formattedData.trim()}
         this.personOfInterest = null;
         this.expandedSiblings.clear();
         this.supervisorChainExpanded = false;
+        this.centerPersonOfInterest = false;
         this.ctx.renderChart();
         this.updateResetButtonAnimation();
         return;
@@ -40513,6 +40518,7 @@ ${formattedData.trim()}
       this.expandedSiblings.clear();
       this.expandedSiblings.add(String(person.id));
       this.supervisorChainExpanded = false;
+      this.centerPersonOfInterest = true;
       this.ctx.renderChart();
       this.updateResetButtonAnimation();
       setTimeout(() => {
@@ -40557,6 +40563,21 @@ ${formattedData.trim()}
         setTimeout(() => this.setPersonOfInterest(personId), 200);
       }
     }
+    /** Apply initial self before the first render so the chart does not visibly reflow into POI mode. */
+    applyInitialSelfBeforeRender() {
+      if (this.selfApplied || this.initialSelf === null) return;
+      this.selfApplied = true;
+      const personId = this.resolveSelfToPersonId(this.initialSelf);
+      if (!personId) return;
+      const person = this.ctx.getTruthData().find((item) => String(item.id) === personId);
+      if (!person) return;
+      this.personOfInterest = person;
+      this.expandedSiblings.clear();
+      this.expandedSiblings.add(String(person.id));
+      this.supervisorChainExpanded = false;
+      this.centerPersonOfInterest = false;
+      this.updateResetButtonAnimation();
+    }
     // ── POI data delegation (thin wrappers) ──
     buildVirtualData(data) {
       return buildVirtualData(data, this.getState());
@@ -40582,7 +40603,8 @@ ${formattedData.trim()}
         personOfInterest: this.personOfInterest,
         truthData: this.ctx.getTruthData(),
         expandedSiblings: this.expandedSiblings,
-        supervisorChainExpanded: this.supervisorChainExpanded
+        supervisorChainExpanded: this.supervisorChainExpanded,
+        centerPersonOfInterest: this.centerPersonOfInterest
       };
     }
     updateResetButtonAnimation() {
@@ -42217,8 +42239,10 @@ ${newYamlData}`;
         }
         const resolvedData = this.resolveMissingParentIds(parsedData);
         this.truthData = resolvedData;
+        this.poiManager.applyInitialSelfBeforeRender();
         this.poiManager.updatePOISelector(resolvedData);
         const virtualData = this.poiManager.buildVirtualData(resolvedData);
+        const isInitialHierarchyRender = !this.orgChart;
         if (!this.orgChart) {
           this.orgChart = new OrgChart();
         }
@@ -42236,7 +42260,7 @@ ${newYamlData}`;
         }
         setTimeout(() => {
           if (this.orgChart && this.chartContainer) {
-            this.orgChart.fit();
+            this.orgChart.fit({ animate: !isInitialHierarchyRender });
             if (this.bgPattern) {
               applyBackgroundPattern(this.chartContainer, this.bgPattern, this.defaultOptions.patternColor);
             }
