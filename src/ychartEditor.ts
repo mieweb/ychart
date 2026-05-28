@@ -524,6 +524,11 @@ class YChartEditor {
         this.orgChart = new OrgChart();
       }
 
+      const initialRenderDuration = isInitialHierarchyRender ? this.orgChart.duration?.() : undefined;
+      if (isInitialHierarchyRender) {
+        this.orgChart.duration?.(0);
+      }
+
       if (!this.chartContainer) return;
 
       this.orgChart
@@ -550,6 +555,9 @@ class YChartEditor {
 
       if (isInitialHierarchyRender) {
         this.orgChart.fit({ animate: false });
+        if (initialRenderDuration !== undefined) {
+          this.orgChart.duration?.(initialRenderDuration);
+        }
       }
       
       // Set up pattern persistence observer (always, it will only act if bgPattern is set)

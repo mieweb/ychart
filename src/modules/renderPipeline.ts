@@ -103,6 +103,11 @@ export class RenderPipeline {
         this.orgChart = new OrgChart();
       }
 
+      const initialRenderDuration = isInitialHierarchyRender ? this.orgChart.duration?.() : undefined;
+      if (isInitialHierarchyRender) {
+        this.orgChart.duration?.(0);
+      }
+
       const columnAdjustManager = this.ctx.getColumnAdjustManager();
 
       const chartContainer = this.ctx.getChartContainer();
@@ -132,6 +137,9 @@ export class RenderPipeline {
 
       if (isInitialHierarchyRender) {
         this.orgChart.fit({ animate: false });
+        if (initialRenderDuration !== undefined) {
+          this.orgChart.duration?.(initialRenderDuration);
+        }
       }
 
       const bgPattern = this.ctx.getBgPattern();

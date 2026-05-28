@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.8
+ * YChart Editor Build Version: v1.2.9
  * ========================================
  */
 var YChartEditor = (function() {
@@ -34226,7 +34226,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.8";
+  const YCHART_VERSION = "1.2.9";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -42222,7 +42222,7 @@ ${newYamlData}`;
       return this;
     }
     renderChart() {
-      var _a2;
+      var _a2, _b, _c, _d, _e, _f, _g;
       try {
         if (this.forceGraph) {
           this.forceGraph.stop();
@@ -42253,6 +42253,10 @@ ${newYamlData}`;
         if (!this.orgChart) {
           this.orgChart = new OrgChart();
         }
+        const initialRenderDuration = isInitialHierarchyRender ? (_c = (_b = this.orgChart).duration) == null ? void 0 : _c.call(_b) : void 0;
+        if (isInitialHierarchyRender) {
+          (_e = (_d = this.orgChart).duration) == null ? void 0 : _e.call(_d, 0);
+        }
         if (!this.chartContainer) return;
         this.orgChart.container(this.chartContainer).data(virtualData).nodeHeight(() => options.nodeHeight).nodeWidth(() => options.nodeWidth).childrenMargin(() => options.childrenMargin).compactMarginBetween(() => options.compactMarginBetween).compactMarginPair(() => options.compactMarginPair).neighbourMargin(() => options.neighbourMargin).onNodeClick((d, _i, _arr) => {
           if (this.columnAdjustManager.isActive) {
@@ -42263,6 +42267,9 @@ ${newYamlData}`;
         }).nodeContent((d) => this.getNodeContent(d)).render();
         if (isInitialHierarchyRender) {
           this.orgChart.fit({ animate: false });
+          if (initialRenderDuration !== void 0) {
+            (_g = (_f = this.orgChart).duration) == null ? void 0 : _g.call(_f, initialRenderDuration);
+          }
         }
         setupPatternPersistence(this.chartContainer, () => this.bgPattern, this.defaultOptions.patternColor);
         if (this.bgPattern) {
