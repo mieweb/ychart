@@ -5,8 +5,4 @@ overrides:
   '@codemirror/lint': 6.9.5
   '@codemirror/view': 6.41.0
 
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - esbuild
-
 dangerouslyAllowAllBuilds: true

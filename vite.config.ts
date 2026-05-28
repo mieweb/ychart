@@ -1,7 +1,7 @@
 import { defineConfig, Plugin } from 'vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import { execSync } from 'child_process';
-import { watch } from 'fs';
+import { copyFileSync, existsSync, watch } from 'fs';
 import { resolve } from 'path';
 
 const getGitInfo = () => {
@@ -87,8 +87,23 @@ export const repoUrl = ${JSON.stringify(info.repoUrl)};`;
   };
 }
 
+function legacyCssAliasPlugin(): Plugin {
+  return {
+    name: 'legacy-css-alias',
+    closeBundle() {
+      const outputDir = resolve(process.cwd(), 'dist');
+      const source = resolve(outputDir, 'ychart-editor.css');
+      const target = resolve(outputDir, 'ychart.css');
+
+      if (existsSync(source)) {
+        copyFileSync(source, target);
+      }
+    }
+  };
+}
+
 export default defineConfig(({ mode }) => {
-  const plugins: Plugin[] = [gitInfoPlugin()];
+  const plugins: Plugin[] = [gitInfoPlugin(), legacyCssAliasPlugin()];
   if (mode === 'https') {
     plugins.push(basicSsl());
   }
