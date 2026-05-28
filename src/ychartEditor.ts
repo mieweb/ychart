@@ -151,6 +151,7 @@ class YChartEditor {
   private chartResizeObserver: ResizeObserver | null = null;
   private chartResizeFrame: number | null = null;
   private lastChartSize = { width: 0, height: 0 };
+  private initialRenderPending = false;
   // Current merged options (defaultOptions + YAML options)
   private currentOptions: YChartOptions = {};
   // Truth data (complete YAML data)
@@ -220,6 +221,7 @@ class YChartEditor {
 
     const renderInitialChart = (): void => {
       this.renderChart();
+      this.initialRenderPending = false;
 
       // eslint-disable-next-line no-console -- Intentional: Display version on successful init
       console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? ' (Shadow DOM)' : ''}`, 'color: #667eea; font-weight: bold;', 'color: inherit;');
@@ -227,6 +229,7 @@ class YChartEditor {
 
     const stylesheet = ensureYChartStylesheet();
     if (stylesheet.pending) {
+      this.initialRenderPending = true;
       const initialVisibility = this.viewContainer.style.visibility;
       this.viewContainer.style.visibility = 'hidden';
       stylesheet.ready.then(() => {
@@ -838,6 +841,10 @@ class YChartEditor {
    */
   bgPatternStyle(style: 'dotted' | 'dashed'): this {
     this.bgPattern = style;
+    if (this.initialRenderPending) {
+      return this;
+    }
+
     this.renderChart(true);
     return this;
   }
@@ -873,7 +880,7 @@ class YChartEditor {
     this.customTemplate = templateFn;
     
     // Re-render chart with new template if already initialized
-    if (this.orgChart) {
+    if (this.orgChart && !this.initialRenderPending) {
       this.renderChart(true);
     }
     

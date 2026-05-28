@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.12
+ * YChart Editor Build Version: v1.2.13
  * ========================================
  */
 var YChartEditor = (function() {
@@ -34231,7 +34231,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.12";
+  const YCHART_VERSION = "1.2.13";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -41963,6 +41963,7 @@ ${newYamlData}`;
       __publicField(this, "chartResizeObserver", null);
       __publicField(this, "chartResizeFrame", null);
       __publicField(this, "lastChartSize", { width: 0, height: 0 });
+      __publicField(this, "initialRenderPending", false);
       // Current merged options (defaultOptions + YAML options)
       __publicField(this, "currentOptions", {});
       // Truth data (complete YAML data)
@@ -42008,10 +42009,12 @@ ${newYamlData}`;
       this.sidebarManager.collapse(true);
       const renderInitialChart = () => {
         this.renderChart();
+        this.initialRenderPending = false;
         console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? " (Shadow DOM)" : ""}`, "color: #667eea; font-weight: bold;", "color: inherit;");
       };
       const stylesheet = ensureYChartStylesheet();
       if (stylesheet.pending) {
+        this.initialRenderPending = true;
         const initialVisibility = this.viewContainer.style.visibility;
         this.viewContainer.style.visibility = "hidden";
         stylesheet.ready.then(() => {
@@ -42487,6 +42490,9 @@ ${newYamlData}`;
      */
     bgPatternStyle(style) {
       this.bgPattern = style;
+      if (this.initialRenderPending) {
+        return this;
+      }
       this.renderChart(true);
       return this;
     }
@@ -42512,7 +42518,7 @@ ${newYamlData}`;
      */
     template(templateFn) {
       this.customTemplate = templateFn;
-      if (this.orgChart) {
+      if (this.orgChart && !this.initialRenderPending) {
         this.renderChart(true);
       }
       return this;
