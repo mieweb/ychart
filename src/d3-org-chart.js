@@ -2087,14 +2087,22 @@ export class OrgChart {
         identity = identity.scale(params.scale ? scaleVal : lastTransform.k)
 
         identity = identity.translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
-        // Transition zoom wrapper component into specified bounds
-        svg.transition().duration(params.animate ? duration : 0).call(zoomBehavior.transform, identity);
-        centerG.transition().duration(params.animate ? duration : 0).attr('transform', 'translate(0,0)')
-            .on('end', function () {
-                if (params.onCompleted) {
-                    params.onCompleted()
-                }
-            })
+        if (params.animate && duration > 0) {
+            // Transition zoom wrapper component into specified bounds
+            svg.transition().duration(duration).call(zoomBehavior.transform, identity);
+            centerG.transition().duration(duration).attr('transform', 'translate(0,0)')
+                .on('end', function () {
+                    if (params.onCompleted) {
+                        params.onCompleted()
+                    }
+                })
+        } else {
+            svg.call(zoomBehavior.transform, identity);
+            centerG.attr('transform', 'translate(0,0)');
+            if (params.onCompleted) {
+                params.onCompleted();
+            }
+        }
     }
 
     fit({ animate = true, nodes, scale = true, onCompleted = () => { } } = {}) {

@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.13
+ * YChart Editor Build Version: v1.2.14
  * ========================================
  */
 var YChartEditor = (function() {
@@ -33804,12 +33804,20 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       let identity2 = d3.zoomIdentity.translate(w / 2, h / 2);
       identity2 = identity2.scale(params.scale ? scaleVal : lastTransform.k);
       identity2 = identity2.translate(-(x0 + x1) / 2, -(y0 + y1) / 2);
-      svg2.transition().duration(params.animate ? duration : 0).call(zoomBehavior.transform, identity2);
-      centerG.transition().duration(params.animate ? duration : 0).attr("transform", "translate(0,0)").on("end", function() {
+      if (params.animate && duration > 0) {
+        svg2.transition().duration(duration).call(zoomBehavior.transform, identity2);
+        centerG.transition().duration(duration).attr("transform", "translate(0,0)").on("end", function() {
+          if (params.onCompleted) {
+            params.onCompleted();
+          }
+        });
+      } else {
+        svg2.call(zoomBehavior.transform, identity2);
+        centerG.attr("transform", "translate(0,0)");
         if (params.onCompleted) {
           params.onCompleted();
         }
-      });
+      }
     }
     fit({ animate = true, nodes, scale = true, onCompleted = () => {
     } } = {}) {
@@ -34231,7 +34239,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.13";
+  const YCHART_VERSION = "1.2.14";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
