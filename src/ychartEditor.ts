@@ -43,16 +43,53 @@ import {
 } from './modules';
 import type { YChartOptions, SchemaDefinition, CardElement, FrontMatter, NodeCoordinates } from './modules';
 
-function ensureYChartStylesheet(): void {
-  if (typeof document === 'undefined') {
-    return;
+interface StylesheetReadyState {
+  ready: Promise<void>;
+  pending: boolean;
+}
+
+function isStylesheetLoaded(stylesheet: HTMLLinkElement): boolean {
+  if (stylesheet.dataset.ychartStylesheetLoaded === 'true') {
+    return true;
   }
 
-  const hasYChartStylesheet = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="stylesheet"]'))
-    .some((link) => /\/ychart(?:-editor)?\.css(?:$|[?#])/.test(link.href));
+  return stylesheet.sheet !== null;
+}
 
-  if (hasYChartStylesheet) {
-    return;
+function waitForStylesheet(stylesheet: HTMLLinkElement): StylesheetReadyState {
+  if (isStylesheetLoaded(stylesheet)) {
+    return { ready: Promise.resolve(), pending: false };
+  }
+
+  const ready = new Promise<void>((resolve) => {
+    let settled = false;
+    const finish = (): void => {
+      if (settled) return;
+      settled = true;
+      stylesheet.dataset.ychartStylesheetLoaded = 'true';
+      stylesheet.removeEventListener('load', finish);
+      stylesheet.removeEventListener('error', finish);
+      resolve();
+    };
+
+    stylesheet.addEventListener('load', finish);
+    stylesheet.addEventListener('error', finish);
+    window.setTimeout(finish, 2000);
+  });
+
+  return { ready, pending: true };
+}
+
+function ensureYChartStylesheet(): StylesheetReadyState {
+  if (typeof document === 'undefined') {
+    return { ready: Promise.resolve(), pending: false };
+  }
+
+  const existingStylesheet = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="stylesheet"]'))
+    .find((link) => /\/ychart(?:-editor)?\.css(?:$|[?#])/.test(link.href));
+
+  if (existingStylesheet) {
+    return waitForStylesheet(existingStylesheet);
   }
 
   const currentScript = document.currentScript instanceof HTMLScriptElement
@@ -60,7 +97,7 @@ function ensureYChartStylesheet(): void {
     : Array.from(document.scripts).find((script) => /\/ychart-editor\.js(?:$|[?#])/.test(script.src));
 
   if (!currentScript?.src) {
-    return;
+    return { ready: Promise.resolve(), pending: false };
   }
 
   const stylesheetUrl = new URL(currentScript.src, document.baseURI);
@@ -71,6 +108,8 @@ function ensureYChartStylesheet(): void {
   stylesheet.href = stylesheetUrl.toString();
   stylesheet.dataset.ychartStylesheet = 'auto';
   document.head.appendChild(stylesheet);
+
+  return waitForStylesheet(stylesheet);
 }
 
 ensureYChartStylesheet();
@@ -178,12 +217,26 @@ class YChartEditor {
 
     // Start collapsed before the first render so chart dimensions are measured once.
     this.sidebarManager.collapse(true);
-    
-    // Render initial chart
-    this.renderChart();
 
-    // eslint-disable-next-line no-console -- Intentional: Display version on successful init
-    console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? ' (Shadow DOM)' : ''}`, 'color: #667eea; font-weight: bold;', 'color: inherit;');
+    const renderInitialChart = (): void => {
+      this.renderChart();
+
+      // eslint-disable-next-line no-console -- Intentional: Display version on successful init
+      console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? ' (Shadow DOM)' : ''}`, 'color: #667eea; font-weight: bold;', 'color: inherit;');
+    };
+
+    const stylesheet = ensureYChartStylesheet();
+    if (stylesheet.pending) {
+      const initialVisibility = this.viewContainer.style.visibility;
+      this.viewContainer.style.visibility = 'hidden';
+      stylesheet.ready.then(() => {
+        if (!this.viewContainer) return;
+        this.viewContainer.style.visibility = initialVisibility;
+        renderInitialChart();
+      });
+    } else {
+      renderInitialChart();
+    }
 
     return this;
   

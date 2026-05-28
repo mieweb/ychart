@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.9
+ * YChart Editor Build Version: v1.2.10
  * ========================================
  */
 var YChartEditor = (function() {
@@ -34226,7 +34226,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.9";
+  const YCHART_VERSION = "1.2.10";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -41874,17 +41874,43 @@ ${newYamlData}`;
       return this.enabled && this.shadowRoot !== null;
     }
   }
+  function isStylesheetLoaded(stylesheet) {
+    if (stylesheet.dataset.ychartStylesheetLoaded === "true") {
+      return true;
+    }
+    return stylesheet.sheet !== null;
+  }
+  function waitForStylesheet(stylesheet) {
+    if (isStylesheetLoaded(stylesheet)) {
+      return { ready: Promise.resolve(), pending: false };
+    }
+    const ready = new Promise((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        stylesheet.dataset.ychartStylesheetLoaded = "true";
+        stylesheet.removeEventListener("load", finish);
+        stylesheet.removeEventListener("error", finish);
+        resolve();
+      };
+      stylesheet.addEventListener("load", finish);
+      stylesheet.addEventListener("error", finish);
+      window.setTimeout(finish, 2e3);
+    });
+    return { ready, pending: true };
+  }
   function ensureYChartStylesheet() {
     if (typeof document === "undefined") {
-      return;
+      return { ready: Promise.resolve(), pending: false };
     }
-    const hasYChartStylesheet = Array.from(document.querySelectorAll('link[rel~="stylesheet"]')).some((link2) => /\/ychart(?:-editor)?\.css(?:$|[?#])/.test(link2.href));
-    if (hasYChartStylesheet) {
-      return;
+    const existingStylesheet = Array.from(document.querySelectorAll('link[rel~="stylesheet"]')).find((link2) => /\/ychart(?:-editor)?\.css(?:$|[?#])/.test(link2.href));
+    if (existingStylesheet) {
+      return waitForStylesheet(existingStylesheet);
     }
     const currentScript = document.currentScript instanceof HTMLScriptElement ? document.currentScript : Array.from(document.scripts).find((script) => /\/ychart-editor\.js(?:$|[?#])/.test(script.src));
     if (!(currentScript == null ? void 0 : currentScript.src)) {
-      return;
+      return { ready: Promise.resolve(), pending: false };
     }
     const stylesheetUrl = new URL(currentScript.src, document.baseURI);
     stylesheetUrl.pathname = stylesheetUrl.pathname.replace(/\/[^/]*$/, "/ychart.css");
@@ -41893,6 +41919,7 @@ ${newYamlData}`;
     stylesheet.href = stylesheetUrl.toString();
     stylesheet.dataset.ychartStylesheet = "auto";
     document.head.appendChild(stylesheet);
+    return waitForStylesheet(stylesheet);
   }
   ensureYChartStylesheet();
   class YChartEditor2 {
@@ -41974,8 +42001,22 @@ ${newYamlData}`;
       this.shortcutManager.init();
       this.poiManager.setupExpandSiblingsHandlers();
       this.sidebarManager.collapse(true);
-      this.renderChart();
-      console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? " (Shadow DOM)" : ""}`, "color: #667eea; font-weight: bold;", "color: inherit;");
+      const renderInitialChart = () => {
+        this.renderChart();
+        console.log(`%cYChart Editor v${YCHART_VERSION}%c initialized successfully${this.shadowDomManager.isEnabled() ? " (Shadow DOM)" : ""}`, "color: #667eea; font-weight: bold;", "color: inherit;");
+      };
+      const stylesheet = ensureYChartStylesheet();
+      if (stylesheet.pending) {
+        const initialVisibility = this.viewContainer.style.visibility;
+        this.viewContainer.style.visibility = "hidden";
+        stylesheet.ready.then(() => {
+          if (!this.viewContainer) return;
+          this.viewContainer.style.visibility = initialVisibility;
+          renderInitialChart();
+        });
+      } else {
+        renderInitialChart();
+      }
       return this;
     }
     /**
