@@ -8,3 +8,5 @@ overrides:
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
+
+dangerouslyAllowAllBuilds: true
