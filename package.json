@@ -49,7 +49,7 @@
     "dev:https": "vite --mode https",
     "build": "tsc && vite build",
     "build:lib": "tsc && vite build --mode production",
-    "build:prod": "pnpm build && rm -rf /var/www/html/dist && mkdir -p /var/www/html/dist && cp -r dist/. /var/www/html/dist/ && COMMIT_HASH=$(git rev-parse --short HEAD) && COMMIT_FULL=$(git rev-parse HEAD) && sed -e \"s/>loading\\.\\.\\.</>$COMMIT_HASH</g\" -e \"s|href=\\\"#\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View this commit on GitHub\\\"|href=\\\"https://github.com/mieweb/ychart/commit/$COMMIT_FULL\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View commit $COMMIT_HASH on GitHub\\\"|g\" production.html > /var/www/html/index.html",
+    "build:prod": "pnpm build && sudo rm -rf /var/www/html/dist && sudo mkdir -p /var/www/html/dist && sudo cp -r dist/. /var/www/html/dist/ && COMMIT_HASH=$(git rev-parse --short HEAD) && COMMIT_FULL=$(git rev-parse HEAD) && sed -e \"s/>loading\\.\\.\\.</>$COMMIT_HASH</g\" -e \"s|href=\\\"#\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View this commit on GitHub\\\"|href=\\\"https://github.com/mieweb/ychart/commit/$COMMIT_FULL\\\" target=\\\"_blank\\\" rel=\\\"noopener noreferrer\\\" title=\\\"View commit $COMMIT_HASH on GitHub\\\"|g\" production.html | sudo tee /var/www/html/index.html > /dev/null",
     "preview": "vite preview",
     "serve:dist": "vite preview --outDir dist"
   },
@@ -81,11 +81,5 @@
     "d3-shape": "3",
     "d3-zoom": "3",
     "js-yaml": "^4.1.1"
-  },
-  "pnpm": {
-    "overrides": {
-      "@codemirror/lint": "6.9.5",
-      "@codemirror/view": "6.41.0"
-    }
   }
 }
