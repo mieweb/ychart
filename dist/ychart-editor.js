@@ -41835,6 +41835,27 @@ ${newYamlData}`;
       return this.enabled && this.shadowRoot !== null;
     }
   }
+  function ensureYChartStylesheet() {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const hasYChartStylesheet = Array.from(document.querySelectorAll('link[rel~="stylesheet"]')).some((link2) => /\/ychart(?:-editor)?\.css(?:$|[?#])/.test(link2.href));
+    if (hasYChartStylesheet) {
+      return;
+    }
+    const currentScript = document.currentScript instanceof HTMLScriptElement ? document.currentScript : Array.from(document.scripts).find((script) => /\/ychart-editor\.js(?:$|[?#])/.test(script.src));
+    if (!(currentScript == null ? void 0 : currentScript.src)) {
+      return;
+    }
+    const stylesheetUrl = new URL(currentScript.src, document.baseURI);
+    stylesheetUrl.pathname = stylesheetUrl.pathname.replace(/\/[^/]*$/, "/ychart.css");
+    const stylesheet = document.createElement("link");
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = stylesheetUrl.toString();
+    stylesheet.dataset.ychartStylesheet = "auto";
+    document.head.appendChild(stylesheet);
+  }
+  ensureYChartStylesheet();
   class YChartEditor2 {
     constructor(options) {
       __publicField(this, "viewContainer", null);

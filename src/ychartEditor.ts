@@ -43,6 +43,38 @@ import {
 } from './modules';
 import type { YChartOptions, SchemaDefinition, CardElement, FrontMatter, NodeCoordinates } from './modules';
 
+function ensureYChartStylesheet(): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const hasYChartStylesheet = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel~="stylesheet"]'))
+    .some((link) => /\/ychart(?:-editor)?\.css(?:$|[?#])/.test(link.href));
+
+  if (hasYChartStylesheet) {
+    return;
+  }
+
+  const currentScript = document.currentScript instanceof HTMLScriptElement
+    ? document.currentScript
+    : Array.from(document.scripts).find((script) => /\/ychart-editor\.js(?:$|[?#])/.test(script.src));
+
+  if (!currentScript?.src) {
+    return;
+  }
+
+  const stylesheetUrl = new URL(currentScript.src, document.baseURI);
+  stylesheetUrl.pathname = stylesheetUrl.pathname.replace(/\/[^/]*$/, '/ychart.css');
+
+  const stylesheet = document.createElement('link');
+  stylesheet.rel = 'stylesheet';
+  stylesheet.href = stylesheetUrl.toString();
+  stylesheet.dataset.ychartStylesheet = 'auto';
+  document.head.appendChild(stylesheet);
+}
+
+ensureYChartStylesheet();
+
 
 class YChartEditor {
   private viewContainer: HTMLElement | null = null;
