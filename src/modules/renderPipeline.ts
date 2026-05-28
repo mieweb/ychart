@@ -130,6 +130,10 @@ export class RenderPipeline {
         .nodeContent((d: any) => this.getNodeContent(d))
         .render();
 
+      if (isInitialHierarchyRender) {
+        this.orgChart.fit({ animate: false });
+      }
+
       const bgPattern = this.ctx.getBgPattern();
 
       // Set up pattern persistence observer (always, it will only act if bgPattern is set)
@@ -144,7 +148,9 @@ export class RenderPipeline {
       // Fit to container bounds after render completes
       setTimeout(() => {
         if (this.orgChart && chartContainer) {
-          this.orgChart.fit({ animate: !isInitialHierarchyRender });
+          if (!isInitialHierarchyRender) {
+            this.orgChart.fit();
+          }
 
           // Reapply pattern after fit to ensure it persists
           const currentBgPattern = this.ctx.getBgPattern();

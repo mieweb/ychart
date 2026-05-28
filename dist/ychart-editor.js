@@ -1,6 +1,6 @@
 /*
  * ========================================
- * YChart Editor Build Version: v1.2.6
+ * YChart Editor Build Version: v1.2.7
  * ========================================
  */
 var YChartEditor = (function() {
@@ -34226,7 +34226,7 @@ var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "sy
       attrs.svg && attrs.svg.selectAll("*").remove();
     }
   }
-  const YCHART_VERSION = "1.2.6";
+  const YCHART_VERSION = "1.2.7";
   function generateUUID() {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c2) {
       const r = Math.random() * 16 | 0;
@@ -42254,13 +42254,18 @@ ${newYamlData}`;
         }).onNodeDetailsClick((d) => {
           this.showNodeDetails(d.data);
         }).nodeContent((d) => this.getNodeContent(d)).render();
+        if (isInitialHierarchyRender) {
+          this.orgChart.fit({ animate: false });
+        }
         setupPatternPersistence(this.chartContainer, () => this.bgPattern, this.defaultOptions.patternColor);
         if (this.bgPattern) {
           setTimeout(() => applyBackgroundPattern(this.chartContainer, this.bgPattern, this.defaultOptions.patternColor), 10);
         }
         setTimeout(() => {
           if (this.orgChart && this.chartContainer) {
-            this.orgChart.fit({ animate: !isInitialHierarchyRender });
+            if (!isInitialHierarchyRender) {
+              this.orgChart.fit();
+            }
             if (this.bgPattern) {
               applyBackgroundPattern(this.chartContainer, this.bgPattern, this.defaultOptions.patternColor);
             }

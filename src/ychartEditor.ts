@@ -549,6 +549,10 @@ class YChartEditor {
         })
         .nodeContent((d: any) => this.getNodeContent(d))
         .render();
+
+      if (isInitialHierarchyRender) {
+        this.orgChart.fit({ animate: false });
+      }
       
       // Set up pattern persistence observer (always, it will only act if bgPattern is set)
       setupPatternPersistence(this.chartContainer!, () => this.bgPattern, this.defaultOptions.patternColor);
@@ -562,7 +566,9 @@ class YChartEditor {
       // Fit to container bounds after render completes
       setTimeout(() => {
         if (this.orgChart && this.chartContainer) {
-          this.orgChart.fit({ animate: !isInitialHierarchyRender });
+          if (!isInitialHierarchyRender) {
+            this.orgChart.fit();
+          }
           
           // Reapply pattern after fit to ensure it persists
           if (this.bgPattern) {
