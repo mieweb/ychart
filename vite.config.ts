@@ -1,7 +1,7 @@
 import { defineConfig, Plugin } from 'vite';
 import basicSsl from '@vitejs/plugin-basic-ssl';
 import { execSync } from 'child_process';
-import { copyFileSync, existsSync, watch } from 'fs';
+import { copyFileSync, existsSync, readFileSync, writeFileSync, watch } from 'fs';
 import { resolve } from 'path';
 
 const getGitInfo = () => {
@@ -22,6 +22,15 @@ const getGitInfo = () => {
     return { commitHash, commitHashFull, repoUrl };
   } catch {
     return { commitHash: 'unknown', commitHashFull: 'unknown', repoUrl: '' };
+  }
+};
+
+const getPackageVersion = () => {
+  try {
+    const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf-8')) as { version?: string };
+    return packageJson.version || 'unknown';
+  } catch {
+    return 'unknown';
   }
 };
 
@@ -102,8 +111,28 @@ function legacyCssAliasPlugin(): Plugin {
   };
 }
 
+function buildVersionBannerPlugin(version: string): Plugin {
+  const banner = `/*\n * ========================================\n * YChart Editor Build Version: v${version}\n * ========================================\n */\n`;
+
+  return {
+    name: 'build-version-banner',
+    closeBundle() {
+      const bundlePath = resolve(process.cwd(), 'dist', 'ychart-editor.js');
+
+      if (!existsSync(bundlePath)) {
+        return;
+      }
+
+      const bundle = readFileSync(bundlePath, 'utf-8');
+      const withoutPreviousBanner = bundle.replace(/^\/\*\n \* ={40}\n \* YChart Editor Build Version: v[^\n]+\n \* ={40}\n \*\/\n/, '');
+      writeFileSync(bundlePath, `${banner}${withoutPreviousBanner}`);
+    }
+  };
+}
+
 export default defineConfig(({ mode }) => {
-  const plugins: Plugin[] = [gitInfoPlugin(), legacyCssAliasPlugin()];
+  const packageVersion = getPackageVersion();
+  const plugins: Plugin[] = [gitInfoPlugin(), legacyCssAliasPlugin(), buildVersionBannerPlugin(packageVersion)];
   if (mode === 'https') {
     plugins.push(basicSsl());
   }

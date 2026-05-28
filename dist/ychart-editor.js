@@ -1,3 +1,8 @@
+/*
+ * ========================================
+ * YChart Editor Build Version: v1.2.3
+ * ========================================
+ */
 var YChartEditor = (function() {
   "use strict";var __defProp = Object.defineProperty;
 var __defProps = Object.defineProperties;
