@@ -154,6 +154,7 @@ export default defineConfig(({ mode }) => {
       port: 5173
     },
     define: {
+      __YCHART_VERSION__: JSON.stringify(packageVersion),
       'process.env.NODE_ENV': JSON.stringify('production'),
       'process.env': JSON.stringify({})
     },

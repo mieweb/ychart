@@ -1,5 +1,7 @@
 // Version constant - DO NOT REMOVE
-export const YCHART_VERSION = '1.0.8';
+declare const __YCHART_VERSION__: string;
+
+export const YCHART_VERSION = __YCHART_VERSION__;
 
 export interface YChartOptions {
   nodeWidth?: number;
